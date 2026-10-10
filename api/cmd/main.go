@@ -2,7 +2,9 @@ package main
 
 import (
 	"e-commerce/adapters/database/mysql"
+	"e-commerce/adapters/router"
 	"e-commerce/config"
+	
 )
 
 func init() {
@@ -12,5 +14,6 @@ func init() {
 
 func main() {
 
-	
+ 	r := router.NewGinRouter()
+	r.Run(config.ApiPort)
 }

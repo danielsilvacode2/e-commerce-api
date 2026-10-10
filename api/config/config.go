@@ -18,6 +18,7 @@ API_PORT=:5000
 */
 
 var DbUrl string
+var ApiPort string
 
 func LoadConfig(){
 	
@@ -30,6 +31,7 @@ func LoadConfig(){
 	dbName := os.Getenv("DB_NAME")
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
+	ApiPort = os.Getenv("API_PORT")
 	
 	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
 		dbUser,
