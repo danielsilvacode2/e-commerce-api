@@ -4,6 +4,7 @@ import (
 	"e-commerce/adapters/controller/apperrors"
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/user/dto"
+	"e-commerce/adapters/controller/user/mapper"
 	"e-commerce/core/entities/user"
 	usecase "e-commerce/core/use_cases/user"
 	"net/http"
@@ -21,37 +22,39 @@ func NewUserController(repository entities.UserInterface) *UserController {
 	}
 }
 
+//CreateUser registra um usuario na api
 func (userCtrl *UserController) CreateUser(c *gin.Context) {
 
-	var userDto dto.UserRequestDTO
+	var userRequestDto dto.UserRequestDTO
 
-	if err := c.ShouldBindJSON(&userDto); err != nil {
+	if err := c.ShouldBindJSON(&userRequestDto); err != nil {
 		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
 		return
 	}
 
-	if listErrValidator := userDto.Validator(); listErrValidator != nil {
+	if listErrValidator := userRequestDto.Validator(); listErrValidator != nil {
 		helpers.HelperErrResponse(listErrValidator, c, apperrors.ErrInvalidInput)
 		return
 	}
 
-	user := entities.User{
-		Name:     userDto.Name,
-		Email:    userDto.Email,
-		Password: userDto.Password,
-	}
+	potentialUser :=  mapper.DtoRequestToUser(userRequestDto)
 
-	if err := usecase.CreateUser(user, userCtrl.repository); err != nil {
+	 user , err := usecase.CreateUser(potentialUser, userCtrl.repository); 
+	 
+	 if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"mensagem":         "usuario criado com sucesso",
-		"dados do usuario": userDto,
-	})
+	userResponseDto := mapper.UserToResponseDTO(*user)
+
+	helpers.HelperResponse(userResponseDto, http.StatusCreated, "registered user", c)
+
+
 }
 
+
+//ReadUser recebe um Id como parametro e retorna o usuario caso ele exista
 func (userCtrl *UserController) ReadUser(c *gin.Context) {
 
 	userId := c.Param("id")
@@ -63,15 +66,18 @@ func (userCtrl *UserController) ReadUser(c *gin.Context) {
 		return
 	}
 
-	userDto := dto.UserResponseDTO{
-		Id:         user.ID,
-		Name:       user.Name,
-		Email:      user.Email,
-		Role:       user.Role,
-		Update_at:  user.UpdatedAt,
-		Created_at: user.CreatedAt,
-	}
-
+	userDto := mapper.UserToResponseDTO(*user)
 	helpers.HelperResponse(userDto, http.StatusOK, "user found", c)
 
+}
+
+//DeleteUser recebe um Id como parametro e deleta o usuario
+func (userCtrl *UserController) DeleteUser(c *gin.Context) {
+	userId := c.Param("id")
+	if err := usecase.DeleteUser(userId, userCtrl.repository); err != nil {
+		helpers.HelperErrResponse(nil,c, err)
+		return
+	}
+
+	helpers.HelperResponse(nil, http.StatusNoContent, "User successfully	deleted ",c)
 }

@@ -82,5 +82,18 @@ func (r *userRepository) ReadUser(ID string) (*entities.User, error) {
 }
 
 func (r *userRepository) DeleteUser(ID string) error {
+
+	statement, err := r.db.Prepare("DELETE FROM users WHERE id = ?")
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	if _,err = statement.Exec(ID); err != nil{
+		return err
+	}
+
 	return nil
 }

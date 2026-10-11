@@ -16,6 +16,7 @@ func NewGinRouter(userController controller.UserController) *gin.Engine {
 		{
 			users.POST("", userController.CreateUser)
 			users.GET("/:id", userController.ReadUser)
+			users.DELETE("/:id", userController.DeleteUser)
 		}
 	}
 
