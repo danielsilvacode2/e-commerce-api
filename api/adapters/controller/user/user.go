@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/user/dto"
 	"e-commerce/core/entities/user"
 	usecase "e-commerce/core/use_cases/user"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserController struct {
@@ -56,10 +58,7 @@ func (userCtrl *UserController) ReadUser(c *gin.Context) {
 	user, err := usecase.ReadUser(userId, userCtrl.repository)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"mensagem": "erro ao buscar usuario",
-			"erro":     err,
-		})
+		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
@@ -72,9 +71,7 @@ func (userCtrl *UserController) ReadUser(c *gin.Context) {
 		Created_at: user.CreatedAt,
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"mensagem": "usuario encontrado",
-		"usuario":  userDto,
-	})
+	
+	helpers.HelperResponse(userDto, http.StatusOK, "user found", c)
 
 }

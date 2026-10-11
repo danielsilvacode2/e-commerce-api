@@ -15,7 +15,7 @@ func init() {
 
 func main() {
 
-	userRepository := repository.NewUserRepository(mysql.DbConnection)
+	userRepository := repository.NewUserRepository(mysql.DB_MySQL)
 	userController := controller.NewUserController(userRepository)
 
  	r := router.NewGinRouter(*userController)

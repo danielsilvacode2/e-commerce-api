@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"e-commerce/adapters/controller/apperrors"
 	entities "e-commerce/core/entities/user"
 )
 
@@ -15,7 +16,7 @@ func NewUserRepository(db *sql.DB) entities.UserInterface {
 	}
 }
 
-//CreateUser cria um usuario no banco de dados
+// CreateUser cria um usuario no banco de dados
 func (r *userRepository) CreateUser(user entities.User) error {
 
 	statement, err := r.db.Prepare("INSERT INTO users ( id, user_name, user_email, user_password, user_role) VALUES (?,?,?,?,?)")
@@ -33,7 +34,7 @@ func (r *userRepository) CreateUser(user entities.User) error {
 	return nil
 }
 
-func (r *userRepository) ReadUser(ID string) (*entities.User, error){
+func (r *userRepository) ReadUser(ID string) (*entities.User, error) {
 
 	row, err := r.db.Query("SELECT * FROM users WHERE id = ?", ID)
 
@@ -42,10 +43,15 @@ func (r *userRepository) ReadUser(ID string) (*entities.User, error){
 	}
 
 	defer row.Close()
-	
+
 	var user entities.User
 
-	row.Next()
+	if !row.Next() {
+		if err := row.Err(); err != nil {
+			return nil, err 
+		}
+		return nil, apperrors.RegisterNotFound 
+	}
 
 	err = row.Scan(
 		&user.ID,
@@ -57,13 +63,13 @@ func (r *userRepository) ReadUser(ID string) (*entities.User, error){
 		&user.CreatedAt,
 	)
 
-	if err != nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 
 	return &user, nil
 }
 
-func (r *userRepository) DeleteUser(ID string) (error){
+func (r *userRepository) DeleteUser(ID string) error {
 	return nil
 }
