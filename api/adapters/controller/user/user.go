@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"e-commerce/adapters/controller/apperrors"
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/user/dto"
 	"e-commerce/core/entities/user"
@@ -25,9 +26,12 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 	var userDto dto.UserRequestDTO
 
 	if err := c.ShouldBindJSON(&userDto); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"mensagem": "erro ao ler corpo da requisicao",
-		})
+		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	if listErrValidator := userDto.Validator(); listErrValidator != nil {
+		helpers.HelperErrResponse(listErrValidator, c, apperrors.ErrInvalidInput)
 		return
 	}
 
@@ -38,10 +42,7 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 	}
 
 	if err := usecase.CreateUser(user, userCtrl.repository); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"mensagem": "erro ao criar usuario",
-			"erro":     err,
-		})
+		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
@@ -71,7 +72,6 @@ func (userCtrl *UserController) ReadUser(c *gin.Context) {
 		Created_at: user.CreatedAt,
 	}
 
-	
 	helpers.HelperResponse(userDto, http.StatusOK, "user found", c)
 
 }

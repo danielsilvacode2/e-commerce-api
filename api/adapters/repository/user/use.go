@@ -4,6 +4,10 @@ import (
 	"database/sql"
 	"e-commerce/adapters/controller/apperrors"
 	entities "e-commerce/core/entities/user"
+	"errors"
+
+	"github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type userRepository struct {
@@ -28,6 +32,13 @@ func (r *userRepository) CreateUser(user entities.User) error {
 	defer statement.Close()
 
 	if _, err := statement.Exec(user.ID, user.Name, user.Email, user.Password, user.Role); err != nil {
+
+		var errSQL *mysql.MySQLError
+
+		if errors.As(err, &errSQL) && errSQL.Number == 1062{
+			return  apperrors.ErrConflict
+		}
+	
 		return err
 	}
 
@@ -48,9 +59,9 @@ func (r *userRepository) ReadUser(ID string) (*entities.User, error) {
 
 	if !row.Next() {
 		if err := row.Err(); err != nil {
-			return nil, err 
+			return nil, err
 		}
-		return nil, apperrors.RegisterNotFound 
+		return nil, apperrors.ErrNotFound
 	}
 
 	err = row.Scan(

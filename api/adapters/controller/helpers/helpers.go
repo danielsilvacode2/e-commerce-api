@@ -39,9 +39,16 @@ func HelperErrResponse(body interface{},  c *gin.Context, err error) {
 
 	switch err {
 		
-	case apperrors.RegisterNotFound:
+	case apperrors.ErrNotFound:
 		HelperResponse(body, http.StatusNotFound, err.Error(), c)
 		return
+	case apperrors.ErrInvalidInput:
+		HelperResponse(body, http.StatusBadRequest, err.Error(), c)
+		return
+
+	case apperrors.ErrConflict:
+		HelperResponse(body, http.StatusConflict, err.Error(), c)
+		return	
 
 	default:
 		HelperResponse(body, http.StatusInternalServerError, "Error internal", c)	

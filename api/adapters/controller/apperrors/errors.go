@@ -3,6 +3,7 @@ package apperrors
 import "errors"
 
 var (
-	RegisterNotFound = errors.New("This register not found")
-	RegisterConflict = errors.New("This register already exists")
+	ErrNotFound = errors.New("This record was not found")
+	ErrConflict = errors.New("Record already exists")
+	ErrInvalidInput = errors.New("Invalid input")
 )
