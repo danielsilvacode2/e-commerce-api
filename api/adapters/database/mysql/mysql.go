@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-var dbConnection *sql.DB
+var DbConnection *sql.DB
 
 func NewMySQLConnection() {
 
@@ -16,11 +16,9 @@ func NewMySQLConnection() {
 		log.Fatal("Error connecting to database: ", err)
 	}
 
-	defer db.Close()
-
 	if err = db.Ping(); err != nil {
 		log.Fatal("Error pinging database: ", err)
 	}
 
-	dbConnection = db
+	DbConnection = db
 }

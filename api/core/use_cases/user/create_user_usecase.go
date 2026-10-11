@@ -17,7 +17,11 @@ func CreateUser(user entities.User, userRepository entities.UserInterface) (erro
 
 	user.Password = passwordHash
 
-	err = userRepository.CreateUSer(user)
+	if user.Role == ""{
+		user.Role = "user"
+	}
+
+	err = userRepository.CreateUser(user)
 	if err != nil {
 		return err
 	}

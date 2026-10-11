@@ -8,15 +8,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-/*
-DB_USER=root
-DB_PASSWORD=minhasenha
-DB_NAME=meubanco
-DB_HOST=localhost
-DB_PORT=3306
-API_PORT=:5000
-*/
-
 var DbUrl string
 var ApiPort string
 
