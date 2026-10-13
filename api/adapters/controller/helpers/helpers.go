@@ -35,10 +35,10 @@ func HelperResponse(body interface{}, status int, msg string, c *gin.Context) {
 
 }
 
-func HelperErrResponse(body interface{},  c *gin.Context, err error) {
+func HelperErrResponse(body interface{}, c *gin.Context, err error) {
 
 	switch err {
-		
+
 	case apperrors.ErrNotFound:
 		HelperResponse(body, http.StatusNotFound, err.Error(), c)
 		return
@@ -48,12 +48,19 @@ func HelperErrResponse(body interface{},  c *gin.Context, err error) {
 
 	case apperrors.ErrConflict:
 		HelperResponse(body, http.StatusConflict, err.Error(), c)
-		return	
+		return
+
+	case apperrors.ErrForbidden:
+		HelperResponse(body, http.StatusForbidden, err.Error(), c)
+		return
+	case apperrors.ErrUnauthorized:
+		HelperResponse(body, http.StatusUnauthorized, err.Error(), c)
+		return
 
 	default:
-		HelperResponse(body, http.StatusInternalServerError, "Error internal", c)	
+		HelperResponse(body, http.StatusInternalServerError, "Error internal", c)
 		return
-	
+
 	}
 
 }

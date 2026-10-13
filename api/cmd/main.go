@@ -1,7 +1,8 @@
 package main
 
 import (
-	controller "e-commerce/adapters/controller/user"
+	controllerLogin "e-commerce/adapters/controller/login"
+	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/database"
 	repository "e-commerce/adapters/repository/user"
 	"e-commerce/adapters/router"
@@ -16,8 +17,9 @@ func init() {
 func main() {
 
 	userRepository := repository.NewUserRepository(database.DB_MySQL)
-	userController := controller.NewUserController(userRepository)
+	userController := controllerUser.NewUserController(userRepository)
+	loginController := controllerLogin.NewLoginController(userRepository)
 
-	r := router.NewGinRouter(*userController)
+	r := router.NewGinRouter(userController,loginController)
 	r.Run(config.ApiPort)
 }

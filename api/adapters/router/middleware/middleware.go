@@ -20,11 +20,11 @@ func AuthMiddleware(role string) gin.HandlerFunc {
 			return
 		}
 
-		if claims.Role != role  && claims.Role != "admin"{
-			
-				helpers.HelperErrResponse(nil, c, apperrors.ErrForbidden)
-				c.Abort()
-				return
+		if claims.Role != role && claims.Role != "admin" {
+
+			helpers.HelperErrResponse(nil, c, apperrors.ErrForbidden)
+			c.Abort()
+			return
 		}
 
 		c.Set("claims", claims)

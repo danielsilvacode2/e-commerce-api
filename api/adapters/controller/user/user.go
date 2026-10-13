@@ -54,7 +54,7 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 func (userCtrl *UserController) ReadUser(c *gin.Context) {
 	userId := c.Param("id")
 
-	user, err := usecase.ReadUser(userId, userCtrl.repository)
+	user, err := usecase.ReadUserById(userId, userCtrl.repository)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)

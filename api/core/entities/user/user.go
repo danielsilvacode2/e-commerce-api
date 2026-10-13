@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	
 )
 
 type User struct {
@@ -19,7 +18,7 @@ type User struct {
 }
 
 func (u *User) NormalizeData() {
-	
+
 	u.Name = strings.TrimSpace(u.Name)
 	u.Email = strings.TrimSpace(u.Email)
 	u.Email = strings.ToLower(u.Email)
@@ -28,7 +27,8 @@ func (u *User) NormalizeData() {
 
 type UserInterface interface {
 	CreateUser(user User) error
-	ReadUser(ID string) (*User, error)
+	ReadUserById(ID string) (*User, error)
 	DeleteUser(ID string) error
 	ReadAllUsers() ([]User, error)
+	ReadUserByEmail(email string) (*User, error)
 }

@@ -29,7 +29,7 @@ func GenerateToken(id uuid.UUID, role string) (string, error){
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	tokenString, err := token.SignedString(config.SecretKey)
+	tokenString, err := token.SignedString([]byte(config.SecretKey))
 
 	if err != nil{
 		return "", err
@@ -49,7 +49,7 @@ func ValidateToken(c *gin.Context) (*Claims, error){
 	  claims :=  &Claims{}
 	
 	token, err := jwt.ParseWithClaims(tokenString, claims,func(token *jwt.Token) (interface{}, error) {
-		return config.SecretKey, nil
+		return  []byte(config.SecretKey), nil
 	})
 
 	if err != nil {
@@ -71,9 +71,9 @@ func getToken(c *gin.Context) (string, error) {
 		return "", apperrors.ErrUnauthorized
 	}
 
-	parths := strings.Split(authHeader, "")
+	parths := strings.Split(authHeader, " ")
 
-	if len(parths) != 2 ||  parths[0] != "bearer"{
+	if len(parths) != 2 ||  parths[0] != "Bearer"{
 		return "", apperrors.ErrUnauthorized
 	}
 

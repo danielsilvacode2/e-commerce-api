@@ -46,7 +46,7 @@ func (r *userRepository) CreateUser(user entities.User) error {
 }
 
 //ReadUser retorna um usuario com base no ID
-func (r *userRepository) ReadUser(ID string) (*entities.User, error) {
+func (r *userRepository) ReadUserById(ID string) (*entities.User, error) {
 
 	row, err := r.db.Query("SELECT * FROM users WHERE id = ?", ID)
 
@@ -81,6 +81,47 @@ func (r *userRepository) ReadUser(ID string) (*entities.User, error) {
 
 	return &user, nil
 }
+
+func (r *userRepository) ReadUserByEmail(email string) (*entities.User, error) {
+
+	row, err := r.db.Query("SELECT * FROM users WHERE user_email = ?", email)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer row.Close()
+
+	var user entities.User
+
+	if !row.Next() {
+		if err := row.Err(); err != nil {
+			return nil, err
+		}
+		return nil, apperrors.ErrNotFound
+	}
+
+	err = row.Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.UpdatedAt,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+
+
+
+
 
 //ReadAllUsers retorna todos os usuarios da api
 func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
