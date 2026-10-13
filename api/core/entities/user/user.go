@@ -30,4 +30,5 @@ type UserInterface interface {
 	CreateUser(user User) error
 	ReadUser(ID string) (*User, error)
 	DeleteUser(ID string) error
+	ReadAllUsers() ([]User, error)
 }

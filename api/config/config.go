@@ -10,6 +10,7 @@ import (
 
 var DbUrl string
 var ApiPort string
+var SecretKey string
 
 func LoadConfig(){
 	
@@ -23,6 +24,7 @@ func LoadConfig(){
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 	ApiPort = os.Getenv("API_PORT")
+	SecretKey = os.Getenv("SECRET_KEY")
 	
 	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
 		dbUser,

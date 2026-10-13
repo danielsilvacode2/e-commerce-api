@@ -22,9 +22,8 @@ func NewUserController(repository entities.UserInterface) *UserController {
 	}
 }
 
-//CreateUser registra um usuario na api
+// CreateUser registra um usuario na api
 func (userCtrl *UserController) CreateUser(c *gin.Context) {
-
 	var userRequestDto dto.UserRequestDTO
 
 	if err := c.ShouldBindJSON(&userRequestDto); err != nil {
@@ -37,11 +36,11 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	potentialUser :=  mapper.DtoRequestToUser(userRequestDto)
+	potentialUser := mapper.DtoRequestToUser(userRequestDto)
 
-	 user , err := usecase.CreateUser(potentialUser, userCtrl.repository); 
-	 
-	 if err != nil {
+	user, err := usecase.CreateUser(potentialUser, userCtrl.repository)
+
+	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
@@ -49,14 +48,10 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 	userResponseDto := mapper.UserToResponseDTO(*user)
 
 	helpers.HelperResponse(userResponseDto, http.StatusCreated, "registered user", c)
-
-
 }
 
-
-//ReadUser recebe um Id como parametro e retorna o usuario caso ele exista
+// ReadUser recebe um Id como parametro e retorna o usuario caso ele exista
 func (userCtrl *UserController) ReadUser(c *gin.Context) {
-
 	userId := c.Param("id")
 
 	user, err := usecase.ReadUser(userId, userCtrl.repository)
@@ -68,16 +63,35 @@ func (userCtrl *UserController) ReadUser(c *gin.Context) {
 
 	userDto := mapper.UserToResponseDTO(*user)
 	helpers.HelperResponse(userDto, http.StatusOK, "user found", c)
-
 }
 
-//DeleteUser recebe um Id como parametro e deleta o usuario
+// DeleteUser recebe um Id como parametro e deleta o usuario
 func (userCtrl *UserController) DeleteUser(c *gin.Context) {
 	userId := c.Param("id")
 	if err := usecase.DeleteUser(userId, userCtrl.repository); err != nil {
-		helpers.HelperErrResponse(nil,c, err)
+		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
-	helpers.HelperResponse(nil, http.StatusNoContent, "User successfully	deleted ",c)
+	helpers.HelperResponse(nil, http.StatusNoContent, "user successfully deleted ", c)
+}
+
+func (userCtrl *UserController) ReadAllUsers(c *gin.Context) {
+
+	listUsers, err := usecase.ReadAllUsers(userCtrl.repository)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+	}
+
+	var listUserDTO []dto.UserResponseDTO
+
+	for _, user := range listUsers {
+	 	userDTO :=	mapper.UserToResponseDTO(user)
+		listUserDTO = append(listUserDTO, userDTO)
+	}
+
+
+	helpers.HelperResponse(listUserDTO, http.StatusOK, "list users", c)
+
 }

@@ -14,10 +14,7 @@ type UserResponseDTO struct {
 	Created_at time.Time `json:"created_at"`
 }
 
-type CampoValidate struct {
-	Field   string `json:"campo"`
-	Message string `json:"mensagem"`
-}
+
 
 
 
