@@ -1,11 +1,12 @@
 package controller
 
 import (
-	"e-commerce/adapters/controller/apperrors"
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/user/dto"
 	"e-commerce/adapters/controller/user/mapper"
+	"e-commerce/core/apperrors"
 	"e-commerce/core/entities/user"
+	"e-commerce/core/ports"
 	usecase "e-commerce/core/use_cases/user"
 	"net/http"
 
@@ -13,12 +14,14 @@ import (
 )
 
 type UserController struct {
-	repository entities.UserInterface
+	repository entities.UserRepository
+	passwordService ports.PasswordService
 }
 
-func NewUserController(repository entities.UserInterface) *UserController {
+func NewUserController(repository entities.UserRepository, passwordService ports.PasswordService) *UserController {
 	return &UserController{
 		repository: repository,
+		passwordService: passwordService,
 	}
 }
 
@@ -38,7 +41,7 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 
 	potentialUser := mapper.DtoRequestToUser(userRequestDto)
 
-	user, err := usecase.CreateUser(potentialUser, userCtrl.repository)
+	user, err := usecase.CreateUser(potentialUser, userCtrl.repository, userCtrl.passwordService)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)

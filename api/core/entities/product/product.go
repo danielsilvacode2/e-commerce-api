@@ -18,7 +18,7 @@ type Product struct {
 	UpdateAt     time.Time
 }
 
-type ProductInterface interface{
+type ProductRepository interface{
 	CreateProduct( product Product) error
 	ReadProdutById( Id string) (Product, error)
 	ReadAllProduct() ([]Product, error)

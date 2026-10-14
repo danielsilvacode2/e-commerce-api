@@ -3,7 +3,7 @@ package router
 import (
 	controllerLogin "e-commerce/adapters/controller/login"
 	controller "e-commerce/adapters/controller/user"
-	"e-commerce/adapters/router/middleware"
+	"e-commerce/adapters/server/middleware"
 
 	"github.com/gin-gonic/gin"
 )

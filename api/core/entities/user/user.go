@@ -25,7 +25,7 @@ func (u *User) NormalizeData() {
 
 }
 
-type UserInterface interface {
+type UserRepository interface {
 	CreateUser(user User) error
 	ReadUserById(ID string) (*User, error)
 	DeleteUserById(ID string) error

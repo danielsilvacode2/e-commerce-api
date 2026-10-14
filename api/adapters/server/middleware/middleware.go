@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"e-commerce/adapters/controller/apperrors"
+	"e-commerce/core/apperrors"
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/security/auth"
 

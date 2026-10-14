@@ -1,12 +1,14 @@
 package use_cases
 
 import (
-	"e-commerce/adapters/controller/apperrors"
-	"e-commerce/adapters/security"
+	"e-commerce/core/apperrors"
 	entities "e-commerce/core/entities/user"
+	"e-commerce/core/ports"
 )
 
-func LoginUseCase(email string, password string, repository entities.UserInterface) ( *entities.User ,error){
+
+
+func LoginUseCase(email string, password string, repository entities.UserRepository,passwordService ports.PasswordService) ( *entities.User ,error){
 
 	user, err := repository.ReadUserByEmail(email)
 
@@ -14,7 +16,7 @@ func LoginUseCase(email string, password string, repository entities.UserInterfa
 		return nil, err
 	}
 
-	err = security.ComparePassword(user.Password, password)
+	err = passwordService.ComparePassword(user.Password, password)
 
 	if err != nil{
 		return nil, apperrors.ErrUnauthorized

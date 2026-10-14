@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"e-commerce/adapters/controller/apperrors"
+	"e-commerce/core/apperrors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

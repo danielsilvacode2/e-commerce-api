@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"e-commerce/adapters/controller/apperrors"
+	fielderrors "e-commerce/adapters/controller/fieldErrors"
 	"net/mail"
 	"strings"
 )
@@ -12,12 +12,13 @@ type UserRequestDTO struct {
 	Password string `json:"password"`
 }
 
-func (dto *UserRequestDTO) Validator() []apperrors.FieldValidateErrors {
 
-	var listErrCampo []apperrors.FieldValidateErrors
+func (dto *UserRequestDTO) Validator() []fielderrors.FieldValidateErrors {
+
+	var listErrCampo []fielderrors.FieldValidateErrors
 
 	if len(strings.TrimSpace(dto.Name)) < 2 {
-		listErrCampo = append(listErrCampo, apperrors.FieldValidateErrors{
+		listErrCampo = append(listErrCampo, fielderrors.FieldValidateErrors{
 			Field:   "name",
 			Message: "the name field is invalid and required",
 		})
@@ -26,21 +27,21 @@ func (dto *UserRequestDTO) Validator() []apperrors.FieldValidateErrors {
 	_, err := mail.ParseAddress(dto.Email)
 
 	if err != nil {
-		listErrCampo = append(listErrCampo, apperrors.FieldValidateErrors{
+		listErrCampo = append(listErrCampo, fielderrors.FieldValidateErrors{
 			Field:   "e-mail",
 			Message: "the email field is invalid and required",
 		})
 	}
 
 	if len(dto.Password) < 8 {
-		listErrCampo = append(listErrCampo, apperrors.FieldValidateErrors{
+		listErrCampo = append(listErrCampo, fielderrors.FieldValidateErrors{
 			Field:   "password",
 			Message: "the password field is and very short and required 8 caracters",
 		})
 	} else {
 
 		if strings.Contains(dto.Password, " ") {
-			listErrCampo = append(listErrCampo, apperrors.FieldValidateErrors{
+			listErrCampo = append(listErrCampo, fielderrors.FieldValidateErrors{
 				Message: "the password field cannot	contain spaces",
 			})
 		}

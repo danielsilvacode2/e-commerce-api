@@ -2,7 +2,7 @@ package use_cases
 
 import  "e-commerce/core/entities/user"
 
-func ReadUserById( ID string, userRepository entities.UserInterface) ( *entities.User, error) {
+func ReadUserById( ID string, userRepository entities.UserRepository) ( *entities.User, error) {
 	
 	user, err := userRepository.ReadUserById(ID)
 	if err != nil {

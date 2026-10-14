@@ -2,7 +2,7 @@ package repository
 
 import (
 	"database/sql"
-	"e-commerce/adapters/controller/apperrors"
+	"e-commerce/core/apperrors"
 	entities "e-commerce/core/entities/user"
 	"errors"
 
@@ -14,7 +14,7 @@ type userRepository struct {
 	db *sql.DB
 }
 
-func NewUserRepository(db *sql.DB) entities.UserInterface {
+func NewUserRepository(db *sql.DB) entities.UserRepository {
 	return &userRepository{
 		db: db,
 	}

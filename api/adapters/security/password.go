@@ -2,7 +2,14 @@ package security
 
 import "golang.org/x/crypto/bcrypt"
 
-func HashPassword(password string) (string, error) {
+type BcriptPasswordService struct{}
+
+func NewPasswordBcript()  BcriptPasswordService{
+	return  BcriptPasswordService{}
+}
+
+
+func (p  BcriptPasswordService) HashPassword(password string) (string, error) {
 	
 	hashByte, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
@@ -13,6 +20,6 @@ func HashPassword(password string) (string, error) {
 	return string(hashByte), nil
 }
 
-func ComparePassword(hashPassword, password string) error{
+func (p  BcriptPasswordService) ComparePassword(hashPassword, password string) error{
 	return bcrypt.CompareHashAndPassword([]byte(hashPassword), []byte(password))
 }

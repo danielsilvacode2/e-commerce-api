@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"e-commerce/adapters/controller/apperrors"
+	"e-commerce/core/apperrors"
 	"e-commerce/config"
 	"strings"
 	"time"
