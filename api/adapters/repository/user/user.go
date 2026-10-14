@@ -163,7 +163,7 @@ func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
 }
 
 //DeleteUser deleta um usuario pelo ID
-func (r *userRepository) DeleteUser(ID string) error {
+func (r *userRepository) DeleteUserById(ID string) error {
 
 	statement, err := r.db.Prepare("DELETE FROM users WHERE id = ?")
 

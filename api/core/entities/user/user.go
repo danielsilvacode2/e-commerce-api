@@ -28,7 +28,7 @@ func (u *User) NormalizeData() {
 type UserInterface interface {
 	CreateUser(user User) error
 	ReadUserById(ID string) (*User, error)
-	DeleteUser(ID string) error
+	DeleteUserById(ID string) error
 	ReadAllUsers() ([]User, error)
 	ReadUserByEmail(email string) (*User, error)
 }

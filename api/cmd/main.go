@@ -15,11 +15,13 @@ func init() {
 }
 
 func main() {
-
+	
 	userRepository := repository.NewUserRepository(database.DB_MySQL)
+
 	userController := controllerUser.NewUserController(userRepository)
 	loginController := controllerLogin.NewLoginController(userRepository)
 
-	r := router.NewGinRouter(userController,loginController)
+	r := router.NewGinRouter(userController, loginController)
 	r.Run(config.ApiPort)
+
 }

@@ -2,14 +2,33 @@ CREATE database ecommerce;
 
 USE ecommerce;
 
+--A ENTIDADE DO USUARIO
+
 CREATE TABLE users (
     id VARCHAR(50) PRIMARY KEY,
     user_name VARCHAR(100) NOT NULL,
     user_email VARCHAR(100) NOT NULL UNIQUE,
     user_password VARCHAR(255) NOT NULL,
-    user_role ENUM('admin','user') NOT NULL DEFAULT 'user',
+    user_role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 SELECT * FROM users;
+   
+-- A ENTIDADE DO PRODUTO
+
+CREATE TABLE products (
+    id VARCHAR(50) PRIMARY KEY,
+    product_name VARCHAR(100) NOT NULL,
+    product_description VARCHAR(100) NOT NULL UNIQUE,
+    product_sku VARCHAR(255) NOT NULL UNIQUE,
+    product_price DECIMAL(10,2) NOT NULL,
+    product_quantity INT NOT NULL
+    product_image VARCHAR(200) NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+SELECT * FROM products;

@@ -4,7 +4,7 @@ import "e-commerce/core/entities/user"
 
 func DeleteUser(ID string, userRepository entities.UserInterface) (error) {
 
-	err := userRepository.DeleteUser(ID)
+	err := userRepository.DeleteUserById(ID)
 	if err != nil {
 		return err
 	}

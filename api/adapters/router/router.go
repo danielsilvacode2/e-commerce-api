@@ -27,7 +27,7 @@ func NewGinRouter(
 			{
 				usersProtecd.GET("/:id", middleware.AuthMiddleware("user"), userController.ReadUser)
 				usersProtecd.DELETE("/:id", middleware.AuthMiddleware("user"), userController.DeleteUser)
-				usersProtecd.GET("", middleware.AuthMiddleware("user"), userController.ReadAllUsers)
+				usersProtecd.GET("", middleware.AuthMiddleware("admin"), userController.ReadAllUsers)
 			}
 		}
 

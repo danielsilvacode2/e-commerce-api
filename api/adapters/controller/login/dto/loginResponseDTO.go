@@ -2,5 +2,5 @@ package dto
 
 
 type LoginResponseDTO struct{
-	WebToken string `json:"webToken"`
+	WebToken string `json:"Token"`
 }
