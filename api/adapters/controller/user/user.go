@@ -29,7 +29,7 @@ func NewUserController(repository entities.UserRepository, passwordService ports
 
 // CreateUser registra um usuario na api
 func (userCtrl *UserController) CreateUser(c *gin.Context) {
-	var userRequestDto dto.UserRequestDTO
+	var userRequestDto dto.UserCreateRequestDTO
 
 	if err := c.ShouldBindJSON(&userRequestDto); err != nil {
 		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
@@ -41,7 +41,7 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	potentialUser := mapper.DtoRequestToUser(userRequestDto)
+	potentialUser := mapper.DtoCreateRequestToUser(userRequestDto)
 
 	user, err := usecase.CreateUser(potentialUser, userCtrl.repository, userCtrl.passwordService)
 
@@ -57,9 +57,15 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 
 // ReadUser recebe um Id como parametro e retorna o usuario caso ele exista
 func (userCtrl *UserController) ReadUser(c *gin.Context) {
-	userId := c.Param("id")
 
-	user, err := usecase.ReadUserById(userId, userCtrl.repository)
+	id, err := userCtrl.validatorPermissionId(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	user, err := usecase.ReadUserById(id, userCtrl.repository)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -72,8 +78,14 @@ func (userCtrl *UserController) ReadUser(c *gin.Context) {
 
 // DeleteUser recebe um Id como parametro e deleta o usuario
 func (userCtrl *UserController) DeleteUser(c *gin.Context) {
-	userId := c.Param("id")
-	if err := usecase.DeleteUser(userId, userCtrl.repository); err != nil {
+	id, err := userCtrl.validatorPermissionId(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	if err = usecase.DeleteUser(id, userCtrl.repository); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
@@ -87,6 +99,7 @@ func (userCtrl *UserController) ReadAllUsers(c *gin.Context) {
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
+		return
 	}
 
 	var listUserDTO []dto.UserResponseDTO
@@ -111,14 +124,14 @@ func (userCtrl *UserController) ReadMe(c *gin.Context) {
 
 	claims, ok := val.(*auth.Claims)
 
-	if !ok{
+	if !ok {
 		helpers.HelperErrResponse(nil, c, errors.New("Error converting declarations"))
 		return
-	} 
-		 
+	}
+
 	userId := claims.Id.String()
 
-	user, err := usecase.ReadUserById( userId, userCtrl.repository)
+	user, err := usecase.ReadUserById(userId, userCtrl.repository)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -129,4 +142,61 @@ func (userCtrl *UserController) ReadMe(c *gin.Context) {
 
 	helpers.HelperResponse(dto, http.StatusOK, "user found", c)
 
+}
+
+func (userCtrl *UserController) UpdateUser(c *gin.Context) {
+
+	id, err := userCtrl.validatorPermissionId(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	var dtorequest dto.UserUpdateRequestDTO
+
+	if err := c.ShouldBindJSON(&dtorequest); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	if listFieldErrors := dtorequest.Validator(); listFieldErrors != nil {
+		helpers.HelperErrResponse(listFieldErrors, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	user := mapper.DtoUpdateRequestToUser(dtorequest)
+
+	if err := usecase.UpdateUser(user, id, userCtrl.repository); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	helpers.HelperResponse(nil,http.StatusNoContent, "user  successfully update ",c)
+
+}
+
+func (userCtrl *UserController) validatorPermissionId(c *gin.Context) (string, error) {
+
+	valClaims, exists := c.Get("claims")
+
+	if !exists {
+		return "", apperrors.ErrUnauthorized
+	}
+
+	claims, ok := valClaims.(*auth.Claims)
+
+	if !ok {
+		return "", errors.New("Error converting declarations")
+	}
+
+	userClaimsId := claims.Id.String()
+
+	id := c.Param("id")
+
+	if userClaimsId != id && claims.Role != "admin" {
+		return "", apperrors.ErrUnauthorized
+	}
+
+	return id, nil
 }

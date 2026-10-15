@@ -33,6 +33,7 @@ func NewGinRouter(
 				usersProtecd.GET("/:id", middleware.RateLimiterMiddleware(IpRateLimiter), middleware.AuthMiddleware("admin"), userController.ReadUser)
 				usersProtecd.DELETE("/:id", middleware.RateLimiterMiddleware(IpRateLimiter), middleware.AuthMiddleware("admin"), userController.DeleteUser)
 				usersProtecd.GET("", middleware.RateLimiterMiddleware(IpRateLimiter), middleware.AuthMiddleware("admin"), userController.ReadAllUsers)
+				usersProtecd.PUT("/:id", middleware.RateLimiterMiddleware(IpRateLimiter), middleware.AuthMiddleware("user"), userController.UpdateUser)
 
 				usersProtecdMe := usersProtecd.Group("/me")
 				{

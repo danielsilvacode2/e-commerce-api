@@ -45,7 +45,7 @@ func (r *userRepository) CreateUser(user entities.User) error {
 	return nil
 }
 
-//ReadUser retorna um usuario com base no ID
+// ReadUser retorna um usuario com base no ID
 func (r *userRepository) ReadUserById(ID string) (*entities.User, error) {
 
 	row, err := r.db.Query("SELECT * FROM users WHERE id = ?", ID)
@@ -118,12 +118,7 @@ func (r *userRepository) ReadUserByEmail(email string) (*entities.User, error) {
 	return &user, nil
 }
 
-
-
-
-
-
-//ReadAllUsers retorna todos os usuarios da api
+// ReadAllUsers retorna todos os usuarios da api
 func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
 
 	rows, err := r.db.Query("SELECT * FROM users")
@@ -162,7 +157,7 @@ func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
 	return listUsers, nil
 }
 
-//DeleteUser deleta um usuario pelo ID
+// DeleteUser deleta um usuario pelo ID
 func (r *userRepository) DeleteUserById(ID string) error {
 
 	statement, err := r.db.Prepare("DELETE FROM users WHERE id = ?")
@@ -175,6 +170,32 @@ func (r *userRepository) DeleteUserById(ID string) error {
 
 	if _, err = statement.Exec(ID); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *userRepository) UpdateUser(user entities.User, ID string) error {
+
+	statement, err := r.db.Prepare("UPDATE users SET user_name = ? , user_email = ? WHERE id = ?")
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	_, err = statement.Exec(user.Name, user.Email, ID)
+
+	if err != nil {
+		var errSQL *mysql.MySQLError
+
+		if errors.As(err, &errSQL) && errSQL.Number == 1062 {
+			return apperrors.ErrConflict
+		}
+
+		return err
+
 	}
 
 	return nil

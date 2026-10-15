@@ -31,4 +31,5 @@ type UserRepository interface {
 	DeleteUserById(ID string) error
 	ReadAllUsers() ([]User, error)
 	ReadUserByEmail(email string) (*User, error)
+	UpdateUser(user User, ID string) error
 }

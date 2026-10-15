@@ -19,13 +19,25 @@ func UserToResponseDTO(user entities.User) dto.UserResponseDTO{
 	return userDto
 }
 
-func DtoRequestToUser( dto dto.UserRequestDTO) entities.User{
+func DtoCreateRequestToUser( dto dto.UserCreateRequestDTO) entities.User{
 
 	var user entities.User
 
 	user.Name = dto.Name
 	user.Email = dto.Email
 	user.Password = dto.Password
+
+	return user
+}
+
+
+func DtoUpdateRequestToUser( dto dto.UserUpdateRequestDTO) entities.User{
+
+	var user entities.User
+
+	user.Name = dto.Name
+	user.Email = dto.Email
+	
 
 	return user
 }

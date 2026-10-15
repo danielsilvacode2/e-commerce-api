@@ -62,7 +62,7 @@ func HelperErrResponse(body interface{}, c *gin.Context, err error) {
 		return
 
 	default:
-		HelperResponse(body, http.StatusInternalServerError, "Error internal", c)
+		HelperResponse(body, http.StatusInternalServerError, err.Error(), c)
 		return
 
 	}
