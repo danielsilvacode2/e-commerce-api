@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"e-commerce/core/apperrors"
 	"e-commerce/config"
+	"e-commerce/core/apperrors"
 	"strings"
 	"time"
 
@@ -12,18 +12,18 @@ import (
 )
 
 type Claims struct {
-	Id uuid.UUID
+	Id   uuid.UUID
 	Role string
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(id uuid.UUID, role string) (string, error){
+func GenerateToken(id uuid.UUID, role string) (string, error) {
 	claims := Claims{
-		Id: id,
+		Id:   id,
 		Role: role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
-			IssuedAt: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 
@@ -31,33 +31,33 @@ func GenerateToken(id uuid.UUID, role string) (string, error){
 
 	tokenString, err := token.SignedString([]byte(config.SecretKey))
 
-	if err != nil{
+	if err != nil {
 		return "", err
 	}
 
 	return tokenString, nil
 }
 
-func ValidateToken(c *gin.Context) (*Claims, error){
+func ValidateToken(c *gin.Context) (*Claims, error) {
 
-	 tokenString, err := getToken(c)
+	tokenString, err := getToken(c)
 
-	 if tokenString == ""{
-		return nil, err
-	 }
+	if tokenString == "" {
+		return nil, apperrors.ErrUnauthorized
+	}
 
-	  claims :=  &Claims{}
-	
-	token, err := jwt.ParseWithClaims(tokenString, claims,func(token *jwt.Token) (interface{}, error) {
-		return  []byte(config.SecretKey), nil
+	claims := &Claims{}
+
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.SecretKey), nil
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, apperrors.ErrUnauthorized
 	}
 
-	if !token.Valid{
-		return nil , apperrors.ErrUnauthorized
+	if !token.Valid {
+		return nil, apperrors.ErrUnauthorized
 	}
 
 	return claims, nil
@@ -67,13 +67,13 @@ func getToken(c *gin.Context) (string, error) {
 
 	authHeader := c.GetHeader("Authorization")
 
-	if authHeader == ""{
+	if authHeader == "" {
 		return "", apperrors.ErrUnauthorized
 	}
 
 	parths := strings.Split(authHeader, " ")
 
-	if len(parths) != 2 ||  parths[0] != "Bearer"{
+	if len(parths) != 2 || parths[0] != "Bearer" {
 		return "", apperrors.ErrUnauthorized
 	}
 

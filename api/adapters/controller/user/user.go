@@ -6,9 +6,8 @@ import (
 	"e-commerce/adapters/controller/user/mapper"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
-	"e-commerce/core/entities/user"
-	"e-commerce/core/ports"
-	usecase "e-commerce/core/use_cases/user"
+	
+	use_cases "e-commerce/core/use_cases/user"
 	"errors"
 	"net/http"
 
@@ -16,14 +15,26 @@ import (
 )
 
 type UserController struct {
-	repository      entities.UserRepository
-	passwordService ports.PasswordService
+	createUser   *use_cases.CreateUserUseCase
+	deleteUser   *use_cases.DeleteUserUseCase
+	readAllUsers *use_cases.ReadAllUsersUseCase
+	updateUser   *use_cases.UpdateUseUseCase
+	readUserById *use_cases.ReadUserByIdUseCase
 }
 
-func NewUserController(repository entities.UserRepository, passwordService ports.PasswordService) *UserController {
+func NewUserController(
+	createUser *use_cases.CreateUserUseCase,
+	deleteUser *use_cases.DeleteUserUseCase,
+	readAllUsers *use_cases.ReadAllUsersUseCase,
+	updateUser *use_cases.UpdateUseUseCase,
+	readUserById *use_cases.ReadUserByIdUseCase,
+) *UserController {
 	return &UserController{
-		repository:      repository,
-		passwordService: passwordService,
+		createUser:   createUser,
+		deleteUser:   deleteUser,
+		readAllUsers: readAllUsers,
+		updateUser:   updateUser,
+		readUserById: readUserById,
 	}
 }
 
@@ -43,7 +54,7 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 
 	potentialUser := mapper.DtoCreateRequestToUser(userRequestDto)
 
-	user, err := usecase.CreateUser(potentialUser, userCtrl.repository, userCtrl.passwordService)
+	user, err := userCtrl.createUser.UseCase(potentialUser)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -65,7 +76,7 @@ func (userCtrl *UserController) ReadUser(c *gin.Context) {
 		return
 	}
 
-	user, err := usecase.ReadUserById(id, userCtrl.repository)
+	user, err := userCtrl.readUserById.UseCase(id)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -85,7 +96,7 @@ func (userCtrl *UserController) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err = usecase.DeleteUser(id, userCtrl.repository); err != nil {
+	if err = userCtrl.deleteUser.UseCase(id); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
@@ -95,7 +106,7 @@ func (userCtrl *UserController) DeleteUser(c *gin.Context) {
 
 func (userCtrl *UserController) ReadAllUsers(c *gin.Context) {
 
-	listUsers, err := usecase.ReadAllUsers(userCtrl.repository)
+	listUsers, err := userCtrl.readAllUsers.UseCase()
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -131,7 +142,7 @@ func (userCtrl *UserController) ReadMe(c *gin.Context) {
 
 	userId := claims.Id.String()
 
-	user, err := usecase.ReadUserById(userId, userCtrl.repository)
+	user, err := userCtrl.readUserById.UseCase(userId)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -167,12 +178,12 @@ func (userCtrl *UserController) UpdateUser(c *gin.Context) {
 
 	user := mapper.DtoUpdateRequestToUser(dtorequest)
 
-	if err := usecase.UpdateUser(user, id, userCtrl.repository); err != nil {
+	if err := userCtrl.updateUser.UseCase(user, id); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
-	helpers.HelperResponse(nil,http.StatusNoContent, "user  successfully update ",c)
+	helpers.HelperResponse(nil, http.StatusNoContent, "user  successfully update ", c)
 
 }
 

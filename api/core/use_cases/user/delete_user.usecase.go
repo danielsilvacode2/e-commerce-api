@@ -2,9 +2,19 @@ package use_cases
 
 import "e-commerce/core/entities/user"
 
-func DeleteUser(ID string, userRepository entities.UserRepository) (error) {
+type DeleteUserUseCase struct {
+	repository entities.UserRepository
+}
 
-	err := userRepository.DeleteUserById(ID)
+func NewDeleteUserUseCase(repository entities.UserRepository) *DeleteUserUseCase {
+	return &DeleteUserUseCase{
+		repository: repository,
+	}
+}
+
+func (useCase DeleteUserUseCase) UseCase(ID string) error {
+
+	err := useCase.repository.DeleteUserById(ID)
 	if err != nil {
 		return err
 	}

@@ -1,10 +1,20 @@
 package use_cases
 
-import  "e-commerce/core/entities/user"
+import "e-commerce/core/entities/user"
 
-func ReadUserById( ID string, userRepository entities.UserRepository) ( *entities.User, error) {
-	
-	user, err := userRepository.ReadUserById(ID)
+type ReadUserByIdUseCase struct {
+	repository entities.UserRepository
+}
+
+func NewReadUserByIdUseCase(repository entities.UserRepository) *ReadUserByIdUseCase {
+	return &ReadUserByIdUseCase{
+		repository: repository,
+	}
+}
+
+func(useCase ReadUserByIdUseCase) UseCase(ID string) (*entities.User, error) {
+
+	user, err := useCase.repository.ReadUserById(ID)
 	if err != nil {
 		return nil, err
 	}

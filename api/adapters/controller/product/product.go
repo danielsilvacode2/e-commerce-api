@@ -5,7 +5,6 @@ import (
 	"e-commerce/adapters/controller/product/dto"
 	"e-commerce/adapters/controller/product/mapper"
 	"e-commerce/core/apperrors"
-	entities "e-commerce/core/entities/product"
 	use_cases "e-commerce/core/use_cases/product"
 	"net/http"
 
@@ -13,12 +12,26 @@ import (
 )
 
 type ProductController struct {
-	repository entities.ProductRepository
+	createProduct     *use_cases.CreateProductUseCase
+	readAllProducts   *use_cases.ReadAllProductsUseCase
+	deleteProductById *use_cases.DeleteProductByIdUseCase
+	updateProduct     *use_cases.UpdateProductUseCase
+	readProductById   *use_cases.ReadProductByIdUseCase
 }
 
-func NewProductController(repository entities.ProductRepository) *ProductController {
+func NewProductController(
+	createProduct *use_cases.CreateProductUseCase, 
+	readAllProducts *use_cases.ReadAllProductsUseCase, 
+	deleteProductById *use_cases.DeleteProductByIdUseCase, 
+	updateProduct *use_cases.UpdateProductUseCase, 
+	readProductById *use_cases.ReadProductByIdUseCase, ) *ProductController {
+
 	return &ProductController{
-		repository: repository,
+		createProduct:     createProduct,
+		readAllProducts:   readAllProducts,
+		deleteProductById: deleteProductById,
+		updateProduct:     updateProduct,
+		readProductById:   readProductById,
 	}
 }
 
@@ -37,7 +50,7 @@ func (productCtrl *ProductController) CreateProduct(c *gin.Context) {
 	}
 
 	potentialProduct := mapper.DtoCreateToProduct(dtoRequest)
-	product, err := use_cases.CreateProduct(potentialProduct, productCtrl.repository)
+	product, err :=productCtrl.createProduct.UseCase(potentialProduct)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -54,7 +67,7 @@ func (productCtrl *ProductController) ReadProductById(c *gin.Context) {
 
 	productID := c.Param("id")
 
-	product, err := use_cases.ReadProductById(productID, productCtrl.repository)
+	product, err := productCtrl.readProductById.UseCase(productID)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -69,7 +82,7 @@ func (productCtrl *ProductController) ReadProductById(c *gin.Context) {
 
 func (productCtrl *ProductController) ReadAllProducts(c *gin.Context) {
 
-	listProducts, err := use_cases.ReadAllProducts(productCtrl.repository)
+	listProducts, err :=productCtrl.readAllProducts.UseCase()
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -92,7 +105,7 @@ func (productCtrl *ProductController) DeleteProductById(c *gin.Context) {
 
 	Id := c.Param("id")
 
-	if err := use_cases.DeleteProductById(Id, productCtrl.repository); err != nil {
+	if err := productCtrl.deleteProductById.UseCase(Id); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
@@ -110,7 +123,7 @@ func (productCtrl *ProductController) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	if listFieldErr := dtoRequest.Validator(); listFieldErr != nil{
+	if listFieldErr := dtoRequest.Validator(); listFieldErr != nil {
 		helpers.HelperErrResponse(listFieldErr, c, apperrors.ErrInvalidInput)
 		return
 	}
@@ -119,12 +132,11 @@ func (productCtrl *ProductController) UpdateProduct(c *gin.Context) {
 
 	id := c.Param("id")
 
-	if err := use_cases.UpdateProduct(product, productCtrl.repository, id); err != nil {
+	if err := productCtrl.updateProduct.UseCase(product, id); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
-	
 	helpers.HelperResponse(nil, http.StatusNoContent, "product successfully update", c)
 
 }

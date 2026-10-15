@@ -7,10 +7,22 @@ import (
 	"github.com/google/uuid"
 )
 
-func CreateUser(user entities.User, userRepository entities.UserRepository, passwordService ports.PasswordService) (*entities.User, error) {
+type CreateUserUseCase struct {
+	repository      entities.UserRepository
+	passwordService ports.PasswordService
+}
+
+func NewCreateUserUseCase(repository entities.UserRepository, passwordService ports.PasswordService) *CreateUserUseCase {
+	return &CreateUserUseCase{
+		repository:      repository,
+		passwordService: passwordService,
+	}
+}
+
+func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, error) {
 
 	user.ID = uuid.New()
-	passwordHash, err := passwordService.HashPassword(user.Password)
+	passwordHash, err := useCase.passwordService.HashPassword(user.Password)
 
 	if err != nil {
 		return nil, err
@@ -24,7 +36,7 @@ func CreateUser(user entities.User, userRepository entities.UserRepository, pass
 
 	user.NormalizeData()
 
-	err = userRepository.CreateUser(user)
+	err = useCase.repository.CreateUser(user)
 	if err != nil {
 		return nil, err
 	}
