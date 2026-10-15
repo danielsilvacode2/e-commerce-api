@@ -24,10 +24,10 @@ CREATE TABLE products (
     product_description VARCHAR(100) NOT NULL UNIQUE,
     product_sku VARCHAR(255) NOT NULL UNIQUE,
     product_price DECIMAL(10,2) NOT NULL,
-    product_quantity INT NOT NULL
     product_image VARCHAR(200) NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    product_quantity INT NOT NULL
 );
 
 

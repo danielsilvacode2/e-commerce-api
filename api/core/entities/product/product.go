@@ -1,4 +1,4 @@
-package product
+package entities
 
 import (
 	"time"
@@ -11,7 +11,7 @@ type Product struct {
 	Sku          string
 	Name         string
 	Description  string
-	ProductImage string
+	Image string
 	Price        float64
 	Quantity     int64
 	CreateAt     time.Time
@@ -20,7 +20,7 @@ type Product struct {
 
 type ProductRepository interface{
 	CreateProduct( product Product) error
-	ReadProdutById( Id string) (Product, error)
+	ReadProdutById( Id string) (*Product, error)
 	ReadAllProduct() ([]Product, error)
-	DeleteProductById(Id string)
+	DeleteProductById(Id string) error
 }

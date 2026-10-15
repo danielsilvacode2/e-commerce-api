@@ -4,23 +4,25 @@ import (
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/user/dto"
 	"e-commerce/adapters/controller/user/mapper"
+	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
 	"e-commerce/core/entities/user"
 	"e-commerce/core/ports"
 	usecase "e-commerce/core/use_cases/user"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserController struct {
-	repository entities.UserRepository
+	repository      entities.UserRepository
 	passwordService ports.PasswordService
 }
 
 func NewUserController(repository entities.UserRepository, passwordService ports.PasswordService) *UserController {
 	return &UserController{
-		repository: repository,
+		repository:      repository,
 		passwordService: passwordService,
 	}
 }
@@ -90,11 +92,41 @@ func (userCtrl *UserController) ReadAllUsers(c *gin.Context) {
 	var listUserDTO []dto.UserResponseDTO
 
 	for _, user := range listUsers {
-	 	userDTO :=	mapper.UserToResponseDTO(user)
+		userDTO := mapper.UserToResponseDTO(user)
 		listUserDTO = append(listUserDTO, userDTO)
 	}
 
-
 	helpers.HelperResponse(listUserDTO, http.StatusOK, "list users", c)
+
+}
+
+func (userCtrl *UserController) ReadMe(c *gin.Context) {
+
+	val, exists := c.Get("claims")
+
+	if !exists {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrUnauthorized)
+		return
+	}
+
+	claims, ok := val.(*auth.Claims)
+
+	if !ok{
+		helpers.HelperErrResponse(nil, c, errors.New("Error converting declarations"))
+		return
+	} 
+		 
+	userId := claims.Id.String()
+
+	user, err := usecase.ReadUserById( userId, userCtrl.repository)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	dto := mapper.UserToResponseDTO(*user)
+
+	helpers.HelperResponse(dto, http.StatusOK, "user found", c)
 
 }
