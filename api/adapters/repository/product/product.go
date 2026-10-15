@@ -57,7 +57,7 @@ func (r *productRepository) CreateProduct(product entities.Product) error {
 
 func (r *productRepository) ReadProdutById(Id string) (*entities.Product, error) {
 
-	row, err := r.db.Query("SELECT * FROM products WHERE id = ?",Id)
+	row, err := r.db.Query("SELECT * FROM products WHERE id = ?", Id)
 
 	if err != nil {
 		return nil, err
@@ -134,7 +134,6 @@ func (r *productRepository) ReadAllProduct() ([]entities.Product, error) {
 
 func (r *productRepository) DeleteProductById(Id string) error {
 
-	
 	statement, err := r.db.Prepare("DELETE FROM products WHERE id = ?")
 
 	if err != nil {
@@ -143,8 +142,41 @@ func (r *productRepository) DeleteProductById(Id string) error {
 
 	defer statement.Close()
 
-	if _,err := statement.Exec(Id); err != nil {
+	if _, err := statement.Exec(Id); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *productRepository) UpdateProduct(product entities.Product, ID string) error {
+
+	statement, err := r.db.Prepare("UPDATE products SET " +
+		"product_name = ? , product_sku = ?, product_description = ? , product_price = ?, product_image = ? WHERE id = ?")
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	_, err = statement.Exec(
+		product.Name,
+		product.Sku,
+		product.Description,
+		product.Price,
+		product.Image,
+		ID)
+
+	if err != nil {
+		var errSQL *mysql.MySQLError
+
+		if errors.As(err, &errSQL) && errSQL.Number == 1062 {
+			return apperrors.ErrConflict
+		}
+
+		return err
+
 	}
 
 	return nil

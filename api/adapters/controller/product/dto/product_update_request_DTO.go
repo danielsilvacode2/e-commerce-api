@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type ProcuctRequestDTO struct {
+type ProcuctUpdateRequestDTO struct {
 	Name        string  `json:"name"`
 	Sku         string  `json:"sku"`
 	Description string  `json:"description"`
@@ -16,7 +16,7 @@ type ProcuctRequestDTO struct {
 	Image       string  `json:"image"`
 }
 
-func (dto *ProcuctRequestDTO) Validator() []fielderrors.FieldValidateErrors {
+func (dto *ProcuctUpdateRequestDTO) Validator() []fielderrors.FieldValidateErrors {
 
 	var listFieldErrors []fielderrors.FieldValidateErrors
 

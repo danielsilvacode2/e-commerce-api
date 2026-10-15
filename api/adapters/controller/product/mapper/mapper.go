@@ -5,7 +5,7 @@ import (
 	entities "e-commerce/core/entities/product"
 )
 
-func DtoToProduct(dto dto.ProcuctRequestDTO) entities.Product {
+func DtoCreateToProduct(dto dto.ProcuctCreateRequestDTO) entities.Product {
 
 	product := entities.Product{
 		Name:        dto.Name,
@@ -14,6 +14,19 @@ func DtoToProduct(dto dto.ProcuctRequestDTO) entities.Product {
 		Price:       dto.Price,
 		Image:       dto.Image,
 		Quantity:    dto.Quantity,
+	}
+
+	return product
+}
+
+func DtoUpdateToProduct(dto dto.ProcuctUpdateRequestDTO) entities.Product {
+
+	product := entities.Product{
+		Name:        dto.Name,
+		Description: dto.Description,
+		Sku:         dto.Sku,
+		Price:       dto.Price,
+		Image:       dto.Image,
 	}
 
 	return product

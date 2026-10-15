@@ -24,7 +24,7 @@ func NewProductController(repository entities.ProductRepository) *ProductControl
 
 func (productCtrl *ProductController) CreateProduct(c *gin.Context) {
 
-	var dtoRequest dto.ProcuctRequestDTO
+	var dtoRequest dto.ProcuctCreateRequestDTO
 
 	if err := c.ShouldBindJSON(&dtoRequest); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -36,7 +36,7 @@ func (productCtrl *ProductController) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	potentialProduct := mapper.DtoToProduct(dtoRequest)
+	potentialProduct := mapper.DtoCreateToProduct(dtoRequest)
 	product, err := use_cases.CreateProduct(potentialProduct, productCtrl.repository)
 
 	if err != nil {
@@ -46,7 +46,7 @@ func (productCtrl *ProductController) CreateProduct(c *gin.Context) {
 
 	dtoResponse := mapper.ProductToDto(*product)
 
-	helpers.HelperResponse(dtoResponse, http.StatusOK, "create product", c)
+	helpers.HelperResponse(dtoResponse, http.StatusCreated, "create product", c)
 
 }
 
@@ -97,6 +97,34 @@ func (productCtrl *ProductController) DeleteProductById(c *gin.Context) {
 		return
 	}
 
-	helpers.HelperResponse(nil, http.StatusOK, "product successfully deleted", c)
+	helpers.HelperResponse(nil, http.StatusNoContent, "product successfully deleted", c)
+
+}
+
+func (productCtrl *ProductController) UpdateProduct(c *gin.Context) {
+
+	var dtoRequest dto.ProcuctUpdateRequestDTO
+
+	if err := c.ShouldBindJSON(&dtoRequest); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	if listFieldErr := dtoRequest.Validator(); listFieldErr != nil{
+		helpers.HelperErrResponse(listFieldErr, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	product := mapper.DtoUpdateToProduct(dtoRequest)
+
+	id := c.Param("id")
+
+	if err := use_cases.UpdateProduct(product, productCtrl.repository, id); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	
+	helpers.HelperResponse(nil, http.StatusNoContent, "product successfully update", c)
 
 }

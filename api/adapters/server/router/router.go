@@ -14,30 +14,30 @@ import (
 func NewGinRouter(
 	userController *controllerUser.UserController,
 	loginController *controllerLogin.LoginController,
-	product *controllerProduct.ProductController,
+	productController *controllerProduct.ProductController,
 ) *gin.Engine {
 
 	r := gin.Default()
 
-	IpRateLimiter := middleware.NewRateLimiter(rate.Every(time.Second*1), 5)
+	ipRateLimiter := middleware.NewRateLimiter(rate.Every(time.Second*1), 5)
 
 	v1 := r.Group("/api/v1")
 	{
 		users := v1.Group("/users")
 		{
 
-			users.POST("", middleware.RateLimiterMiddleware(IpRateLimiter), userController.CreateUser)
+			users.POST("", middleware.RateLimiterMiddleware(ipRateLimiter), userController.CreateUser)
 
 			usersProtecd := users.Group("")
 			{
-				usersProtecd.GET("/:id", middleware.RateLimiterMiddleware(IpRateLimiter), middleware.AuthMiddleware("admin"), userController.ReadUser)
-				usersProtecd.DELETE("/:id", middleware.RateLimiterMiddleware(IpRateLimiter), middleware.AuthMiddleware("admin"), userController.DeleteUser)
-				usersProtecd.GET("", middleware.RateLimiterMiddleware(IpRateLimiter), middleware.AuthMiddleware("admin"), userController.ReadAllUsers)
-				usersProtecd.PUT("/:id", middleware.RateLimiterMiddleware(IpRateLimiter), middleware.AuthMiddleware("user"), userController.UpdateUser)
+				usersProtecd.GET("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), userController.ReadUser)
+				usersProtecd.DELETE("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), userController.DeleteUser)
+				usersProtecd.GET("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), userController.ReadAllUsers)
+				usersProtecd.PUT("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), userController.UpdateUser)
 
 				usersProtecdMe := usersProtecd.Group("/me")
 				{
-					usersProtecdMe.GET("", middleware.RateLimiterMiddleware(IpRateLimiter), middleware.AuthMiddleware("user"), userController.ReadMe)
+					usersProtecdMe.GET("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), userController.ReadMe)
 				}
 
 			}
@@ -45,15 +45,16 @@ func NewGinRouter(
 
 		login := v1.Group("/login")
 		{
-			login.POST("", middleware.RateLimiterMiddleware(IpRateLimiter), loginController.Login)
+			login.POST("", middleware.RateLimiterMiddleware(ipRateLimiter), loginController.Login)
 		}
 
 		products := v1.Group("/products")
 		{
-			products.POST("", middleware.RateLimiterMiddleware(IpRateLimiter), product.CreateProduct)
-			products.GET("/:id", middleware.RateLimiterMiddleware(IpRateLimiter), product.ReadProductById)
-			products.GET("", middleware.RateLimiterMiddleware(IpRateLimiter), product.ReadAllProducts)
-			products.DELETE("/:id", middleware.RateLimiterMiddleware(IpRateLimiter), product.DeleteProductById)
+			products.POST("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.CreateProduct)
+			products.GET("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.ReadProductById)
+			products.GET("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.ReadAllProducts)
+			products.DELETE("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.DeleteProductById)
+			products.PUT("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.UpdateProduct)
 		}
 
 	}
