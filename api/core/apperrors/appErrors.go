@@ -8,5 +8,6 @@ var (
 	ErrInvalidInput = errors.New("Invalid input")
 	ErrUnauthorized = errors.New("Unauthorized access")
 	ErrForbidden = errors.New("Forbidden access")
+	ErrTooManyRequests = errors.New("too many requests")
 )
 

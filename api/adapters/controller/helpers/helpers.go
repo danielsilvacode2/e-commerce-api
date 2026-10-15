@@ -57,6 +57,10 @@ func HelperErrResponse(body interface{}, c *gin.Context, err error) {
 		HelperResponse(body, http.StatusUnauthorized, err.Error(), c)
 		return
 
+	case apperrors.ErrTooManyRequests:
+		HelperResponse(body, http.StatusTooManyRequests, err.Error(), c)
+		return
+
 	default:
 		HelperResponse(body, http.StatusInternalServerError, "Error internal", c)
 		return
