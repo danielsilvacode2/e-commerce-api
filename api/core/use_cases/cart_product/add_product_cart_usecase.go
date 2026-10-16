@@ -3,6 +3,8 @@ package use_cases
 import (
 	entitiesCartProduct "e-commerce/core/entities/cart_product"
 	use_cases "e-commerce/core/use_cases/cart"
+
+	"github.com/google/uuid"
 )
 
 type AddProductUseCase struct {
@@ -26,6 +28,9 @@ func (useCase *AddProductUseCase) UseCase(cartProduct entitiesCartProduct.CartPr
 	}
 
 	cartProduct.Cart.Id = cart.Id
+
+	cartProduct.Id = uuid.New()
+	cartProduct.IsSelect = true
 
 	if err = useCase.repository.AddProductCart(cartProduct); err != nil {
 		return err

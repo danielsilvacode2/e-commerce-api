@@ -20,7 +20,7 @@ type CartProduct struct {
 
 type CartProductRepository interface {
 	AddProductCart(cartProduct  CartProduct) error
-	RemoveProduct( cartProduct CartProduct) error
+	RemoveProductCart( ID string) error
 	ReadAllProductsCart(userId string) ([]CartProduct, error)
 	UpdateIsSelect(bool, cartProductId string) error
 }

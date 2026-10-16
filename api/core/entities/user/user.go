@@ -24,7 +24,6 @@ func (u *User) NormalizeData() {
 	u.Email = strings.ToLower(u.Email)
 
 }
-
 type UserRepository interface {
 	CreateUser(user User) error
 	ReadUserById(ID string) (*User, error)
