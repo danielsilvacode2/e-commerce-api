@@ -46,17 +46,17 @@ func (r *cartRepository) CreateCart(cart entities.Cart) error {
 func (r *cartRepository) ReadCartByUserId(userId string) (*entities.Cart, error) {
 
 	row, err := r.db.Query("SELECT"+
-		"carts_id AS cart_id"+
-		"carts_updated_at AS cart_updated_at "+
-		"carts_created_at AS cart_created_at"+
-		"users_id AS user_id"+
-		"users_updated_at user_updated_at"+
-		"users_created_at user_created_at"+
-		"users.user_name"+
-		"users.user_role"+
-		"SELECT FROM carts"+
-		"INNER JOIN users ON carts.user_id = users_id"+
-		"WHERE carts_user_id = ?", userId)
+		" carts.id AS cart_id,"+
+		" carts.updated_at AS cart_updated_at, "+
+		" carts.created_at AS cart_created_at,"+
+		" users.id AS user_id,"+
+		" users.updated_at user_updated_at,"+
+		" users.created_at user_created_at,"+
+		" users.user_name,"+
+		" users.user_role"+
+		" FROM carts"+
+		" INNER JOIN users ON carts.user_id = users.id"+
+		" WHERE carts.user_id = ?", userId)
 
 	if err != nil {
 		return nil, err

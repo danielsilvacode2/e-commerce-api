@@ -23,7 +23,7 @@ func (r *cartProductRepository) AddProductCart(cartProduct entities.CartProduct)
 
 	statement, err := r.db.Prepare("INSERT INTO cart_products " +
 		"(id, cart_id, product_id,quantity ,isSelect)" +
-		"VALUES (?,?,?,?)")
+		"VALUES (?,?,?,?,?)")
 
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (r *cartProductRepository) AddProductCart(cartProduct entities.CartProduct)
 		var sqlErr *mysql.MySQLError
 
 		if errors.As(err, &sqlErr) && sqlErr.Number == 1062 {
-			return apperrors.ErrNotFound
+			return apperrors.ErrConflict
 		}
 
 		return err
@@ -53,10 +53,28 @@ func (r *cartProductRepository) AddProductCart(cartProduct entities.CartProduct)
 
 func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entities.CartProduct, error) {
 
-	rows, err := r.db.Query("SELECT cartproducts.* FROM cart_products cartproducts "+
-		"JOIN carts cart ON cartproducts.cart_id = cart.id"+
-		"JOIN users user ON cart.user_id = user.id"+
-		"WHERE user.id = ?", userId)
+	rows, err := r.db.Query(`
+        SELECT 
+            cartproducts.id,
+            cartproducts.quantity,
+            cartproducts.isSelect,
+            cart.id,
+            user.id,
+            user.user_name,
+            user.user_email,
+            user.user_role,
+            product.id,
+            product.product_name,
+            product.product_description,
+            product.product_price,
+            product.product_image,
+			product.product_sku
+        FROM cart_products cartproducts
+        JOIN products product ON cartproducts.product_id = product.id
+        JOIN carts cart ON cartproducts.cart_id = cart.id
+        JOIN users user ON cart.user_id = user.id
+        WHERE user.id = ?
+    `, userId)
 
 	if err != nil {
 		return nil, err
@@ -71,13 +89,20 @@ func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entities.C
 		var cartProduct entities.CartProduct
 
 		if err = rows.Scan(
-			cartProduct.Id,
-			cartProduct.Cart.Id,
-			cartProduct.Product.Id,
-			cartProduct.Quantity,
-			cartProduct.IsSelect,
-			cartProduct.UpdateAt,
-			cartProduct.CreateAt,
+			&cartProduct.Id,
+			&cartProduct.Quantity,
+			&cartProduct.IsSelect,
+			&cartProduct.Cart.Id,
+			&cartProduct.Cart.User.ID,
+			&cartProduct.Cart.User.Name,
+			&cartProduct.Cart.User.Email,
+			&cartProduct.Cart.User.Role,
+			&cartProduct.Product.Id,
+			&cartProduct.Product.Name,
+			&cartProduct.Product.Description,
+			&cartProduct.Product.Price,
+			&cartProduct.Product.Image,
+			&cartProduct.Product.Sku,
 		); err != nil {
 
 			return nil, err

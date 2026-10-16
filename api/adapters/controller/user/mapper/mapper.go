@@ -5,7 +5,7 @@ import (
 	entities "e-commerce/core/entities/user"
 )
 
-func UserToResponseDTO(user entities.User) dto.UserResponseDTO{
+func UserToResponseDTO(user entities.User) dto.UserResponseDTO {
 
 	var userDto dto.UserResponseDTO
 
@@ -19,7 +19,8 @@ func UserToResponseDTO(user entities.User) dto.UserResponseDTO{
 	return userDto
 }
 
-func DtoCreateRequestToUser( dto dto.UserCreateRequestDTO) entities.User{
+
+func DtoCreateRequestToUser(dto dto.UserCreateRequestDTO) entities.User {
 
 	var user entities.User
 
@@ -30,14 +31,12 @@ func DtoCreateRequestToUser( dto dto.UserCreateRequestDTO) entities.User{
 	return user
 }
 
-
-func DtoUpdateRequestToUser( dto dto.UserUpdateRequestDTO) entities.User{
+func DtoUpdateRequestToUser(dto dto.UserUpdateRequestDTO) entities.User {
 
 	var user entities.User
 
 	user.Name = dto.Name
 	user.Email = dto.Email
-	
 
 	return user
 }
