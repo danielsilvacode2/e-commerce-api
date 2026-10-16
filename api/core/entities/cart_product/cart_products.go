@@ -19,8 +19,8 @@ type CartProduct struct {
 }
 
 type CartProductRepository interface {
-	AddProductCart(product entitiesProduct.Product, cartProductId string) error
-	RemoveProduct(product entitiesProduct.Product, cartProductId string) error
-	ReadAllProductsCart(cartId string) []CartProduct
+	AddProductCart(cartProduct  CartProduct) error
+	RemoveProduct( cartProduct CartProduct) error
+	ReadAllProductsCart(userId string) ([]CartProduct, error)
 	UpdateIsSelect(bool, cartProductId string) error
 }

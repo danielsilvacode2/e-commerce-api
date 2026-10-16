@@ -3,7 +3,6 @@ CREATE database ecommerce;
 USE ecommerce;
 
 --A ENTIDADE DO USUARIO
-
 CREATE TABLE users (
     id VARCHAR(50) PRIMARY KEY,
     user_name VARCHAR(100) NOT NULL,
@@ -14,21 +13,65 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-SELECT * FROM users;
-   
--- A ENTIDADE DO PRODUTO
+DESC users;
 
+SELECT
+    *
+FROM
+    users;
+
+-- A ENTIDADE DO PRODUTO
 CREATE TABLE products (
     id VARCHAR(50) PRIMARY KEY,
     product_name VARCHAR(100) NOT NULL,
-    product_description VARCHAR(100) NOT NULL UNIQUE,
+    product_description VARCHAR(100) NOT NULL,
     product_sku VARCHAR(255) NOT NULL UNIQUE,
-    product_price DECIMAL(10,2) NOT NULL,
+    product_price DECIMAL(10, 2) NOT NULL,
     product_image VARCHAR(200) NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     product_quantity INT NOT NULL
 );
 
+SELECT
+    *
+FROM
+    products;
 
-SELECT * FROM products;
+DESC products;
+
+--A ENTIDADE DO CARRINHO DE COMPRAS
+CREATE TABLE carts (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+SELECT
+    *
+FROM
+    carts;
+
+DESC carts;
+
+--  A ENTIDADE DE CARRINHO E PRODUTOS
+CREATE TABLE cart_products(
+    id VARCHAR(50) PRIMARY KEY,
+    cart_id VARCHAR(50) NOT NULL,
+    product_id VARCHAR(50) NOT NULL,
+    quantity INT NOT NULL,
+    isSelect BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+SELECT
+    *
+FROM
+    cart_products;
+
+DESC cart_products;
