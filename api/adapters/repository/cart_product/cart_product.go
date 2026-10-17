@@ -3,7 +3,10 @@ package repository
 import (
 	"database/sql"
 	"e-commerce/core/apperrors"
-	entities "e-commerce/core/entities/cart_product"
+	entitiesCart "e-commerce/core/entities/cart"
+	entitiesCartProduct "e-commerce/core/entities/cart_product"
+	entitiesProduct "e-commerce/core/entities/product"
+	entitiesUser "e-commerce/core/entities/user"
 	"errors"
 
 	"github.com/go-sql-driver/mysql"
@@ -13,13 +16,13 @@ type cartProductRepository struct {
 	db *sql.DB
 }
 
-func NewCartProductRepository(db *sql.DB) entities.CartProductRepository {
+func NewCartProductRepository(db *sql.DB) entitiesCartProduct.CartProductRepository {
 	return &cartProductRepository{
 		db: db,
 	}
 }
 
-func (r *cartProductRepository) AddProductCart(cartProduct entities.CartProduct) error {
+func (r *cartProductRepository) AddProductCart(cartProduct entitiesCartProduct.CartProduct) error {
 
 	statement, err := r.db.Prepare("INSERT INTO cart_products " +
 		"(id, cart_id, product_id,quantity ,isSelect)" +
@@ -51,7 +54,7 @@ func (r *cartProductRepository) AddProductCart(cartProduct entities.CartProduct)
 	return nil
 }
 
-func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entities.CartProduct, error) {
+func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entitiesCartProduct.CartProduct, error) {
 
 	rows, err := r.db.Query(`
         SELECT 
@@ -82,11 +85,16 @@ func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entities.C
 
 	defer rows.Close()
 
-	var listProductCarts []entities.CartProduct
+	var listProductCarts []entitiesCartProduct.CartProduct
 
 	for rows.Next() {
 
-		var cartProduct entities.CartProduct
+		cartProduct := entitiesCartProduct.CartProduct{
+			Cart: &entitiesCart.Cart{
+				User: &entitiesUser.User{},
+			},
+			Product: &entitiesProduct.Product{},
+		}
 
 		if err = rows.Scan(
 			&cartProduct.Id,

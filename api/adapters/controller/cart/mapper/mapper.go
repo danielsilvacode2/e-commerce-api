@@ -5,6 +5,7 @@ import (
 
 	entitiesCart "e-commerce/core/entities/cart"
 	entitiesCartProduct "e-commerce/core/entities/cart_product"
+	entitiesProduct "e-commerce/core/entities/product"
 
 	"github.com/google/uuid"
 )
@@ -16,6 +17,7 @@ func ProductCartToDto(productCart entitiesCartProduct.CartProduct) dto.ProcuctCa
 	dto := dto.ProcuctCartResponseDTO{
 		Id:          productCart.Id,
 		ProductId:   productCart.Product.Id,
+		IsSelect:    productCart.IsSelect,
 		Quantity:    productCart.Quantity,
 		Name:        productCart.Product.Name,
 		Description: productCart.Product.Description,
@@ -50,4 +52,24 @@ func CartResponseToDTO(userDTO dto.UserCartResponseDTO, ID uuid.UUID, listproduc
 	}
 
 	return dto
+}
+
+func DtoRequestToCartProduct(dto dto.CartRequestDTO) (*entitiesCartProduct.CartProduct, error) {
+
+	product := entitiesProduct.Product{}
+
+	productUUID, err := uuid.Parse(dto.ProductId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	product.Id = productUUID
+
+	cartProduct := entitiesCartProduct.CartProduct{
+		Product:  &product,
+		Quantity: dto.Quantity,
+	}
+
+	return &cartProduct, nil
 }

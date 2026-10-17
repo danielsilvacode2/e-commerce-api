@@ -7,7 +7,7 @@ type ReadCartByUserId struct {
 }
 
 
-func NeweadCartByUserId (repository entities.CartRepository) *ReadCartByUserId{
+func NewReadCartByUserId (repository entities.CartRepository) *ReadCartByUserId{
 	return &ReadCartByUserId{
 		repository: repository,
 	}

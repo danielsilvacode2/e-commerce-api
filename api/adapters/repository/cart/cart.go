@@ -3,7 +3,8 @@ package repository
 import (
 	"database/sql"
 	"e-commerce/core/apperrors"
-	entities "e-commerce/core/entities/cart"
+	entitiesCart "e-commerce/core/entities/cart"
+	entitiesUser "e-commerce/core/entities/user"
 	"errors"
 
 	"github.com/go-sql-driver/mysql"
@@ -13,13 +14,13 @@ type cartRepository struct {
 	db *sql.DB
 }
 
-func NewCartRepository(db *sql.DB) entities.CartRepository {
+func NewCartRepository(db *sql.DB) entitiesCart.CartRepository {
 	return &cartRepository{
 		db: db,
 	}
 }
 
-func (r *cartRepository) CreateCart(cart entities.Cart) error {
+func (r *cartRepository) CreateCart(cart entitiesCart.Cart) error {
 
 	statement, err := r.db.Prepare("INSERT INTO carts (id, user_id) VALUES (?,?)")
 
@@ -43,7 +44,7 @@ func (r *cartRepository) CreateCart(cart entities.Cart) error {
 	return nil
 }
 
-func (r *cartRepository) ReadCartByUserId(userId string) (*entities.Cart, error) {
+func (r *cartRepository) ReadCartByUserId(userId string) (*entitiesCart.Cart, error) {
 
 	row, err := r.db.Query("SELECT"+
 		" carts.id AS cart_id,"+
@@ -73,7 +74,9 @@ func (r *cartRepository) ReadCartByUserId(userId string) (*entities.Cart, error)
 		return nil, apperrors.ErrNotFound
 	}
 
-	var cart entities.Cart
+	cart := entitiesCart.Cart{
+		User: &entitiesUser.User{},
+	}
 
 	if err = row.Scan(
 		&cart.Id,

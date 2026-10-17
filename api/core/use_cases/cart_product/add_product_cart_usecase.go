@@ -1,6 +1,7 @@
 package use_cases
 
 import (
+	entitiesCart "e-commerce/core/entities/cart"
 	entitiesCartProduct "e-commerce/core/entities/cart_product"
 	use_cases "e-commerce/core/use_cases/cart"
 
@@ -27,7 +28,7 @@ func (useCase *AddProductUseCase) UseCase(cartProduct entitiesCartProduct.CartPr
 		return err
 	}
 
-	cartProduct.Cart.Id = cart.Id
+	cartProduct.Cart = &entitiesCart.Cart{Id: cart.Id}
 
 	cartProduct.Id = uuid.New()
 	cartProduct.IsSelect = true
