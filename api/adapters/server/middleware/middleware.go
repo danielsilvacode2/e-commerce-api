@@ -4,9 +4,26 @@ import (
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
+
+func CorsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	}
+}
 
 func RateLimiterMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
 
@@ -16,12 +33,11 @@ func RateLimiterMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
 
 		clientLimiter := limiter.GetLimiter(clientIp)
 
-		if !clientLimiter.Allow(){
-			helpers.HelperErrResponse(nil,c , apperrors.ErrTooManyRequests)
+		if !clientLimiter.Allow() {
+			helpers.HelperErrResponse(nil, c, apperrors.ErrTooManyRequests)
 			c.Abort()
-			return 
+			return
 		}
-
 
 		c.Next()
 	}

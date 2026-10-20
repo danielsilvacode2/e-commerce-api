@@ -23,23 +23,26 @@ func NewRoutes(
 
 	ipRateLimiter := middleware.NewRateLimiter(rate.Every(time.Second*1), 5)
 
+	r.Use(middleware.CorsMiddleware())
+	r.Use(middleware.RateLimiterMiddleware(ipRateLimiter))
+
 	v1 := r.Group("/api/v1")
 	{
 		users := v1.Group("/users")
 		{
 
-			users.POST("", middleware.RateLimiterMiddleware(ipRateLimiter), userController.CreateUser)
+			users.POST("", userController.CreateUser)
 
 			usersProtecd := users.Group("")
 			{
-				usersProtecd.GET("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), userController.ReadUser)
-				usersProtecd.DELETE("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), userController.DeleteUser)
-				usersProtecd.GET("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), userController.ReadAllUsers)
-				usersProtecd.PUT("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), userController.UpdateUser)
+				usersProtecd.GET("/:id", middleware.AuthMiddleware("admin"), userController.ReadUser)
+				usersProtecd.DELETE("/:id", middleware.AuthMiddleware("admin"), userController.DeleteUser)
+				usersProtecd.GET("", middleware.AuthMiddleware("admin"), userController.ReadAllUsers)
+				usersProtecd.PUT("/:id", middleware.AuthMiddleware("user"), userController.UpdateUser)
 
 				usersProtecdMe := usersProtecd.Group("/me")
 				{
-					usersProtecdMe.GET("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), userController.ReadMe)
+					usersProtecdMe.GET("", middleware.AuthMiddleware("user"), userController.ReadMe)
 				}
 
 			}
@@ -47,23 +50,24 @@ func NewRoutes(
 
 		login := v1.Group("/login")
 		{
-			login.POST("", middleware.RateLimiterMiddleware(ipRateLimiter), loginController.Login)
+			login.POST("", loginController.Login)
 		}
 
 		products := v1.Group("/products")
 		{
-			products.POST("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.CreateProduct)
-			products.GET("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.ReadProductById)
-			products.GET("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.ReadAllProducts)
-			products.DELETE("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.DeleteProductById)
-			products.PUT("/:id", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("admin"), productController.UpdateProduct)
+			products.POST("", middleware.AuthMiddleware("admin"), productController.CreateProduct)
+			products.GET("/:id", middleware.AuthMiddleware("admin"), productController.ReadProductById)
+			products.GET("", middleware.AuthMiddleware("admin"), productController.ReadAllProducts)
+			products.DELETE("/:id", middleware.AuthMiddleware("admin"), productController.DeleteProductById)
+			products.PUT("/:id", middleware.AuthMiddleware("admin"), productController.UpdateProduct)
 		}
 
 		cart := v1.Group("/cart")
 		{
-			cart.POST("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), cartController.AddProductCartMe)
-			cart.GET("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), cartController.ReadAllProductCartMe)
-			cart.DELETE("/:id",middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), cartController.RemoveProductCartMe)
+			cart.POST("", middleware.AuthMiddleware("user"), cartController.AddProductCartMe)
+			cart.GET("", middleware.AuthMiddleware("user"), cartController.ReadAllProductCartMe)
+			cart.DELETE("/:id", middleware.AuthMiddleware("user"), cartController.RemoveProductCartMe)
+			cart.PUT("/:id", middleware.AuthMiddleware("user"), cartController.UpdateIsSelectProductMe)
 		}
 
 	}

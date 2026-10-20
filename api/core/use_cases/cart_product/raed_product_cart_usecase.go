@@ -6,8 +6,8 @@ type ReadCartProductUseCase struct {
 	repository entities.CartProductRepository
 }
 
-func NewReadCartProductUseCase(repository entities.CartProductRepository) *ReadAllCartProductsUseCase {
-	return &ReadAllCartProductsUseCase{
+func NewReadCartProductUseCase(repository entities.CartProductRepository) *ReadCartProductUseCase {
+	return &ReadCartProductUseCase{
 		repository: repository,
 	}
 }

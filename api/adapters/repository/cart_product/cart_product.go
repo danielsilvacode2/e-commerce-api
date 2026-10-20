@@ -213,6 +213,19 @@ func (r *cartProductRepository) RemoveProductCart(id string) error {
 	return nil
 }
 
-func (r *cartProductRepository) UpdateIsSelect(bool, cartProductId string) error {
+func (r *cartProductRepository) UpdateIsSelect(valueSelect bool, cartProductId string) error {
+	
+	statement, err := r.db.Prepare("UPDATE cart_products SET isSelect = ? WHERE id = ?")
+	
+	if err != nil{
+		return err
+	}
+
+	defer statement.Close()
+
+	if _,err := statement.Exec(valueSelect, cartProductId); err != nil{
+		return err
+	}
+
 	return nil
 }

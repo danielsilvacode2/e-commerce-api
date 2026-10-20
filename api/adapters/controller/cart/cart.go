@@ -15,20 +15,23 @@ import (
 )
 
 type CartController struct {
-	AddProduct    use_cases.AddProductUseCase
-	ReadllCart    use_cases.ReadAllCartProductsUseCase
-	RemoveProduct use_cases.RemoveProductCartUseCase
+	AddProductCase     use_cases.AddProductUseCase
+	ReadAllCartCase    use_cases.ReadAllCartProductsUseCase
+	RemoveProductCase  use_cases.RemoveProductCartUseCase
+	UpdateIsSelectCase use_cases.UpdateIsSelectUseCase
 }
 
 func NewCartController(
-	AddProduct use_cases.AddProductUseCase,
-	ReadllCart use_cases.ReadAllCartProductsUseCase,
-	RemoveProduct use_cases.RemoveProductCartUseCase) *CartController {
+	AddProductCase use_cases.AddProductUseCase,
+	ReadAllCartCase use_cases.ReadAllCartProductsUseCase,
+	RemoveProductCase use_cases.RemoveProductCartUseCase,
+	UpdateIsSelectCase use_cases.UpdateIsSelectUseCase) *CartController {
 
 	return &CartController{
-		AddProduct:    AddProduct,
-		ReadllCart:    ReadllCart,
-		RemoveProduct: RemoveProduct,
+		AddProductCase:     AddProductCase,
+		ReadAllCartCase:    ReadAllCartCase,
+		RemoveProductCase:  RemoveProductCase,
+		UpdateIsSelectCase: UpdateIsSelectCase,
 	}
 }
 
@@ -80,7 +83,7 @@ func (cartCtrl *CartController) AddProductCartMe(c *gin.Context) {
 		return
 	}
 
-	if err = cartCtrl.AddProduct.UseCase(*cartProduct, userId); err != nil {
+	if err = cartCtrl.AddProductCase.UseCase(*cartProduct, userId); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
@@ -100,7 +103,7 @@ func (cartCtrl *CartController) ReadAllProductCartMe(c *gin.Context) {
 
 	userId := claims.Id.String()
 
-	listCartProducts, err := cartCtrl.ReadllCart.UseCase(userId)
+	listCartProducts, err := cartCtrl.ReadAllCartCase.UseCase(userId)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -110,7 +113,7 @@ func (cartCtrl *CartController) ReadAllProductCartMe(c *gin.Context) {
 	var listCartProductsDTO []dto.ProcuctCartResponseDTO
 
 	if listCartProducts == nil {
-		helpers.HelperResponse(listCartProductsDTO,http.StatusOK, "list is empty", c)
+		helpers.HelperResponse(listCartProductsDTO, http.StatusOK, "list is empty", c)
 		return
 	}
 
@@ -143,10 +146,39 @@ func (cartCtrl *CartController) RemoveProductCartMe(c *gin.Context) {
 	userId := claims.Id.String()
 
 	cartProductID := c.Param("id")
-	if err = cartCtrl.RemoveProduct.UseCase(cartProductID, userId); err != nil {
+	if err = cartCtrl.RemoveProductCase.UseCase(cartProductID, userId); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
 	helpers.HelperResponse(nil, http.StatusNoContent, "remove product", c)
+}
+
+func (cartCtrl *CartController) UpdateIsSelectProductMe(c *gin.Context) {
+	claims, err := cartCtrl.getClaims(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	userId := claims.Id.String()
+
+	var isSelectDTO dto.IsSelectRequestDTO
+
+	if err = c.ShouldBindJSON(&isSelectDTO); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	cartProductID := c.Param("id")
+
+	if err = cartCtrl.UpdateIsSelectCase.UseCase(isSelectDTO.IsSelect, userId, cartProductID); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+
+	helpers.HelperResponse(nil, http.StatusNoContent, "update is select", c)
+
 }

@@ -23,5 +23,5 @@ type CartProductRepository interface {
 	RemoveProductCart( ID string) error
 	ReadAllProductsCart(userId string) ([]CartProduct, error)
 	ReadProductsCart(cartProductId string) (*CartProduct, error)
-	UpdateIsSelect(bool, cartProductId string) error
+	UpdateIsSelect(valueSelect bool, cartProductId string) error
 }
