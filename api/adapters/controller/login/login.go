@@ -14,13 +14,13 @@ import (
 )
 
 type LoginController struct {
-	repository entities.UserRepository
+	repository      entities.UserRepository
 	passwordService ports.PasswordService
 }
 
 func NewLoginController(repository entities.UserRepository, passwordService ports.PasswordService) *LoginController {
 	return &LoginController{
-		repository: repository,
+		repository:      repository,
 		passwordService: passwordService,
 	}
 }
@@ -34,7 +34,7 @@ func (l *LoginController) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := usecases.LoginUseCase(loginRequest.Email, loginRequest.Password, l.repository,l.passwordService)
+	user, err := usecases.LoginUseCase(loginRequest.Email, loginRequest.Password, l.repository, l.passwordService)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -48,10 +48,11 @@ func (l *LoginController) Login(c *gin.Context) {
 		return
 	}
 
-	 loginResponse := dto.LoginResponseDTO{
+	loginResponse := dto.LoginResponseDTO{
 		WebToken: token,
-	 }
+		UserRole: user.Role,
+	}
 
-	 helpers.HelperResponse(loginResponse, http.StatusOK, "login authorized", c)
+	helpers.HelperResponse(loginResponse, http.StatusOK, "login authorized", c)
 
 }
