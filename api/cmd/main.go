@@ -6,17 +6,14 @@ import (
 	"e-commerce/config"
 )
 
-
-
-func main() {
-
+func init() {
 	config.LoadConfig()
 	database.NewMySQLConnection()
+}
+
+func main() {
 
 	r := router.NewGinRouter()
 	r.Run(config.ApiPort)
 
 }
-
-
-

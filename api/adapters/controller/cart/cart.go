@@ -15,30 +15,47 @@ import (
 )
 
 type CartController struct {
-	AddProduct use_cases.AddProductUseCase
-	ReadllCart use_cases.ReadAllCartProductsUseCase
+	AddProduct    use_cases.AddProductUseCase
+	ReadllCart    use_cases.ReadAllCartProductsUseCase
+	RemoveProduct use_cases.RemoveProductCartUseCase
 }
 
-func NewCartController(AddProduct use_cases.AddProductUseCase, ReadllCart use_cases.ReadAllCartProductsUseCase) *CartController {
+func NewCartController(
+	AddProduct use_cases.AddProductUseCase,
+	ReadllCart use_cases.ReadAllCartProductsUseCase,
+	RemoveProduct use_cases.RemoveProductCartUseCase) *CartController {
+
 	return &CartController{
-		AddProduct: AddProduct,
-		ReadllCart: ReadllCart,
+		AddProduct:    AddProduct,
+		ReadllCart:    ReadllCart,
+		RemoveProduct: RemoveProduct,
 	}
 }
 
-func (cartCtrl *CartController) AddProductCartMe(c *gin.Context) {
+func (cartCtrl *CartController) getClaims(c *gin.Context) (*auth.Claims, error) {
 
 	val, exists := c.Get("claims")
 
 	if !exists {
-		helpers.HelperErrResponse(nil, c, apperrors.ErrUnauthorized)
-		return
+		return nil, apperrors.ErrUnauthorized
 	}
 
 	claims, ok := val.(*auth.Claims)
 
 	if !ok {
-		helpers.HelperErrResponse(nil, c, errors.New("Error converting declarations"))
+		return nil, errors.New("Error converting declarations")
+	}
+
+	return claims, nil
+
+}
+
+func (cartCtrl *CartController) AddProductCartMe(c *gin.Context) {
+
+	claims, err := cartCtrl.getClaims(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
@@ -74,17 +91,10 @@ func (cartCtrl *CartController) AddProductCartMe(c *gin.Context) {
 
 func (cartCtrl *CartController) ReadAllProductCartMe(c *gin.Context) {
 
-	val, exists := c.Get("claims")
+	claims, err := cartCtrl.getClaims(c)
 
-	if !exists {
-		helpers.HelperErrResponse(nil, c, apperrors.ErrUnauthorized)
-		return
-	}
-
-	claims, ok := val.(*auth.Claims)
-
-	if !ok {
-		helpers.HelperErrResponse(nil, c, errors.New("Error converting declarations"))
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
@@ -98,6 +108,11 @@ func (cartCtrl *CartController) ReadAllProductCartMe(c *gin.Context) {
 	}
 
 	var listCartProductsDTO []dto.ProcuctCartResponseDTO
+
+	if listCartProducts == nil {
+		helpers.HelperResponse(listCartProductsDTO,http.StatusOK, "list is empty", c)
+		return
+	}
 
 	var cart *entities.Cart
 
@@ -115,4 +130,23 @@ func (cartCtrl *CartController) ReadAllProductCartMe(c *gin.Context) {
 
 	cartResponse := mapper.CartResponseToDTO(userDTO, cart.Id, listCartProductsDTO)
 	helpers.HelperResponse(cartResponse, http.StatusOK, "read all products cart", c)
+}
+
+func (cartCtrl *CartController) RemoveProductCartMe(c *gin.Context) {
+	claims, err := cartCtrl.getClaims(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	userId := claims.Id.String()
+
+	cartProductID := c.Param("id")
+	if err = cartCtrl.RemoveProduct.UseCase(cartProductID, userId); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	helpers.HelperResponse(nil, http.StatusNoContent, "remove product", c)
 }

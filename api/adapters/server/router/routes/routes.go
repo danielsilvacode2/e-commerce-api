@@ -63,6 +63,7 @@ func NewRoutes(
 		{
 			cart.POST("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), cartController.AddProductCartMe)
 			cart.GET("", middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), cartController.ReadAllProductCartMe)
+			cart.DELETE("/:id",middleware.RateLimiterMiddleware(ipRateLimiter), middleware.AuthMiddleware("user"), cartController.RemoveProductCartMe)
 		}
 
 	}

@@ -25,8 +25,10 @@ func NewCartProductRepository(db *sql.DB) entitiesCartProduct.CartProductReposit
 func (r *cartProductRepository) AddProductCart(cartProduct entitiesCartProduct.CartProduct) error {
 
 	statement, err := r.db.Prepare("INSERT INTO cart_products " +
-		"(id, cart_id, product_id,quantity ,isSelect)" +
-		"VALUES (?,?,?,?,?)")
+		"(id, cart_id, product_id,quantity ,isSelect) " +
+		"VALUES (?,?,?,?,?)" +
+		"ON DUPLICATE KEY UPDATE "+
+		"quantity = VALUES(quantity)")
 
 	if err != nil {
 		return err
@@ -127,7 +129,87 @@ func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entitiesCa
 	return listProductCarts, nil
 }
 
+func (r *cartProductRepository) ReadProductsCart(cartProductId string) (*entitiesCartProduct.CartProduct, error) {
+
+	row, err := r.db.Query(`
+        SELECT 
+            cartproducts.id,
+            cartproducts.quantity,
+            cartproducts.isSelect,
+            cart.id,
+            user.id,
+            user.user_name,
+            user.user_email,
+            user.user_role,
+            product.id,
+            product.product_name,
+            product.product_description,
+            product.product_price,
+            product.product_image,
+			product.product_sku
+        FROM cart_products cartproducts
+        JOIN products product ON cartproducts.product_id = product.id
+        JOIN carts cart ON cartproducts.cart_id = cart.id
+        JOIN users user ON cart.user_id = user.id
+        WHERE cartproducts.id = ?
+    `, cartProductId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer row.Close()
+
+	cartProduct := entitiesCartProduct.CartProduct{
+		Cart: &entitiesCart.Cart{
+			User: &entitiesUser.User{},
+		},
+		Product: &entitiesProduct.Product{},
+	}
+
+	if row.Next() {
+
+		if err = row.Scan(
+			&cartProduct.Id,
+			&cartProduct.Quantity,
+			&cartProduct.IsSelect,
+			&cartProduct.Cart.Id,
+			&cartProduct.Cart.User.ID,
+			&cartProduct.Cart.User.Name,
+			&cartProduct.Cart.User.Email,
+			&cartProduct.Cart.User.Role,
+			&cartProduct.Product.Id,
+			&cartProduct.Product.Name,
+			&cartProduct.Product.Description,
+			&cartProduct.Product.Price,
+			&cartProduct.Product.Image,
+			&cartProduct.Product.Sku,
+		); err != nil {
+			return nil, err
+		}
+
+	}
+
+	if err = row.Err(); err != nil {
+		return nil, err
+	}
+	return &cartProduct, nil
+}
+
 func (r *cartProductRepository) RemoveProductCart(id string) error {
+
+	statement, err := r.db.Prepare("DELETE FROM cart_products  WHERE id = ?")
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	if _, err = statement.Exec(id); err != nil {
+		return err
+	}
+
 	return nil
 }
 

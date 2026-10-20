@@ -6,7 +6,7 @@ import (
 	"e-commerce/adapters/controller/user/mapper"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
-	
+
 	use_cases "e-commerce/core/use_cases/user"
 	"errors"
 	"net/http"
@@ -114,6 +114,11 @@ func (userCtrl *UserController) ReadAllUsers(c *gin.Context) {
 	}
 
 	var listUserDTO []dto.UserResponseDTO
+
+	if listUsers == nil {
+		helpers.HelperResponse(listUserDTO, http.StatusOK, "list is empty", c)
+		return
+	}
 
 	for _, user := range listUsers {
 		userDTO := mapper.UserToResponseDTO(user)

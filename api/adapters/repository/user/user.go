@@ -124,7 +124,7 @@ func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
 	rows, err := r.db.Query("SELECT * FROM users")
 
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	defer rows.Close()

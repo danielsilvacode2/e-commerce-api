@@ -91,6 +91,12 @@ func (productCtrl *ProductController) ReadAllProducts(c *gin.Context) {
 
 	var listProductsDTO []dto.ProcuctResponseDTO
 
+	
+	if listProducts == nil {
+		helpers.HelperResponse(listProductsDTO, http.StatusOK, "list is empty", c)
+		return
+	}
+
 	for _, product := range listProducts {
 
 		dto := mapper.ProductToDto(product)

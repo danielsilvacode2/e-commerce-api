@@ -77,11 +77,12 @@ func BuilderCartController() *controllerCart.CartController {
 	cartProductRepository := repositoryCartProduct.NewCartProductRepository(database.DB_MySQL)
 
 	readOrCreateCart := useCasesCart.NewReadOrCreateCartUseCase(cartRepository)
-
 	addProductCart := useCasesCartProduct.NewAddProductUseCase(cartProductRepository, *readOrCreateCart)
-	readCartProduct := useCasesCartProduct.NewReadAllCartProductsUseCase(cartProductRepository)
+	readAllCartProduct := useCasesCartProduct.NewReadAllCartProductsUseCase(cartProductRepository)
+	readCartProduct := useCasesCartProduct.NewReadCartProductUseCase(cartProductRepository)
+	removeProductCart := useCasesCartProduct.NewRemoveProductCartUseCase(cartProductRepository, useCasesCartProduct.ReadCartProductUseCase(*readCartProduct))
 
-	cartController := controllerCart.NewCartController(*addProductCart, *readCartProduct)
+	cartController := controllerCart.NewCartController(*addProductCart, *readAllCartProduct, *removeProductCart)
 
 	return cartController
 
