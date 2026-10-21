@@ -15,23 +15,26 @@ import (
 )
 
 type CartController struct {
-	AddProductCase     use_cases.AddProductUseCase
-	ReadAllCartCase    use_cases.ReadAllCartProductsUseCase
-	RemoveProductCase  use_cases.RemoveProductCartUseCase
-	UpdateIsSelectCase use_cases.UpdateIsSelectUseCase
+	AddProductCase        use_cases.AddProductUseCase
+	ReadAllCartCase       use_cases.ReadAllCartProductsUseCase
+	RemoveProductCase     use_cases.RemoveProductCartUseCase
+	UpdateIsSelectCase    use_cases.UpdateIsSelectUseCase
+	UpdateIsAllSelectCase use_cases.UpdateAllIsSelectUseCase
 }
 
 func NewCartController(
 	AddProductCase use_cases.AddProductUseCase,
 	ReadAllCartCase use_cases.ReadAllCartProductsUseCase,
 	RemoveProductCase use_cases.RemoveProductCartUseCase,
-	UpdateIsSelectCase use_cases.UpdateIsSelectUseCase) *CartController {
+	UpdateIsSelectCase use_cases.UpdateIsSelectUseCase,
+	UpdateIsAllSelectCase use_cases.UpdateAllIsSelectUseCase) *CartController {
 
 	return &CartController{
-		AddProductCase:     AddProductCase,
-		ReadAllCartCase:    ReadAllCartCase,
-		RemoveProductCase:  RemoveProductCase,
-		UpdateIsSelectCase: UpdateIsSelectCase,
+		AddProductCase:        AddProductCase,
+		ReadAllCartCase:       ReadAllCartCase,
+		RemoveProductCase:     RemoveProductCase,
+		UpdateIsSelectCase:    UpdateIsSelectCase,
+		UpdateIsAllSelectCase: UpdateIsAllSelectCase,
 	}
 }
 
@@ -178,7 +181,34 @@ func (cartCtrl *CartController) UpdateIsSelectProductMe(c *gin.Context) {
 		return
 	}
 
-
 	helpers.HelperResponse(nil, http.StatusNoContent, "update is select", c)
+
+}
+
+func (cartCtrl *CartController) UpdateIsAllSelectProductMe(c *gin.Context) {
+
+	claims, err := cartCtrl.getClaims(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	userID := claims.Id.String()
+
+	var isSelectDTO dto.IsSelectRequestDTO
+
+	if err = c.ShouldBindJSON(&isSelectDTO); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	if err = cartCtrl.UpdateIsAllSelectCase.UseCase(isSelectDTO.IsSelect, userID); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+
+	helpers.HelperResponse(nil, http.StatusNoContent, "updateIsSelect", c)
 
 }

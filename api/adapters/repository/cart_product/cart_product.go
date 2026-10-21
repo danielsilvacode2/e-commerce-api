@@ -27,7 +27,7 @@ func (r *cartProductRepository) AddProductCart(cartProduct entitiesCartProduct.C
 	statement, err := r.db.Prepare("INSERT INTO cart_products " +
 		"(id, cart_id, product_id,quantity ,isSelect) " +
 		"VALUES (?,?,?,?,?)" +
-		"ON DUPLICATE KEY UPDATE "+
+		"ON DUPLICATE KEY UPDATE " +
 		"quantity = VALUES(quantity)")
 
 	if err != nil {
@@ -214,16 +214,36 @@ func (r *cartProductRepository) RemoveProductCart(id string) error {
 }
 
 func (r *cartProductRepository) UpdateIsSelect(valueSelect bool, cartProductId string) error {
-	
+
 	statement, err := r.db.Prepare("UPDATE cart_products SET isSelect = ? WHERE id = ?")
-	
-	if err != nil{
+
+	if err != nil {
 		return err
 	}
 
 	defer statement.Close()
 
-	if _,err := statement.Exec(valueSelect, cartProductId); err != nil{
+	if _, err := statement.Exec(valueSelect, cartProductId); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *cartProductRepository) UpdateAllIsSelect(valueSelect bool, userID string) error {
+
+	statement, err := r.db.Prepare("UPDATE cart_products cartp " +
+		"JOIN carts c ON  cartp.cart_id = c.id " +
+		"SET cartp.isSelect = ? " +
+		"WHERE c.user_id = ? ")
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	if _, err := statement.Exec(valueSelect, userID); err != nil {
 		return err
 	}
 

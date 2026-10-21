@@ -82,8 +82,9 @@ func BuilderCartController() *controllerCart.CartController {
 	readCartProduct := useCasesCartProduct.NewReadCartProductUseCase(cartProductRepository)
 	removeProductCart := useCasesCartProduct.NewRemoveProductCartUseCase(cartProductRepository, useCasesCartProduct.ReadCartProductUseCase(*readCartProduct))
 	updateIsSelect := useCasesCartProduct.NewUpdateIsSelectUseCase(cartProductRepository, *readCartProduct)
+	updateAllIsSelect := useCasesCartProduct.NewAllUpdateIsSelectUseCase(cartProductRepository)
 
-	cartController := controllerCart.NewCartController(*addProductCart, *readAllCartProduct, *removeProductCart, *updateIsSelect)
+	cartController := controllerCart.NewCartController(*addProductCart, *readAllCartProduct, *removeProductCart, *updateIsSelect, *updateAllIsSelect)
 
 	return cartController
 

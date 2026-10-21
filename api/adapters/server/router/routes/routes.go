@@ -68,6 +68,7 @@ func NewRoutes(
 			cart.GET("", middleware.AuthMiddleware("user"), cartController.ReadAllProductCartMe)
 			cart.DELETE("/:id", middleware.AuthMiddleware("user"), cartController.RemoveProductCartMe)
 			cart.PUT("/:id", middleware.AuthMiddleware("user"), cartController.UpdateIsSelectProductMe)
+			cart.PUT("", middleware.AuthMiddleware("user"), cartController.UpdateIsAllSelectProductMe)
 		}
 
 	}

@@ -24,4 +24,5 @@ type CartProductRepository interface {
 	ReadAllProductsCart(userId string) ([]CartProduct, error)
 	ReadProductsCart(cartProductId string) (*CartProduct, error)
 	UpdateIsSelect(valueSelect bool, cartProductId string) error
+	UpdateAllIsSelect(valueSelect bool, userID string) error
 }
