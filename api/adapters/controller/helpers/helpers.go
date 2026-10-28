@@ -23,7 +23,7 @@ func HelperResponse(body interface{}, status int, msg string, c *gin.Context) {
 
 		c.JSON(status, gin.H{
 			"Response":       dtoResponse,
-			"Response-Body:": body,
+			"Body:": body,
 		})
 
 		return

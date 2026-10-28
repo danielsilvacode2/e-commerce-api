@@ -53,6 +53,18 @@ func (l *LoginController) Login(c *gin.Context) {
 		UserRole: user.Role,
 	}
 
+	c.SetSameSite(http.SameSiteLaxMode)
+
+	c.SetCookie(
+		"token", // nome (o mesmo que o getToken lê com c.Cookie("token"))
+		token,   // valor
+		2*60*60, // duração em segundos (2h, igual ao JWT)
+		"/",     // path
+		"",      // domínio (vazio = só o host atual)
+		false,   // secure: false em dev local (HTTP), true em produção
+		true,    // httpOnly
+	)
+
 	helpers.HelperResponse(loginResponse, http.StatusOK, "login authorized", c)
 
 }

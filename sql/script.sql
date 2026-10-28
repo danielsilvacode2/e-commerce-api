@@ -13,6 +13,8 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+TRUNCATE TABLE users;
+
 DESC users;
 
 SELECT
@@ -33,6 +35,8 @@ CREATE TABLE products (
     product_quantity INT NOT NULL
 );
 
+TRUNCATE TABLE products;
+
 SELECT
     *
 FROM
@@ -48,6 +52,8 @@ CREATE TABLE carts (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+TRUNCATE TABLE carts;
 
 SELECT
     *
@@ -68,6 +74,8 @@ CREATE TABLE cart_products(
     FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
+
+TRUNCATE TABLE cart_products;
 
 SELECT
     *

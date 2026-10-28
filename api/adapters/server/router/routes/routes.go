@@ -21,7 +21,7 @@ func NewRoutes(
 
 	r := gin.Default()
 
-	ipRateLimiter := middleware.NewRateLimiter(rate.Every(time.Second*1), 5)
+	ipRateLimiter := middleware.NewRateLimiter(rate.Every(time.Millisecond*100), 20)
 
 	r.Use(middleware.CorsMiddleware())
 	r.Use(middleware.RateLimiterMiddleware(ipRateLimiter))
@@ -57,7 +57,7 @@ func NewRoutes(
 		{
 			products.POST("", middleware.AuthMiddleware("admin"), productController.CreateProduct)
 			products.GET("/:id", middleware.AuthMiddleware("admin"), productController.ReadProductById)
-			products.GET("", middleware.AuthMiddleware("admin"), productController.ReadAllProducts)
+			products.GET("",productController.ReadAllProducts)
 			products.DELETE("/:id", middleware.AuthMiddleware("admin"), productController.DeleteProductById)
 			products.PUT("/:id", middleware.AuthMiddleware("admin"), productController.UpdateProduct)
 		}

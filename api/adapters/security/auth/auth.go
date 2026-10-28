@@ -2,8 +2,7 @@ package auth
 
 import (
 	"e-commerce/config"
-	"e-commerce/core/apperrors"
-	"strings"
+	"e-commerce/core/apperrors" 
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -65,19 +64,11 @@ func ValidateToken(c *gin.Context) (*Claims, error) {
 
 func getToken(c *gin.Context) (string, error) {
 
-	authHeader := c.GetHeader("Authorization")
+	tokenString, err := c.Cookie("token")
 
-	if authHeader == "" {
+	if err != nil || tokenString == "" {
 		return "", apperrors.ErrUnauthorized
 	}
-
-	parths := strings.Split(authHeader, " ")
-
-	if len(parths) != 2 || parths[0] != "Bearer" {
-		return "", apperrors.ErrUnauthorized
-	}
-
-	tokenString := parths[1]
 
 	return tokenString, nil
 }

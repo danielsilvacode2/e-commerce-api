@@ -13,7 +13,7 @@ type ProcuctResponseDTO struct {
 	Description string    `json:"description"`
 	Price       float64   `json:"price"`
 	Quantity    int64     `json:"quantity"`
-	Image  		string    `json:"image"`
-	UpdateAt   time.Time `json:"update_at"`
-	CreateAt  time.Time `json:"created_at"`
+	Image       string    `json:"image"`
+	UpdateAt    time.Time `json:"update_at"`
+	CreateAt    time.Time `json:"created_at"`
 }
