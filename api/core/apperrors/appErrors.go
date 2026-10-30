@@ -9,5 +9,6 @@ var (
 	ErrUnauthorized = errors.New("Unauthorized access")
 	ErrForbidden = errors.New("Forbidden access")
 	ErrTooManyRequests = errors.New("too many requests")
+	ErrUnprocessableEntity = errors.New("unprocessable Entity ")
 )
 

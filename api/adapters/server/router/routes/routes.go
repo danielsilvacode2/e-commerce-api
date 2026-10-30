@@ -56,8 +56,8 @@ func NewRoutes(
 		products := v1.Group("/products")
 		{
 			products.POST("", middleware.AuthMiddleware("admin"), productController.CreateProduct)
-			products.GET("/:id", middleware.AuthMiddleware("admin"), productController.ReadProductById)
-			products.GET("",productController.ReadAllProducts)
+			products.GET("/:id", middleware.AuthMiddleware("user"), productController.ReadProductById)
+			products.GET("", productController.ReadAllProducts)
 			products.DELETE("/:id", middleware.AuthMiddleware("admin"), productController.DeleteProductById)
 			products.PUT("/:id", middleware.AuthMiddleware("admin"), productController.UpdateProduct)
 		}
@@ -69,6 +69,7 @@ func NewRoutes(
 			cart.DELETE("/:id", middleware.AuthMiddleware("user"), cartController.RemoveProductCartMe)
 			cart.PUT("/:id", middleware.AuthMiddleware("user"), cartController.UpdateIsSelectProductMe)
 			cart.PUT("", middleware.AuthMiddleware("user"), cartController.UpdateIsAllSelectProductMe)
+			cart.PUT("/decrease/:id", middleware.AuthMiddleware("user"), cartController.DecreaseProductCartMe)
 		}
 
 	}

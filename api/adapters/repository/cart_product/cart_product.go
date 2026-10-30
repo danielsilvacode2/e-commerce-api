@@ -56,6 +56,35 @@ func (r *cartProductRepository) AddProductCart(cartProduct entitiesCartProduct.C
 	return nil
 }
 
+
+func (r *cartProductRepository) DecreaseProductCart(cartProductId string, quantity int64) error {
+
+	statement, err := r.db.Prepare("UPDATE cart_products SET quantity = (quantity - ? ) WHERE id = ?")
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	if _, err = statement.Exec(
+		quantity,
+		cartProductId,
+	); err != nil {
+
+		var sqlErr *mysql.MySQLError
+
+		if errors.As(err, &sqlErr) && sqlErr.Number == 1062 {
+			return apperrors.ErrConflict
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+
 func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entitiesCartProduct.CartProduct, error) {
 
 	rows, err := r.db.Query(`

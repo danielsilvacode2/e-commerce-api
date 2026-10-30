@@ -12,7 +12,7 @@ import (
 
 func ProductCartToDto(productCart entitiesCartProduct.CartProduct) dto.ProcuctCartResponseDTO {
 
-	price := productCart.Product.Price * float64(productCart.Quantity)
+
 
 	dto := dto.ProcuctCartResponseDTO{
 		Id:          productCart.Id,
@@ -22,7 +22,7 @@ func ProductCartToDto(productCart entitiesCartProduct.CartProduct) dto.ProcuctCa
 		Name:        productCart.Product.Name,
 		Description: productCart.Product.Description,
 		Sku:         productCart.Product.Sku,
-		Price:       price,
+		Price:       productCart.Product.Price,
 		Image:       productCart.Product.Image,
 	}
 

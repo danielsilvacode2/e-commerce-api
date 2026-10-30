@@ -12,8 +12,8 @@ func NewReadAllProductsUseCase(repository entities.ProductRepository) *ReadAllPr
 	}
 }
 
-func (useCase *ReadAllProductsUseCase) UseCase() ([]entities.Product, error) {
-	listProduct, err := useCase.repository.ReadAllProduct()
+func (useCase *ReadAllProductsUseCase) UseCase(page int, limit int) (*entities.PaginatedProducts, error) {
+	listProduct, err := useCase.repository.ReadAllProduct(page, limit)
 
 	if err != nil {
 		return nil, err

@@ -7,9 +7,9 @@ import (
 )
 
 type CartResponseDTO struct {
-	Id          uuid.UUID
-	User        UserCartResponseDTO
-	ListProduct []ProcuctCartResponseDTO
+	Id          uuid.UUID  `json:"id"`
+	User        UserCartResponseDTO `json:"user"`
+	ListProduct []ProcuctCartResponseDTO `json:"list"`
 }
 
 

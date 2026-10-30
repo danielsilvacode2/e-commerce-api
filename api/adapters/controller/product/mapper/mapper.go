@@ -27,6 +27,7 @@ func DtoUpdateToProduct(dto dto.ProcuctUpdateRequestDTO) entities.Product {
 		Sku:         dto.Sku,
 		Price:       dto.Price,
 		Image:       dto.Image,
+		Quantity:    dto.Quantity,
 	}
 
 	return product
@@ -49,4 +50,3 @@ func ProductToDto(product entities.Product) dto.ProcuctResponseDTO {
 	return dto
 
 }
-

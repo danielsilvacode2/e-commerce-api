@@ -22,8 +22,8 @@ func HelperResponse(body interface{}, status int, msg string, c *gin.Context) {
 	if body != nil {
 
 		c.JSON(status, gin.H{
-			"Response":       dtoResponse,
-			"Body:": body,
+			"Response": dtoResponse,
+			"Body:":    body,
 		})
 
 		return
@@ -59,6 +59,10 @@ func HelperErrResponse(body interface{}, c *gin.Context, err error) {
 
 	case apperrors.ErrTooManyRequests:
 		HelperResponse(body, http.StatusTooManyRequests, err.Error(), c)
+		return
+
+	case apperrors.ErrUnprocessableEntity:
+		HelperResponse(body, http.StatusUnprocessableEntity, err.Error(), c)
 		return
 
 	default:

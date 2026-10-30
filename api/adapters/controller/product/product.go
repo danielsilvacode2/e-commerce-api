@@ -7,6 +7,7 @@ import (
 	"e-commerce/core/apperrors"
 	use_cases "e-commerce/core/use_cases/product"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,11 +21,11 @@ type ProductController struct {
 }
 
 func NewProductController(
-	createProduct *use_cases.CreateProductUseCase, 
-	readAllProducts *use_cases.ReadAllProductsUseCase, 
-	deleteProductById *use_cases.DeleteProductByIdUseCase, 
-	updateProduct *use_cases.UpdateProductUseCase, 
-	readProductById *use_cases.ReadProductByIdUseCase, ) *ProductController {
+	createProduct *use_cases.CreateProductUseCase,
+	readAllProducts *use_cases.ReadAllProductsUseCase,
+	deleteProductById *use_cases.DeleteProductByIdUseCase,
+	updateProduct *use_cases.UpdateProductUseCase,
+	readProductById *use_cases.ReadProductByIdUseCase) *ProductController {
 
 	return &ProductController{
 		createProduct:     createProduct,
@@ -50,7 +51,7 @@ func (productCtrl *ProductController) CreateProduct(c *gin.Context) {
 	}
 
 	potentialProduct := mapper.DtoCreateToProduct(dtoRequest)
-	product, err :=productCtrl.createProduct.UseCase(potentialProduct)
+	product, err := productCtrl.createProduct.UseCase(potentialProduct)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -82,7 +83,13 @@ func (productCtrl *ProductController) ReadProductById(c *gin.Context) {
 
 func (productCtrl *ProductController) ReadAllProducts(c *gin.Context) {
 
-	listProducts, err :=productCtrl.readAllProducts.UseCase()
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+
+	page, _ := strconv.Atoi(pageStr)
+	limit, _ := strconv.Atoi(limitStr)
+
+	paginete, err := productCtrl.readAllProducts.UseCase(page, limit)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -91,20 +98,27 @@ func (productCtrl *ProductController) ReadAllProducts(c *gin.Context) {
 
 	var listProductsDTO []dto.ProcuctResponseDTO
 
-	
-	if listProducts == nil {
+	if paginete == nil {
 		helpers.HelperResponse(listProductsDTO, http.StatusOK, "list is empty", c)
 		return
 	}
 
-	for _, product := range listProducts {
+	for _, product := range paginete.Data {
 
 		dto := mapper.ProductToDto(product)
 
 		listProductsDTO = append(listProductsDTO, dto)
 	}
 
-	helpers.HelperResponse(listProductsDTO, http.StatusOK, "list products", c)
+	var pagineteDTO dto.PaginatedProducts
+
+	pagineteDTO.Products = listProductsDTO
+	pagineteDTO.Limit = paginete.Limit
+	pagineteDTO.Page = paginete.Page
+	pagineteDTO.TotalPages = paginete.TotalPages
+	pagineteDTO.TotalRows = paginete.TotalRows
+
+	helpers.HelperResponse(pagineteDTO, http.StatusOK, "list products", c)
 }
 
 func (productCtrl *ProductController) DeleteProductById(c *gin.Context) {

@@ -6,6 +6,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type PaginatedProducts struct {
+	Products   []ProcuctResponseDTO `json:"data"`
+	Page       int                  `json:"page"`
+	Limit      int                  `json:"limit"`
+	TotalRows  int64                `json:"total_rows"`
+	TotalPages int                  `json:"total_pages"`
+}
+
 type ProcuctResponseDTO struct {
 	Id          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
