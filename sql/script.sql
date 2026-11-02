@@ -2,6 +2,10 @@ CREATE database ecommerce;
 
 USE ecommerce;
 
+SET FOREIGN_KEY_CHECKS = 0;
+SET FOREIGN_KEY_CHECKS = 1;
+
+
 --A ENTIDADE DO USUARIO
 CREATE TABLE users (
     id VARCHAR(50) PRIMARY KEY,
@@ -9,6 +13,9 @@ CREATE TABLE users (
     user_email VARCHAR(100) NOT NULL UNIQUE,
     user_password VARCHAR(255) NOT NULL,
     user_role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+    verification_code VARCHAR(6),
+    is_verified BOOLEAN DEFAULT FALSE,
+    code_expires_at DATETIME,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -30,9 +37,9 @@ CREATE TABLE products (
     product_sku VARCHAR(255) NOT NULL UNIQUE,
     product_price DECIMAL(10, 2) NOT NULL,
     product_image VARCHAR(200) NOT NULL,
+    product_quantity INT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    product_quantity INT NOT NULL
 );
 
 TRUNCATE TABLE products;

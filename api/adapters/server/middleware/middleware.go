@@ -1,9 +1,12 @@
 package middleware
 
 import (
+	"bytes"
+	"encoding/json"
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -46,6 +49,35 @@ func RateLimiterMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
 		clientLimiter := limiter.GetLimiter(clientIp)
 
 		if !clientLimiter.Allow() {
+			helpers.HelperErrResponse(nil, c, apperrors.ErrTooManyRequests)
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func EmailRateLimiterMiddleware(limiter *EmailRateLimiter) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.Next()
+			return
+		}
+
+		// Controllers still need to bind the original JSON body after this middleware.
+		c.Request.Body = io.NopCloser(bytes.NewReader(body))
+
+		var payload struct {
+			Email string `json:"email"`
+		}
+		if err := json.Unmarshal(body, &payload); err != nil || payload.Email == "" {
+			c.Next()
+			return
+		}
+
+		if !limiter.GetLimiter(payload.Email).Allow() {
 			helpers.HelperErrResponse(nil, c, apperrors.ErrTooManyRequests)
 			c.Abort()
 			return

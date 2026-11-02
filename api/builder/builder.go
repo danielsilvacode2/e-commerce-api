@@ -1,16 +1,18 @@
 package builder
 
 import (
+	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
-	controllerLogin "e-commerce/adapters/controller/login"
 	controllerProduct "e-commerce/adapters/controller/product"
 	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/database"
+	"e-commerce/adapters/email"
 	repositoryCart "e-commerce/adapters/repository/cart"
 	repositoryCartProduct "e-commerce/adapters/repository/cart_product"
 	repositoryProduct "e-commerce/adapters/repository/product"
 	repositoryUser "e-commerce/adapters/repository/user"
 	"e-commerce/adapters/security"
+	"e-commerce/config"
 	useCasesCart "e-commerce/core/use_cases/cart"
 	useCasesCartProduct "e-commerce/core/use_cases/cart_product"
 	useCasesProduct "e-commerce/core/use_cases/product"
@@ -28,6 +30,11 @@ func BuilderUserController() *controllerUser.UserController {
 	readAllUsers := useCasesUser.NewReadAllUsersUseCase(userRepository)
 	updateUser := useCasesUser.NewUpdateUseUseCase(userRepository)
 	readUserById := useCasesUser.NewReadUserByIdUseCase(userRepository)
+	readUserByEmail := useCasesUser.NewReadUserByEmailUseCase(userRepository)
+	verifyUserCode := useCasesUser.NewVerifyUserCodeUseCase(userRepository, readUserByEmail)
+	newUserCode := useCasesUser.NewNewUserCodeUseCase(userRepository, updateUser, readUserByEmail)
+
+	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
 
 	userController := controllerUser.NewUserController(
 		createUser,
@@ -35,17 +42,21 @@ func BuilderUserController() *controllerUser.UserController {
 		readAllUsers,
 		updateUser,
 		readUserById,
+		verifyUserCode,
+		emailService,
+		readUserByEmail,
+		newUserCode,
 	)
 
 	return userController
 
 }
 
-func BuilderLoginController() *controllerLogin.LoginController {
+func BuilderLoginController() *controllerLogin.AuthController {
 	userRepository := repositoryUser.NewUserRepository(database.DB_MySQL)
 
 	passwordService := security.NewPasswordBcript()
-	loginController := controllerLogin.NewLoginController(userRepository, passwordService)
+	loginController := controllerLogin.NewAuthController(userRepository, passwordService)
 
 	return loginController
 }

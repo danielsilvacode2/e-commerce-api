@@ -8,13 +8,16 @@ import (
 )
 
 type User struct {
-	ID        uuid.UUID
-	Name      string
-	Email     string
-	Password  string
-	Role      string
-	UpdatedAt time.Time
-	CreatedAt time.Time
+	ID               uuid.UUID
+	Name             string
+	Email            string
+	Password         string
+	Role             string
+	VerificationCode string
+	IsVerified       bool
+	CodeExpires      time.Time
+	UpdatedAt        time.Time
+	CreatedAt        time.Time
 }
 
 func (u *User) NormalizeData() {
@@ -24,6 +27,7 @@ func (u *User) NormalizeData() {
 	u.Email = strings.ToLower(u.Email)
 
 }
+
 type UserRepository interface {
 	CreateUser(user User) error
 	ReadUserById(ID string) (*User, error)

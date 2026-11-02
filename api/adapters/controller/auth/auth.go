@@ -2,7 +2,7 @@ package controller
 
 import (
 	"e-commerce/adapters/controller/helpers"
-	"e-commerce/adapters/controller/login/dto"
+	"e-commerce/adapters/controller/auth/dto"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
 	entities "e-commerce/core/entities/user"
@@ -13,19 +13,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type LoginController struct {
+type AuthController struct {
 	repository      entities.UserRepository
 	passwordService ports.PasswordService
 }
 
-func NewLoginController(repository entities.UserRepository, passwordService ports.PasswordService) *LoginController {
-	return &LoginController{
+func NewAuthController(repository entities.UserRepository, passwordService ports.PasswordService) *AuthController {
+	return &AuthController{
 		repository:      repository,
 		passwordService: passwordService,
 	}
 }
 
-func (l *LoginController) Login(c *gin.Context) {
+func (a *AuthController) Login(c *gin.Context) {
 
 	var loginRequest dto.LoginRequestDTO
 
@@ -34,10 +34,15 @@ func (l *LoginController) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := usecases.LoginUseCase(loginRequest.Email, loginRequest.Password, l.repository, l.passwordService)
+	user, err := usecases.LoginUseCase(loginRequest.Email, loginRequest.Password, a.repository, a.passwordService)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	if !user.IsVerified{
+		helpers.HelperErrResponse(nil, c, apperrors.ErrUnauthorized)
 		return
 	}
 
@@ -67,4 +72,19 @@ func (l *LoginController) Login(c *gin.Context) {
 
 	helpers.HelperResponse(loginResponse, http.StatusOK, "login authorized", c)
 
+}
+func (a *AuthController) Logout(c *gin.Context) {
+
+	c.SetCookie(
+		"token", // Nome do cookie usado no login
+		"",           // Valor vazio para apagar
+		-1,           // MaxAge < 0 remove o cookie imediatamente
+		"/",          // Path
+		"localhost",  // Domínio (ajuste para seu ambiente de produção)
+		false,        // Secure (deve ser true em produção com HTTPS)
+		true,         // HttpOnly (protege contra XSS)
+	)
+
+
+	helpers.HelperResponse(nil, http.StatusOK, "login realizado com sucesso", c)
 }

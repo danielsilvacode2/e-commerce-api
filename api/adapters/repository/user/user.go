@@ -23,7 +23,10 @@ func NewUserRepository(db *sql.DB) entities.UserRepository {
 // CreateUser cria um usuario no banco de dados
 func (r *userRepository) CreateUser(user entities.User) error {
 
-	statement, err := r.db.Prepare("INSERT INTO users ( id, user_name, user_email, user_password, user_role) VALUES (?,?,?,?,?)")
+	statement, err := r.db.Prepare(
+		"INSERT INTO users" +
+			" ( id, user_name, user_email, user_password, user_role, verification_code, is_verified,  code_expires_at)" +
+			" VALUES (?,?,?,?,?,?,?,?)")
 
 	if err != nil {
 		return err
@@ -31,7 +34,16 @@ func (r *userRepository) CreateUser(user entities.User) error {
 
 	defer statement.Close()
 
-	if _, err := statement.Exec(user.ID, user.Name, user.Email, user.Password, user.Role); err != nil {
+	if _, err := statement.Exec(
+		user.ID,
+		user.Name,
+		user.Email,
+		user.Password,
+		user.Role,
+		user.VerificationCode,
+		user.IsVerified,
+		user.CodeExpires,
+	); err != nil {
 
 		var errSQL *mysql.MySQLError
 
@@ -71,6 +83,9 @@ func (r *userRepository) ReadUserById(ID string) (*entities.User, error) {
 		&user.Email,
 		&user.Password,
 		&user.Role,
+		&user.VerificationCode,
+		&user.IsVerified,
+		&user.CodeExpires,
 		&user.UpdatedAt,
 		&user.CreatedAt,
 	)
@@ -109,6 +124,9 @@ func (r *userRepository) ReadUserByEmail(email string) (*entities.User, error) {
 		&user.Role,
 		&user.UpdatedAt,
 		&user.CreatedAt,
+		&user.VerificationCode,
+		&user.CodeExpires,
+		&user.IsVerified,
 	)
 
 	if err != nil {
@@ -142,6 +160,9 @@ func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
 			&user.Role,
 			&user.UpdatedAt,
 			&user.CreatedAt,
+			&user.VerificationCode,
+			&user.CodeExpires,
+			&user.IsVerified,
 		); err != nil {
 			return nil, err
 		}
@@ -175,9 +196,18 @@ func (r *userRepository) DeleteUserById(ID string) error {
 	return nil
 }
 
+/*
+verification_code VARCHAR(6),
+
+	is_verified BOOLEAN DEFAULT FALSE,
+	code_expires_at DATETIME,
+*/
+
 func (r *userRepository) UpdateUser(user entities.User, ID string) error {
 
-	statement, err := r.db.Prepare("UPDATE users SET user_name = ? , user_email = ? WHERE id = ?")
+	statement, err := r.db.Prepare("UPDATE users SET " +
+		"user_name = ? , user_email = ? , verification_code = ? , code_expires_at = ?, is_verified = ? " +
+		" WHERE id = ?")
 
 	if err != nil {
 		return err
@@ -185,7 +215,7 @@ func (r *userRepository) UpdateUser(user entities.User, ID string) error {
 
 	defer statement.Close()
 
-	_, err = statement.Exec(user.Name, user.Email, ID)
+	_, err = statement.Exec(user.Name, user.Email, user.VerificationCode, user.CodeExpires, user.IsVerified, ID)
 
 	if err != nil {
 		var errSQL *mysql.MySQLError
@@ -200,5 +230,3 @@ func (r *userRepository) UpdateUser(user entities.User, ID string) error {
 
 	return nil
 }
-
-

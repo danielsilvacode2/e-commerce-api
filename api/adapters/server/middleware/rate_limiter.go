@@ -1,10 +1,45 @@
 package middleware
 
 import (
+	"strings"
 	"sync"
 
 	"golang.org/x/time/rate"
 )
+
+// EmailRateLimiter maintains an independent bucket for each normalized email.
+// It is intended for public endpoints whose request body contains an "email"
+// field, such as login and email verification.
+type EmailRateLimiter struct {
+	emails map[string]*rate.Limiter
+	mu     *sync.Mutex
+	r      rate.Limit
+	b      int
+}
+
+func NewEmailRateLimiter(r rate.Limit, b int) *EmailRateLimiter {
+	return &EmailRateLimiter{
+		emails: make(map[string]*rate.Limiter),
+		mu:     &sync.Mutex{},
+		r:      r,
+		b:      b,
+	}
+}
+
+func (e *EmailRateLimiter) GetLimiter(email string) *rate.Limiter {
+	key := strings.ToLower(strings.TrimSpace(email))
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	limiter, exists := e.emails[key]
+	if !exists {
+		limiter = rate.NewLimiter(e.r, e.b)
+		e.emails[key] = limiter
+	}
+
+	return limiter
+}
 
 type IPRateLimiter struct {
 	ips map[string]*rate.Limiter

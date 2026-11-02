@@ -1,8 +1,8 @@
 package routes
 
 import (
+	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
-	controllerLogin "e-commerce/adapters/controller/login"
 	controllerProduct "e-commerce/adapters/controller/product"
 	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/server/middleware"
@@ -14,66 +14,78 @@ import (
 
 func NewRoutes(
 	userController *controllerUser.UserController,
-	loginController *controllerLogin.LoginController,
+	authController *controllerLogin.AuthController,
 	productController *controllerProduct.ProductController,
 	cartController *controllerCart.CartController,
 ) *gin.Engine {
 
 	r := gin.Default()
 
-	ipRateLimiter := middleware.NewRateLimiter(rate.Every(time.Millisecond*100), 20)
+	
+	if err := r.SetTrustedProxies(nil); err != nil {
+		panic(err)
+	}
+
+	
+	globalLimiter := middleware.NewRateLimiter(rate.Every(100*time.Millisecond), 20)
+
+	
+	authEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(12*time.Second), 5)
+
+
+	verifyCodeEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(20*time.Minute), 3)
 
 	r.Use(middleware.CorsMiddleware())
-	r.Use(middleware.RateLimiterMiddleware(ipRateLimiter))
+	r.Use(middleware.RateLimiterMiddleware(globalLimiter))
 
 	v1 := r.Group("/api/v1")
 	{
+		
 		users := v1.Group("/users")
 		{
-
-			users.POST("", userController.CreateUser)
-
-			usersProtecd := users.Group("")
-			{
-				usersProtecd.GET("/:id", middleware.AuthMiddleware("admin"), userController.ReadUser)
-				usersProtecd.DELETE("/:id", middleware.AuthMiddleware("admin"), userController.DeleteUser)
-				usersProtecd.GET("", middleware.AuthMiddleware("admin"), userController.ReadAllUsers)
-				usersProtecd.PUT("/:id", middleware.AuthMiddleware("user"), userController.UpdateUser)
-
-				usersProtecdMe := usersProtecd.Group("/me")
-				{
-					usersProtecdMe.GET("", middleware.AuthMiddleware("user"), userController.ReadMe)
-				}
-
-			}
+			users.POST("", middleware.EmailRateLimiterMiddleware(authEmailLimiter), userController.CreateUser)
+			users.POST("/verify", middleware.EmailRateLimiterMiddleware(authEmailLimiter), userController.VerifyEmailMe)
+			users.POST("/new-verify-code", middleware.EmailRateLimiterMiddleware(verifyCodeEmailLimiter), userController.NewVerifyCode)
 		}
 
-		login := v1.Group("/login")
+		
+		usersProtected := users.Group("")
 		{
-			login.POST("", loginController.Login)
+			usersProtected.GET("", middleware.AuthMiddleware("admin"), userController.ReadAllUsers)
+			usersProtected.GET("/me", middleware.AuthMiddleware("user"), userController.ReadMe)
+			usersProtected.GET("/:id", middleware.AuthMiddleware("admin"), userController.ReadUser)
+			usersProtected.PUT("/:id", middleware.AuthMiddleware("user"), userController.UpdateUser)
+			usersProtected.DELETE("/:id", middleware.AuthMiddleware("admin"), userController.DeleteUser)
 		}
 
+	
+		auth := v1.Group("")
+		{
+			auth.POST("/login", middleware.EmailRateLimiterMiddleware(authEmailLimiter), authController.Login)
+			auth.POST("/logout", authController.Logout)
+		}
+
+		
 		products := v1.Group("/products")
 		{
-			products.POST("", middleware.AuthMiddleware("admin"), productController.CreateProduct)
-			products.GET("/:id", middleware.AuthMiddleware("user"), productController.ReadProductById)
 			products.GET("", productController.ReadAllProducts)
-			products.DELETE("/:id", middleware.AuthMiddleware("admin"), productController.DeleteProductById)
+			products.GET("/:id", middleware.AuthMiddleware("user"), productController.ReadProductById)
+			products.POST("", middleware.AuthMiddleware("admin"), productController.CreateProduct)
 			products.PUT("/:id", middleware.AuthMiddleware("admin"), productController.UpdateProduct)
+			products.DELETE("/:id", middleware.AuthMiddleware("admin"), productController.DeleteProductById)
 		}
 
-		cart := v1.Group("/cart")
+		
+		cart := v1.Group("/cart", middleware.AuthMiddleware("user"))
 		{
-			cart.POST("", middleware.AuthMiddleware("user"), cartController.AddProductCartMe)
-			cart.GET("", middleware.AuthMiddleware("user"), cartController.ReadAllProductCartMe)
-			cart.DELETE("/:id", middleware.AuthMiddleware("user"), cartController.RemoveProductCartMe)
-			cart.PUT("/:id", middleware.AuthMiddleware("user"), cartController.UpdateIsSelectProductMe)
-			cart.PUT("", middleware.AuthMiddleware("user"), cartController.UpdateIsAllSelectProductMe)
-			cart.PUT("/decrease/:id", middleware.AuthMiddleware("user"), cartController.DecreaseProductCartMe)
+			cart.GET("", cartController.ReadAllProductCartMe)
+			cart.POST("", cartController.AddProductCartMe)
+			cart.PUT("", cartController.UpdateIsAllSelectProductMe)
+			cart.PUT("/:id", cartController.UpdateIsSelectProductMe)
+			cart.PUT("/decrease/:id", cartController.DecreaseProductCartMe)
+			cart.DELETE("/:id", cartController.RemoveProductCartMe)
 		}
-
 	}
 
 	return r
-
 }

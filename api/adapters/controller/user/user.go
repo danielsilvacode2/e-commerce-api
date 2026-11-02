@@ -6,6 +6,8 @@ import (
 	"e-commerce/adapters/controller/user/mapper"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
+	"e-commerce/core/ports"
+	"log"
 
 	use_cases "e-commerce/core/use_cases/user"
 	"errors"
@@ -15,11 +17,15 @@ import (
 )
 
 type UserController struct {
-	createUser   *use_cases.CreateUserUseCase
-	deleteUser   *use_cases.DeleteUserUseCase
-	readAllUsers *use_cases.ReadAllUsersUseCase
-	updateUser   *use_cases.UpdateUseUseCase
-	readUserById *use_cases.ReadUserByIdUseCase
+	createUser      *use_cases.CreateUserUseCase
+	deleteUser      *use_cases.DeleteUserUseCase
+	readAllUsers    *use_cases.ReadAllUsersUseCase
+	updateUser      *use_cases.UpdateUseUseCase
+	readUserById    *use_cases.ReadUserByIdUseCase
+	readUserByEmail *use_cases.ReadUserByEmailUseCase
+	emailService    ports.EmailService
+	verifyUserCode  *use_cases.VerifyUserCodeUseCase
+	newUserCode     *use_cases.NewUserCodeUseCase
 }
 
 func NewUserController(
@@ -28,13 +34,21 @@ func NewUserController(
 	readAllUsers *use_cases.ReadAllUsersUseCase,
 	updateUser *use_cases.UpdateUseUseCase,
 	readUserById *use_cases.ReadUserByIdUseCase,
+	verifyUserCode *use_cases.VerifyUserCodeUseCase,
+	emailService ports.EmailService,
+	readUserByEmail *use_cases.ReadUserByEmailUseCase,
+	newUserCode *use_cases.NewUserCodeUseCase,
 ) *UserController {
 	return &UserController{
-		createUser:   createUser,
-		deleteUser:   deleteUser,
-		readAllUsers: readAllUsers,
-		updateUser:   updateUser,
-		readUserById: readUserById,
+		createUser:      createUser,
+		deleteUser:      deleteUser,
+		readAllUsers:    readAllUsers,
+		updateUser:      updateUser,
+		readUserById:    readUserById,
+		emailService:    emailService,
+		verifyUserCode:  verifyUserCode,
+		readUserByEmail: readUserByEmail,
+		newUserCode:     newUserCode,
 	}
 }
 
@@ -61,9 +75,95 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	userResponseDto := mapper.UserToResponseDTO(*user)
+	go func() {
 
-	helpers.HelperResponse(userResponseDto, http.StatusCreated, "registered user", c)
+		if err := userCtrl.emailService.SendEmail(user.Email, "Olá! Seu codigo de verificacao: "+user.VerificationCode, "Codigo de verificacao NERO"); err != nil {
+			log.Printf("ERRO AO ENVIAR EMAIL: %s - ERRO: %s", user.Email, err.Error())
+		} else {
+			log.Printf("EMAIL ENVIADO COM SUCESSO PARA: %s", user.Email)
+		}
+
+	}()
+
+	helpers.HelperResponse(nil, http.StatusCreated, "registered user", c)
+}
+
+func (userCtrl *UserController) VerifyEmailMe(c *gin.Context) {
+
+	var userVerifyCodeRequest dto.UserVerifyCodeRequestDTO
+
+	if err := c.ShouldBindJSON(&userVerifyCodeRequest); err != nil {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	if listErrValidator := userVerifyCodeRequest.Validator(); listErrValidator != nil {
+		helpers.HelperErrResponse(listErrValidator, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	err := userCtrl.verifyUserCode.UseCase(userVerifyCodeRequest.Email, userVerifyCodeRequest.VerificationCode)
+
+	if err != nil {
+
+		if errors.Is(err, apperrors.ErrNotFound) {
+			helpers.HelperErrResponse(nil, c, apperrors.ErrUnprocessableEntity)
+			return
+		}
+
+		helpers.HelperErrResponse(nil, c, err)
+		return
+
+	}
+
+	helpers.HelperResponse(nil, http.StatusOK, "If your email is registered, it has been successfully verified.", c)
+
+}
+
+func (userCtrl *UserController) NewVerifyCode(c *gin.Context) {
+	var userNewVerifyCodeRequest dto.UserNewVerifyCodeDTO
+
+	if err := c.ShouldBindJSON(&userNewVerifyCodeRequest); err != nil {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	if listErrValidator := userNewVerifyCodeRequest.Validator(); listErrValidator != nil {
+		helpers.HelperErrResponse(listErrValidator, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	user, err := userCtrl.readUserByEmail.UseCase(userNewVerifyCodeRequest.Email)
+
+	if err != nil {
+		if errors.Is(err, apperrors.ErrNotFound) {
+			helpers.HelperErrResponse(nil, c, apperrors.ErrUnprocessableEntity)
+			return
+		}
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	if user.IsVerified {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrUnprocessableEntity)
+		return
+	}
+
+	code, err := userCtrl.newUserCode.UseCase(user.Email)
+
+	if err != nil {
+		if errors.Is(err, apperrors.ErrNotFound) {
+			helpers.HelperErrResponse(nil, c, apperrors.ErrUnprocessableEntity)
+			return
+		}
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	go func() {
+		userCtrl.emailService.SendEmail(user.Email, "Olá! Seu novo codigo de verificacao: "+code, "Codigo de verificacao NERO")
+	}()
+
 }
 
 // ReadUser recebe um Id como parametro e retorna o usuario caso ele exista
