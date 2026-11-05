@@ -29,6 +29,7 @@ SELECT
 FROM
     users;
 
+
 -- A ENTIDADE DO PRODUTO
 CREATE TABLE products (
     id VARCHAR(50) PRIMARY KEY,

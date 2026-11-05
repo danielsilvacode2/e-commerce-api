@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/auth/dto"
+	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
 	entities "e-commerce/core/entities/user"
@@ -14,14 +14,14 @@ import (
 )
 
 type AuthController struct {
-	repository      entities.UserRepository
-	passwordService ports.PasswordService
+	repository  entities.UserRepository
+	hashService ports.HashService
 }
 
-func NewAuthController(repository entities.UserRepository, passwordService ports.PasswordService) *AuthController {
+func NewAuthController(repository entities.UserRepository, hashService ports.HashService) *AuthController {
 	return &AuthController{
-		repository:      repository,
-		passwordService: passwordService,
+		repository:  repository,
+		hashService: hashService,
 	}
 }
 
@@ -34,14 +34,14 @@ func (a *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := usecases.LoginUseCase(loginRequest.Email, loginRequest.Password, a.repository, a.passwordService)
+	user, err := usecases.LoginUseCase(loginRequest.Email, loginRequest.Password, a.repository, a.hashService)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
-	if !user.IsVerified{
+	if !user.IsVerified {
 		helpers.HelperErrResponse(nil, c, apperrors.ErrUnauthorized)
 		return
 	}
@@ -76,15 +76,14 @@ func (a *AuthController) Login(c *gin.Context) {
 func (a *AuthController) Logout(c *gin.Context) {
 
 	c.SetCookie(
-		"token", // Nome do cookie usado no login
-		"",           // Valor vazio para apagar
-		-1,           // MaxAge < 0 remove o cookie imediatamente
-		"/",          // Path
-		"localhost",  // Domínio (ajuste para seu ambiente de produção)
-		false,        // Secure (deve ser true em produção com HTTPS)
-		true,         // HttpOnly (protege contra XSS)
+		"token",     // Nome do cookie usado no login
+		"",          // Valor vazio para apagar
+		-1,          // MaxAge < 0 remove o cookie imediatamente
+		"/",         // Path
+		"localhost", // Domínio (ajuste para seu ambiente de produção)
+		false,       // Secure (deve ser true em produção com HTTPS)
+		true,        // HttpOnly (protege contra XSS)
 	)
-
 
 	helpers.HelperResponse(nil, http.StatusOK, "login realizado com sucesso", c)
 }

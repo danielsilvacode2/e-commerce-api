@@ -8,7 +8,7 @@ import (
 
 
 
-func LoginUseCase(email string, password string, repository entities.UserRepository,passwordService ports.PasswordService) ( *entities.User ,error){
+func LoginUseCase(email string, password string, repository entities.UserRepository,hashService ports.HashService) ( *entities.User ,error){
 
 	user, err := repository.ReadUserByEmail(email)
 
@@ -16,7 +16,7 @@ func LoginUseCase(email string, password string, repository entities.UserReposit
 		return nil, err
 	}
 
-	err = passwordService.ComparePassword(user.Password, password)
+	err = hashService.CompareHash(user.Password, password)
 
 	if err != nil{
 		return nil, apperrors.ErrUnauthorized

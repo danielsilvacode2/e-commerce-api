@@ -3,18 +3,21 @@ package use_cases
 import (
 	"e-commerce/core/apperrors"
 	entities "e-commerce/core/entities/user"
+	"e-commerce/core/ports"
 	"time"
 )
 
 type VerifyUserCodeUseCase struct {
 	repository      entities.UserRepository
 	readUserByEmail *ReadUserByEmailUseCase
+	hashService ports.HashService
 }
 
-func NewVerifyUserCodeUseCase(repository entities.UserRepository, readUserByEmail *ReadUserByEmailUseCase) *VerifyUserCodeUseCase {
+func NewVerifyUserCodeUseCase(repository entities.UserRepository, readUserByEmail *ReadUserByEmailUseCase, 	hashService ports.HashService) *VerifyUserCodeUseCase {
 	return &VerifyUserCodeUseCase{
 		repository:      repository,
 		readUserByEmail: readUserByEmail,
+		hashService: hashService,
 	}
 }
 
@@ -30,8 +33,8 @@ func (useCase *VerifyUserCodeUseCase) UseCase(email string, verificationCode str
 		return apperrors.ErrUnprocessableEntity
 	}
 
-	if user.VerificationCode != verificationCode {
-		return apperrors.ErrUnprocessableEntity
+	if err = useCase.hashService.CompareHash(user.VerificationCode, verificationCode); err != nil {
+		return err
 	}
 
 	user.IsVerified = true

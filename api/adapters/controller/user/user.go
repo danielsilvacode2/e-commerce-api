@@ -8,7 +8,6 @@ import (
 	"e-commerce/core/apperrors"
 	"e-commerce/core/ports"
 
-
 	use_cases "e-commerce/core/use_cases/user"
 	"errors"
 	"net/http"
@@ -24,8 +23,8 @@ type UserController struct {
 	readUserById    *use_cases.ReadUserByIdUseCase
 	readUserByEmail *use_cases.ReadUserByEmailUseCase
 
-	verifyUserCode  *use_cases.VerifyUserCodeUseCase
-	newUserCode     *use_cases.NewUserCodeUseCase
+	verifyUserCode *use_cases.VerifyUserCodeUseCase
+	newUserCode    *use_cases.NewUserCodeUseCase
 }
 
 func NewUserController(
@@ -40,11 +39,11 @@ func NewUserController(
 	newUserCode *use_cases.NewUserCodeUseCase,
 ) *UserController {
 	return &UserController{
-		createUser:      createUser,
-		deleteUser:      deleteUser,
-		readAllUsers:    readAllUsers,
-		updateUser:      updateUser,
-		readUserById:    readUserById,
+		createUser:   createUser,
+		deleteUser:   deleteUser,
+		readAllUsers: readAllUsers,
+		updateUser:   updateUser,
+		readUserById: readUserById,
 
 		verifyUserCode:  verifyUserCode,
 		readUserByEmail: readUserByEmail,
@@ -72,14 +71,18 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 
 	if err != nil {
 
+		if errors.Is(err, apperrors.ErrConflict) {
+			helpers.HelperResponse(nil, 202, "We have sent the next instructions to your email.", c)
+			return
+		}
+
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
-	
 	mapperUser := mapper.UserToResponseDTO(*user)
 
-	helpers.HelperResponse(mapperUser, http.StatusCreated, "registered user", c)
+	helpers.HelperResponse(mapperUser, 202, "We have sent the next instructions to your email.", c)
 }
 
 func (userCtrl *UserController) VerifyEmailMe(c *gin.Context) {
@@ -143,7 +146,7 @@ func (userCtrl *UserController) NewVerifyCode(c *gin.Context) {
 		return
 	}
 
-	 err = userCtrl.newUserCode.UseCase(user.Email)
+	err = userCtrl.newUserCode.UseCase(user.Email)
 
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {

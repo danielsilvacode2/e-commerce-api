@@ -2,9 +2,11 @@ package repository
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"e-commerce/core/apperrors"
 	entities "e-commerce/core/entities/user"
 	"errors"
+	"net"
 
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
@@ -20,6 +22,24 @@ func NewUserRepository(db *sql.DB) entities.UserRepository {
 	}
 }
 
+func (r *userRepository) isUnavailable(err error) bool {
+	if errors.Is(err, driver.ErrBadConn) || errors.Is(err, mysql.ErrInvalidConn) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+	var myErr *mysql.MySQLError
+	if errors.As(err, &myErr) {
+		switch myErr.Number {
+		case 1040, 1053, 1205, 1213:
+			return true
+		}
+	}
+	return false
+}
+
 // CreateUser cria um usuario no banco de dados
 func (r *userRepository) CreateUser(user entities.User) error {
 
@@ -29,6 +49,10 @@ func (r *userRepository) CreateUser(user entities.User) error {
 			" VALUES (?,?,?,?,?,?,?,?)")
 
 	if err != nil {
+
+		if r.isUnavailable(err) {
+			return apperrors.ErrDatabaseUnavailable
+		}
 		return err
 	}
 
