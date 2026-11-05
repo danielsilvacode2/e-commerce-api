@@ -7,7 +7,7 @@ import (
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
 	"e-commerce/core/ports"
-	"log"
+
 
 	use_cases "e-commerce/core/use_cases/user"
 	"errors"
@@ -23,7 +23,7 @@ type UserController struct {
 	updateUser      *use_cases.UpdateUseUseCase
 	readUserById    *use_cases.ReadUserByIdUseCase
 	readUserByEmail *use_cases.ReadUserByEmailUseCase
-	emailService    ports.EmailService
+
 	verifyUserCode  *use_cases.VerifyUserCodeUseCase
 	newUserCode     *use_cases.NewUserCodeUseCase
 }
@@ -45,7 +45,7 @@ func NewUserController(
 		readAllUsers:    readAllUsers,
 		updateUser:      updateUser,
 		readUserById:    readUserById,
-		emailService:    emailService,
+
 		verifyUserCode:  verifyUserCode,
 		readUserByEmail: readUserByEmail,
 		newUserCode:     newUserCode,
@@ -71,21 +71,15 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 	user, err := userCtrl.createUser.UseCase(potentialUser)
 
 	if err != nil {
+
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
-	go func() {
+	
+	mapperUser := mapper.UserToResponseDTO(*user)
 
-		if err := userCtrl.emailService.SendEmail(user.Email, "Olá! Seu codigo de verificacao: "+user.VerificationCode, "Codigo de verificacao NERO"); err != nil {
-			log.Printf("ERRO AO ENVIAR EMAIL: %s - ERRO: %s", user.Email, err.Error())
-		} else {
-			log.Printf("EMAIL ENVIADO COM SUCESSO PARA: %s", user.Email)
-		}
-
-	}()
-
-	helpers.HelperResponse(nil, http.StatusCreated, "registered user", c)
+	helpers.HelperResponse(mapperUser, http.StatusCreated, "registered user", c)
 }
 
 func (userCtrl *UserController) VerifyEmailMe(c *gin.Context) {
@@ -149,7 +143,7 @@ func (userCtrl *UserController) NewVerifyCode(c *gin.Context) {
 		return
 	}
 
-	code, err := userCtrl.newUserCode.UseCase(user.Email)
+	 err = userCtrl.newUserCode.UseCase(user.Email)
 
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
@@ -160,9 +154,7 @@ func (userCtrl *UserController) NewVerifyCode(c *gin.Context) {
 		return
 	}
 
-	go func() {
-		userCtrl.emailService.SendEmail(user.Email, "Olá! Seu novo codigo de verificacao: "+code, "Codigo de verificacao NERO")
-	}()
+	helpers.HelperResponse(nil, http.StatusOK, "If your email is registered, a new verification code has been sent.", c)
 
 }
 

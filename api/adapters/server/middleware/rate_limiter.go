@@ -7,9 +7,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// EmailRateLimiter maintains an independent bucket for each normalized email.
-// It is intended for public endpoints whose request body contains an "email"
-// field, such as login and email verification.
 type EmailRateLimiter struct {
 	emails map[string]*rate.Limiter
 	mu     *sync.Mutex

@@ -47,8 +47,11 @@ func (r *userRepository) CreateUser(user entities.User) error {
 
 		var errSQL *mysql.MySQLError
 
-		if errors.As(err, &errSQL) && errSQL.Number == 1062 {
-			return apperrors.ErrConflict
+		if errors.As(err, &errSQL) {
+			if errSQL.Number == 1062 {
+				return apperrors.ErrConflict
+			}
+			return apperrors.ErrDatabaseUnavailable
 		}
 
 		return err
@@ -83,11 +86,11 @@ func (r *userRepository) ReadUserById(ID string) (*entities.User, error) {
 		&user.Email,
 		&user.Password,
 		&user.Role,
-		&user.VerificationCode,
-		&user.IsVerified,
-		&user.CodeExpires,
 		&user.UpdatedAt,
 		&user.CreatedAt,
+		&user.VerificationCode,
+		&user.CodeExpires,
+		&user.IsVerified,
 	)
 
 	if err != nil {
@@ -195,13 +198,6 @@ func (r *userRepository) DeleteUserById(ID string) error {
 
 	return nil
 }
-
-/*
-verification_code VARCHAR(6),
-
-	is_verified BOOLEAN DEFAULT FALSE,
-	code_expires_at DATETIME,
-*/
 
 func (r *userRepository) UpdateUser(user entities.User, ID string) error {
 

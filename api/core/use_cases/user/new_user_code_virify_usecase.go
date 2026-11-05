@@ -2,29 +2,32 @@ package use_cases
 
 import (
 	"e-commerce/core/entities/user"
+	"e-commerce/core/ports"
 	"fmt"
 	"math/rand/v2"
 	"time"
 )
 
 type NewUserCodeUseCase struct {
-	repository  entities.UserRepository
-	updateUser  *UpdateUseUseCase
-	readByEmail *ReadUserByEmailUseCase
+	repository   entities.UserRepository
+	updateUser   *UpdateUseUseCase
+	readByEmail  *ReadUserByEmailUseCase
+	emailService ports.EmailService
 }
 
-func NewNewUserCodeUseCase(repository entities.UserRepository, updateUser *UpdateUseUseCase, readByEmail *ReadUserByEmailUseCase) *NewUserCodeUseCase {
+func NewNewUserCodeUseCase(repository entities.UserRepository, updateUser *UpdateUseUseCase, readByEmail *ReadUserByEmailUseCase, emailService ports.EmailService) *NewUserCodeUseCase {
 	return &NewUserCodeUseCase{
-		repository:  repository,
-		updateUser:  updateUser,
-		readByEmail: readByEmail,
+		repository:   repository,
+		updateUser:   updateUser,
+		readByEmail:  readByEmail,
+		emailService: emailService,
 	}
 }
 
-func (useCase *NewUserCodeUseCase) UseCase(email string) (string, error) {
+func (useCase *NewUserCodeUseCase) UseCase(email string) error {
 	user, err := useCase.readByEmail.UseCase(email)
 	if err != nil {
-		return "", err
+		return  err
 	}
 
 	code := rand.Int64N(900000)
@@ -34,9 +37,12 @@ func (useCase *NewUserCodeUseCase) UseCase(email string) (string, error) {
 
 	user.CodeExpires = timeExpiresCode
 
-	 if err = useCase.updateUser.UseCase(*user, user.ID.String()); err != nil {
-		return "", err
-	 }
+	if err = useCase.updateUser.UseCase(*user, user.ID.String()); err != nil {
+		return  err
+	}
 
-	 return user.VerificationCode, nil
+	go func() {
+		useCase.emailService.SendEmail(user.Email, "Olá! Seu novo codigo de verificacao: "+user.VerificationCode, "Codigo de verificacao NERO")
+	}()
+	return nil
 }

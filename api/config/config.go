@@ -18,6 +18,7 @@ var EmailPassword string
 var EmaiUser string
 var EmailFrom string
 
+
 func LoadConfig() {
 
 	if err := godotenv.Load(); err != nil {
@@ -36,6 +37,7 @@ func LoadConfig() {
 	EmailPassword = os.Getenv("EMAIL_PASSWORD")
 	EmailPort = os.Getenv("EMAIL_PORT")
 	EmailFrom = os.Getenv("EMAIL_FROM")
+	
 
 	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
 		dbUser,

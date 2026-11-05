@@ -4,6 +4,7 @@ import (
 	"e-commerce/core/entities/user"
 	"e-commerce/core/ports"
 	"fmt"
+	"log"
 	"math/rand/v2"
 	"time"
 
@@ -13,12 +14,14 @@ import (
 type CreateUserUseCase struct {
 	repository      entities.UserRepository
 	passwordService ports.PasswordService
+	emailService    ports.EmailService
 }
 
-func NewCreateUserUseCase(repository entities.UserRepository, passwordService ports.PasswordService) *CreateUserUseCase {
+func NewCreateUserUseCase(repository entities.UserRepository, passwordService ports.PasswordService, emailService ports.EmailService) *CreateUserUseCase {
 	return &CreateUserUseCase{
 		repository:      repository,
 		passwordService: passwordService,
+		emailService:    emailService,
 	}
 }
 
@@ -50,6 +53,16 @@ func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, er
 	if err != nil {
 		return nil, err
 	}
+
+	go func() {
+
+		if err := useCase.emailService.SendEmail(user.Email, "Olá! Seu codigo de verificacao: "+user.VerificationCode, "Codigo de verificacao NERO"); err != nil {
+			log.Printf("ERRO AO ENVIAR EMAIL: %s - ERRO: %s", user.Email, err.Error())
+		} else {
+			log.Printf("EMAIL ENVIADO COM SUCESSO PARA: %s", user.Email)
+		}
+
+	}()
 
 	return &user, nil
 }

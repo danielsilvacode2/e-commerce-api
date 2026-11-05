@@ -30,9 +30,11 @@ func NewRoutes(
 	globalLimiter := middleware.NewRateLimiter(rate.Every(100*time.Millisecond), 20)
 
 	
-	authEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(12*time.Second), 5)
+	createEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(1*time.Minute), 3)
 
 
+	loginEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(2*time.Minute), 4)
+	resendCodeLimiter := middleware.NewEmailRateLimiter(rate.Every(1*time.Minute), 3)
 	verifyCodeEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(20*time.Minute), 3)
 
 	r.Use(middleware.CorsMiddleware())
@@ -43,8 +45,8 @@ func NewRoutes(
 		
 		users := v1.Group("/users")
 		{
-			users.POST("", middleware.EmailRateLimiterMiddleware(authEmailLimiter), userController.CreateUser)
-			users.POST("/verify", middleware.EmailRateLimiterMiddleware(authEmailLimiter), userController.VerifyEmailMe)
+			users.POST("", middleware.EmailRateLimiterMiddleware(createEmailLimiter), userController.CreateUser)
+			users.POST("/verify", middleware.EmailRateLimiterMiddleware(resendCodeLimiter), userController.VerifyEmailMe)
 			users.POST("/new-verify-code", middleware.EmailRateLimiterMiddleware(verifyCodeEmailLimiter), userController.NewVerifyCode)
 		}
 
@@ -61,7 +63,7 @@ func NewRoutes(
 	
 		auth := v1.Group("")
 		{
-			auth.POST("/login", middleware.EmailRateLimiterMiddleware(authEmailLimiter), authController.Login)
+			auth.POST("/login", middleware.EmailRateLimiterMiddleware(loginEmailLimiter), authController.Login)
 			auth.POST("/logout", authController.Logout)
 		}
 

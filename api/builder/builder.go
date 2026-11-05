@@ -25,16 +25,17 @@ func BuilderUserController() *controllerUser.UserController {
 
 	passwordService := security.NewPasswordBcript()
 
-	createUser := useCasesUser.NewCreateUserUseCase(userRepository, passwordService)
+	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	createUser := useCasesUser.NewCreateUserUseCase(userRepository, passwordService, emailService)
 	deleteUser := useCasesUser.NewDeleteUserUseCase(userRepository)
 	readAllUsers := useCasesUser.NewReadAllUsersUseCase(userRepository)
 	updateUser := useCasesUser.NewUpdateUseUseCase(userRepository)
 	readUserById := useCasesUser.NewReadUserByIdUseCase(userRepository)
 	readUserByEmail := useCasesUser.NewReadUserByEmailUseCase(userRepository)
 	verifyUserCode := useCasesUser.NewVerifyUserCodeUseCase(userRepository, readUserByEmail)
-	newUserCode := useCasesUser.NewNewUserCodeUseCase(userRepository, updateUser, readUserByEmail)
+	newUserCode := useCasesUser.NewNewUserCodeUseCase(userRepository, updateUser, readUserByEmail, emailService)
 
-	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	
 
 	userController := controllerUser.NewUserController(
 		createUser,
