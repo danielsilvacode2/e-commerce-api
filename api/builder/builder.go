@@ -109,8 +109,9 @@ func BuilderCartController() *controllerCart.CartController {
 func BuilderConsumerRabbitMQ() ports.EventeUserQueueConsumerDeclare {
 	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
 	userRepository := repositoryUser.NewUserRepository(database.DB_MySQL)
+	hashService := security.NewPasswordBcript()
 
-	rabbitConsumer := rabbitmq.NewUserRabbitMQConsumer(rabbitmq.ChannelRabbitMQ, "createusers", userRepository, emailService)
+	rabbitConsumer := rabbitmq.NewUserRabbitMQConsumer(rabbitmq.ChannelRabbitMQ, "createusers", userRepository, emailService,hashService)
 
 	return rabbitConsumer
 }

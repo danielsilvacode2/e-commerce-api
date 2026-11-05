@@ -14,10 +14,10 @@ import (
 )
 
 type CreateUserUseCase struct {
-	repository      entities.UserRepository
-	hashService ports.HashService
-	emailService    ports.EmailService
-	eventQueue      ports.EventUserQueue
+	repository   entities.UserRepository
+	hashService  ports.HashService
+	emailService ports.EmailService
+	eventQueue   ports.EventUserQueue
 }
 
 func NewCreateUserUseCase(
@@ -29,10 +29,10 @@ func NewCreateUserUseCase(
 
 ) *CreateUserUseCase {
 	return &CreateUserUseCase{
-		repository:      repository,
-		hashService: passwordService,
-		emailService:    emailService,
-		eventQueue:      eventQueue,
+		repository:   repository,
+		hashService:  passwordService,
+		emailService: emailService,
+		eventQueue:   eventQueue,
 	}
 }
 
@@ -48,7 +48,7 @@ func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, er
 	user.Password = passwordHash
 
 	if user.Role == "" {
-		user.Role = "admin"
+		user.Role = "user"
 	}
 
 	user.NormalizeData()
@@ -72,6 +72,8 @@ func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, er
 	if err != nil {
 
 		if errors.Is(err, apperrors.ErrDatabaseUnavailable) {
+
+			user.VerificationCode = codeFortm
 			if err = useCase.eventQueue.PublishEvent("createusers", user); err != nil {
 				return nil, err
 			}

@@ -21,6 +21,7 @@ type UserRabbitMQConsumerDeclare struct {
 	repository   entities.UserRepository
 	serviceEmail ports.EmailService
 	mu           *sync.Mutex
+	hashService  ports.HashService
 }
 
 func NewUserRabbitMQConsumer(
@@ -28,6 +29,7 @@ func NewUserRabbitMQConsumer(
 	queue string,
 	repository entities.UserRepository,
 	serviceEmail ports.EmailService,
+	hashService ports.HashService,
 ) ports.EventeUserQueueConsumerDeclare {
 	return &UserRabbitMQConsumerDeclare{
 		channel:      channel,
@@ -35,6 +37,7 @@ func NewUserRabbitMQConsumer(
 		repository:   repository,
 		serviceEmail: serviceEmail,
 		mu:           &sync.Mutex{},
+		hashService:  hashService,
 	}
 }
 
@@ -88,6 +91,16 @@ func (consumer *UserRabbitMQConsumerDeclare) Consumer() error {
 				continue
 			}
 
+			codeHash, err := consumer.hashService.HashGenerate(user.VerificationCode)
+
+			if err != nil {
+				q.Nack(false, false)
+				continue
+			}
+
+			code := user.VerificationCode
+			user.VerificationCode = codeHash
+
 			if err := consumer.repository.CreateUser(*user); err != nil {
 
 				switch {
@@ -124,7 +137,7 @@ func (consumer *UserRabbitMQConsumerDeclare) Consumer() error {
 			}
 
 			go func() {
-				if err := consumer.serviceEmail.SendEmail(user.Email, "Olá! Seu codigo de verificacao: "+user.VerificationCode, "Codigo de verificacao NERO"); err != nil {
+				if err := consumer.serviceEmail.SendEmail(user.Email, "Olá! Seu codigo de verificacao: "+code, "Codigo de verificacao NERO"); err != nil {
 					log.Printf("ERRO AO ENVIAR EMAIL: %s - ERRO: %s", user.Email, err.Error())
 				} else {
 					log.Printf("EMAIL ENVIADO COM SUCESSO PARA: %s", user.Email)
