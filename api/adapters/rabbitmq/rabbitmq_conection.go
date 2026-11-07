@@ -7,22 +7,22 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-var   ChannelRabbitMQ  *amqp.Channel
+var ChannelRabbitMQ *amqp.Channel
 
 func NewRabbitMQConnection() {
 
 	conn, err := amqp.Dial(config.RabbitMQUrl)
 
-	if err != nil{
-		log.Fatal("Err conection rabbitmq: ", err)
+	if err != nil {
+		log.Fatal("[ERROR] falhar ao abrir conexao com rabbitmq: ", err)
 	}
 
-	 ch, err := conn.Channel()
+	ch, err := conn.Channel()
 
-	 if err != nil{
-			log.Fatal("Err create channel rabbitmq: ", err)
-	 }
+	if err != nil {
+		log.Fatal("[ERROR] falhar ao criar channel para o rabbitmq: ", err)
+	}
 
-	 ChannelRabbitMQ = ch
+	ChannelRabbitMQ = ch
 
 }

@@ -74,7 +74,7 @@ func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, er
 		if errors.Is(err, apperrors.ErrDatabaseUnavailable) {
 
 			user.VerificationCode = codeFortm
-			if err = useCase.eventQueue.PublishEvent("createusers", user); err != nil {
+			if err = useCase.eventQueue.PublishEvent(ports.QueueCreateUser, user); err != nil {
 				return nil, err
 			}
 
@@ -83,10 +83,10 @@ func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, er
 
 		if errors.Is(err, apperrors.ErrConflict) {
 			go func() {
-				if err := useCase.emailService.SendEmail(user.Email, "Alguém tentou criar uma conta com seu email. Se foi você, entre aqui ou recupere sua senha. Se não foi, ignore", "Tentativa de registro"); err != nil {
-					log.Printf("ERRO AO ENVIAR EMAIL: %s - ERRO: %s", user.Email, err.Error())
+				if err := useCase.emailService.SendSuspiciousLogin(user.Email); err != nil {
+					log.Printf("[ERROR] [SuspiciousLoginEmail] Falha ao enviar para userID=%s email=%s: %v", user.ID, user.Email, err)
 				} else {
-					log.Printf("EMAIL ENVIADO COM SUCESSO PARA: %s", user.Email)
+					log.Printf("[INFO] [SuspiciousLoginEmail] E-mail enviado com sucesso para userID=%s email=%s", user.ID, user.Email)
 				}
 			}()
 
@@ -98,10 +98,10 @@ func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, er
 
 	go func() {
 
-		if err := useCase.emailService.SendEmail(user.Email, "Olá! Seu codigo de verificacao: "+codeFortm, "Codigo de verificacao NERO"); err != nil {
-			log.Printf("ERRO AO ENVIAR EMAIL: %s - ERRO: %s", user.Email, err.Error())
+		if err := useCase.emailService.SendVerificationCode(user.Email, codeFortm); err != nil {
+			log.Printf("[ERROR] [VerificationCodeEmail] Falha ao enviar para userID=%s email=%s: %v", user.ID, user.Email, err)
 		} else {
-			log.Printf("EMAIL ENVIADO COM SUCESSO PARA: %s", user.Email)
+			log.Printf("[INFO] [VerificationCodeEmail] E-mail enviado com sucesso para userID=%s email=%s", user.ID, user.Email)
 		}
 
 	}()

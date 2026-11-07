@@ -8,6 +8,8 @@ type EventUserQueue interface {
 }
 
 type EventeUserQueueConsumerDeclare interface{
-	Consumer() error
+	ConsumerUser() error
 	DeclareQueue(eventName string) error
 }
+
+const QueueCreateUser = "createusers"

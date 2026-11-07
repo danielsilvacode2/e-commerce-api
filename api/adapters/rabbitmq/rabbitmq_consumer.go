@@ -17,7 +17,6 @@ import (
 
 type UserRabbitMQConsumerDeclare struct {
 	channel      *amqp.Channel
-	queue        string
 	repository   entities.UserRepository
 	serviceEmail ports.EmailService
 	mu           *sync.Mutex
@@ -26,14 +25,12 @@ type UserRabbitMQConsumerDeclare struct {
 
 func NewUserRabbitMQConsumer(
 	channel *amqp.Channel,
-	queue string,
 	repository entities.UserRepository,
 	serviceEmail ports.EmailService,
 	hashService ports.HashService,
 ) ports.EventeUserQueueConsumerDeclare {
 	return &UserRabbitMQConsumerDeclare{
 		channel:      channel,
-		queue:        queue,
 		repository:   repository,
 		serviceEmail: serviceEmail,
 		mu:           &sync.Mutex{},
@@ -61,13 +58,13 @@ func (consumer *UserRabbitMQConsumerDeclare) DeclareQueue(eventName string) erro
 	return nil
 }
 
-func (consumer *UserRabbitMQConsumerDeclare) Consumer() error {
+func (consumer *UserRabbitMQConsumerDeclare) ConsumerUser() error {
 
 	if err := consumer.channel.Qos(10, 0, false); err != nil {
 		return err
 	}
 
-	msg, err := consumer.channel.Consume(consumer.queue, "", false, false, false, false, nil)
+	msg, err := consumer.channel.Consume(ports.QueueCreateUser, "", false, false, false, false, nil)
 
 	if err != nil {
 		return err
@@ -105,27 +102,27 @@ func (consumer *UserRabbitMQConsumerDeclare) Consumer() error {
 
 				switch {
 				case errors.Is(err, apperrors.ErrDatabaseUnavailable):
-					// único caso de retry: banco fora do ar
-					log.Printf("banco indisponível, reenfileirando: %s", user.Email)
+
+					log.Printf("[ERROR] banco indisponível, reenfileirando: %s", user.Email)
 					time.Sleep(2 * time.Second)
 					q.Nack(false, true)
 
 				case errors.Is(err, apperrors.ErrConflict):
-					// já existe: trata como sucesso (idempotência)
-					log.Printf("usuário já existe, ignorando: %s", user.Email)
+
+					log.Printf("[INFO] usuário já existe, ignorando: %s", user.Email)
 					q.Ack(false)
 
 					go func() {
-						if err := consumer.serviceEmail.SendEmail(user.Email, "Alguém tentou criar uma conta com seu email. Se foi você, entre aqui ou recupere sua senha. Se não foi, ignore", "Tentativa de registro"); err != nil {
-							log.Printf("ERRO AO ENVIAR EMAIL: %s - ERRO: %s", user.Email, err.Error())
+						if err := consumer.serviceEmail.SendSuspiciousLogin(user.Email); err != nil {
+							log.Printf("[ERROR] [SuspiciousLoginEmail] Falha ao enviar para userID=%s email=%s: %v", user.ID, user.Email, err)
 						} else {
-							log.Printf("EMAIL ENVIADO COM SUCESSO PARA: %s", user.Email)
+							log.Printf("[INFO] [SuspiciousLoginEmail] E-mail enviado com sucesso para userID=%s email=%s", user.ID, user.Email)
 						}
 					}()
 
 				default:
 					// erro inesperado: descarta, mas deixa registrado
-					log.Printf("erro inesperado ao criar usuário %s: %v", user.Email, err)
+					log.Printf("[ERROR] falha inesperada ao criar usuário %s: %v", user.Email, err)
 					q.Nack(false, false)
 				}
 
@@ -133,17 +130,18 @@ func (consumer *UserRabbitMQConsumerDeclare) Consumer() error {
 			}
 
 			if err := q.Ack(false); err != nil {
-				log.Printf("erro ao dar ack: %v", err)
+				log.Printf("[ERROR] falha ao dar ack: %v", err)
 			}
 
 			go func() {
-				if err := consumer.serviceEmail.SendEmail(user.Email, "Olá! Seu codigo de verificacao: "+code, "Codigo de verificacao NERO"); err != nil {
-					log.Printf("ERRO AO ENVIAR EMAIL: %s - ERRO: %s", user.Email, err.Error())
-				} else {
-					log.Printf("EMAIL ENVIADO COM SUCESSO PARA: %s", user.Email)
-				}
-			}()
 
+				if err := consumer.serviceEmail.SendVerificationCode(user.Email, code); err != nil {
+					log.Printf("[ERROR] [VerificationCodeEmail] Falha ao enviar para userID=%s email=%s: %v", user.ID, user.Email, err)
+				} else {
+					log.Printf("[INFO] [VerificationCodeEmail] E-mail enviado com sucesso para userID=%s email=%s", user.ID, user.Email)
+				}
+
+			}()
 		}
 
 	}()

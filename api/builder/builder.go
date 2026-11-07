@@ -111,7 +111,7 @@ func BuilderConsumerRabbitMQ() ports.EventeUserQueueConsumerDeclare {
 	userRepository := repositoryUser.NewUserRepository(database.DB_MySQL)
 	hashService := security.NewPasswordBcript()
 
-	rabbitConsumer := rabbitmq.NewUserRabbitMQConsumer(rabbitmq.ChannelRabbitMQ, "createusers", userRepository, emailService,hashService)
+	rabbitConsumer := rabbitmq.NewUserRabbitMQConsumer(rabbitmq.ChannelRabbitMQ, userRepository, emailService,hashService)
 
 	return rabbitConsumer
 }

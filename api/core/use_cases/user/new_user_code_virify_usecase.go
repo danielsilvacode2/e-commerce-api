@@ -58,7 +58,7 @@ func (useCase *NewUserCodeUseCase) UseCase(email string) error {
 	}
 
 	go func() {
-		useCase.emailService.SendEmail(user.Email, "Olá! Seu novo codigo de verificacao: "+user.VerificationCode, "Codigo de verificacao NERO")
+		useCase.emailService.SendVerificationCode(user.Email, codeFortm)
 	}()
 	return nil
 }

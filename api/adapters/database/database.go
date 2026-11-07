@@ -15,11 +15,11 @@ func NewMySQLConnection() {
 
 	db, err := sql.Open("mysql", config.DbUrl)
 	if err != nil {
-		log.Fatal("Error connecting to database: ", err)
+		log.Fatal("[ERROR] falha ao se conectar com o database MySQL: ", err)
 	}
 
 	if err = db.Ping(); err != nil {
-		log.Fatal("Error pinging database: ", err)
+		log.Fatal("[ERROR] falhar ao abrir ping com o database: ", err)
 	}
 
 

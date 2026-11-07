@@ -24,7 +24,7 @@ var EmailFrom string
 func LoadConfig() {
 
 	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		log.Fatalf("[ERROR] falha ao ler arquivo .env : %v", err)
 	}
 
 	dbUser := os.Getenv("DB_USER")
