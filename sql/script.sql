@@ -2,9 +2,11 @@ CREATE database ecommerce;
 
 USE ecommerce;
 
-SET FOREIGN_KEY_CHECKS = 0;
-SET FOREIGN_KEY_CHECKS = 1;
+SET
+    FOREIGN_KEY_CHECKS = 0;
 
+SET
+    FOREIGN_KEY_CHECKS = 1;
 
 --A ENTIDADE DO USUARIO
 CREATE TABLE users (
@@ -16,6 +18,8 @@ CREATE TABLE users (
     verification_code VARCHAR(6),
     is_verified BOOLEAN DEFAULT FALSE,
     code_expires_at DATETIME,
+    password_reset_code VARCHAR(255) NULL,
+    password_reset_expires_at DATETIME NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -28,7 +32,6 @@ SELECT
     *
 FROM
     users;
-
 
 -- A ENTIDADE DO PRODUTO
 CREATE TABLE products (

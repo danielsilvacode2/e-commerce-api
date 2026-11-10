@@ -114,6 +114,8 @@ func (r *userRepository) ReadUserById(ID string) (*entities.User, error) {
 		&user.CreatedAt,
 		&user.VerificationCode,
 		&user.CodeExpires,
+		&user.PasswordResetCode,
+		&user.PasswordResetExpires,
 		&user.IsVerified,
 	)
 
@@ -153,6 +155,8 @@ func (r *userRepository) ReadUserByEmail(email string) (*entities.User, error) {
 		&user.CreatedAt,
 		&user.VerificationCode,
 		&user.CodeExpires,
+		&user.PasswordResetCode,
+		&user.PasswordResetExpires,
 		&user.IsVerified,
 	)
 
@@ -189,6 +193,8 @@ func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
 			&user.CreatedAt,
 			&user.VerificationCode,
 			&user.CodeExpires,
+			&user.PasswordResetCode,
+			&user.PasswordResetExpires,
 			&user.IsVerified,
 		); err != nil {
 			return nil, err
@@ -226,7 +232,13 @@ func (r *userRepository) DeleteUserById(ID string) error {
 func (r *userRepository) UpdateUser(user entities.User, ID string) error {
 
 	statement, err := r.db.Prepare("UPDATE users SET " +
-		"user_name = ? , user_email = ? , verification_code = ? , code_expires_at = ?, is_verified = ? " +
+		" user_name = ? ," +
+		" user_email = ? ," +
+		" verification_code = ? ," +
+		" code_expires_at = ? ," +
+		" is_verified = ? ," +
+		" password_reset_code = ?," +
+		" password_reset_expires_at = ? " +
 		" WHERE id = ?")
 
 	if err != nil {
@@ -235,7 +247,15 @@ func (r *userRepository) UpdateUser(user entities.User, ID string) error {
 
 	defer statement.Close()
 
-	_, err = statement.Exec(user.Name, user.Email, user.VerificationCode, user.CodeExpires, user.IsVerified, ID)
+	_, err = statement.Exec(
+		user.Name,
+		user.Email,
+		user.VerificationCode,
+		user.CodeExpires,
+		user.IsVerified,
+		user.PasswordResetCode,
+		user.PasswordResetExpires,
+		ID)
 
 	if err != nil {
 		var errSQL *mysql.MySQLError

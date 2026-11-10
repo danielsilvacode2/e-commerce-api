@@ -8,16 +8,18 @@ import (
 )
 
 type User struct {
-	ID               uuid.UUID
-	Name             string
-	Email            string
-	Password         string
-	Role             string
-	VerificationCode string
-	IsVerified       bool
-	CodeExpires      time.Time
-	UpdatedAt        time.Time
-	CreatedAt        time.Time
+	ID                   uuid.UUID
+	Name                 string
+	Email                string
+	Password             string
+	Role                 string
+	VerificationCode     string
+	IsVerified           bool
+	PasswordResetCode    string
+	PasswordResetExpires time.Time
+	CodeExpires          time.Time
+	UpdatedAt            time.Time
+	CreatedAt            time.Time
 }
 
 func (u *User) NormalizeData() {

@@ -28,12 +28,10 @@ func NewRoutes(
 
 	
 	globalLimiter := middleware.NewRateLimiter(rate.Every(100*time.Millisecond), 20)
-
 	
 	createEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(1*time.Minute), 3)
 
-
-	loginEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(2*time.Minute), 4)
+	loginEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(5*time.Minute), 4)
 	resendCodeLimiter := middleware.NewEmailRateLimiter(rate.Every(1*time.Minute), 3)
 	verifyCodeEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(20*time.Minute), 3)
 
@@ -63,7 +61,7 @@ func NewRoutes(
 	
 		auth := v1.Group("")
 		{
-			auth.POST("/login", middleware.EmailRateLimiterMiddleware(loginEmailLimiter), authController.Login)
+			auth.POST("/login", middleware.EmailRateLimiterLoginMiddleware(loginEmailLimiter), authController.Login)
 			auth.POST("/logout", authController.Logout)
 		}
 
