@@ -39,6 +39,9 @@ func BuilderUserController() *controllerUser.UserController {
 	verifyUserCode := useCasesUser.NewVerifyUserCodeUseCase(userRepository, readUserByEmail, hashService)
 	newUserCode := useCasesUser.NewNewUserCodeUseCase(userRepository, updateUser, readUserByEmail, emailService, hashService)
 
+	resetPassword := useCasesUser.NewResetPasswordUseCase(userRepository, *readUserByEmail, hashService, emailService)
+	verifyUserPasswordCode := useCasesUser.NewVerifyUserCodePasswordUseCase(userRepository, *readUserByEmail, hashService)
+
 	userController := controllerUser.NewUserController(
 		createUser,
 		deleteUser,
@@ -49,6 +52,8 @@ func BuilderUserController() *controllerUser.UserController {
 		emailService,
 		readUserByEmail,
 		newUserCode,
+		resetPassword,
+		verifyUserPasswordCode,
 	)
 
 	return userController
@@ -111,7 +116,7 @@ func BuilderConsumerRabbitMQ() ports.EventeUserQueueConsumerDeclare {
 	userRepository := repositoryUser.NewUserRepository(database.DB_MySQL)
 	hashService := security.NewPasswordBcript()
 
-	rabbitConsumer := rabbitmq.NewUserRabbitMQConsumer(rabbitmq.ChannelRabbitMQ, userRepository, emailService,hashService)
+	rabbitConsumer := rabbitmq.NewUserRabbitMQConsumer(rabbitmq.ChannelRabbitMQ, userRepository, emailService, hashService)
 
 	return rabbitConsumer
 }

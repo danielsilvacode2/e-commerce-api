@@ -16,15 +16,16 @@ import (
 )
 
 type UserController struct {
-	createUser      *use_cases.CreateUserUseCase
-	deleteUser      *use_cases.DeleteUserUseCase
-	readAllUsers    *use_cases.ReadAllUsersUseCase
-	updateUser      *use_cases.UpdateUseUseCase
-	readUserById    *use_cases.ReadUserByIdUseCase
-	readUserByEmail *use_cases.ReadUserByEmailUseCase
-
-	verifyUserCode *use_cases.VerifyUserCodeUseCase
-	newUserCode    *use_cases.NewUserCodeUseCase
+	createUser             *use_cases.CreateUserUseCase
+	deleteUser             *use_cases.DeleteUserUseCase
+	readAllUsers           *use_cases.ReadAllUsersUseCase
+	updateUser             *use_cases.UpdateUseUseCase
+	readUserById           *use_cases.ReadUserByIdUseCase
+	readUserByEmail        *use_cases.ReadUserByEmailUseCase
+	resetPassword          *use_cases.ResetPasswordUseCase
+	verifyUserCodePassword *use_cases.VerifyUserCodePasswordUseCase
+	verifyUserCode         *use_cases.VerifyUserCodeUseCase
+	newUserCode            *use_cases.NewUserCodeUseCase
 }
 
 func NewUserController(
@@ -37,17 +38,20 @@ func NewUserController(
 	emailService ports.EmailService,
 	readUserByEmail *use_cases.ReadUserByEmailUseCase,
 	newUserCode *use_cases.NewUserCodeUseCase,
+	resetPassword *use_cases.ResetPasswordUseCase,
+	verifyUserCodePassword *use_cases.VerifyUserCodePasswordUseCase,
 ) *UserController {
 	return &UserController{
-		createUser:   createUser,
-		deleteUser:   deleteUser,
-		readAllUsers: readAllUsers,
-		updateUser:   updateUser,
-		readUserById: readUserById,
-
-		verifyUserCode:  verifyUserCode,
-		readUserByEmail: readUserByEmail,
-		newUserCode:     newUserCode,
+		createUser:             createUser,
+		deleteUser:             deleteUser,
+		readAllUsers:           readAllUsers,
+		updateUser:             updateUser,
+		readUserById:           readUserById,
+		verifyUserCodePassword: verifyUserCodePassword,
+		resetPassword:          resetPassword,
+		verifyUserCode:         verifyUserCode,
+		readUserByEmail:        readUserByEmail,
+		newUserCode:            newUserCode,
 	}
 }
 

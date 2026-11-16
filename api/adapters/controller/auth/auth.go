@@ -7,7 +7,7 @@ import (
 	"e-commerce/core/apperrors"
 	entities "e-commerce/core/entities/user"
 	"e-commerce/core/ports"
-	usecases "e-commerce/core/use_cases/login"
+	usecases "e-commerce/core/use_cases/auth"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

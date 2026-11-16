@@ -10,14 +10,14 @@ import (
 type VerifyUserCodeUseCase struct {
 	repository      entities.UserRepository
 	readUserByEmail *ReadUserByEmailUseCase
-	hashService ports.HashService
+	hashService     ports.HashService
 }
 
-func NewVerifyUserCodeUseCase(repository entities.UserRepository, readUserByEmail *ReadUserByEmailUseCase, 	hashService ports.HashService) *VerifyUserCodeUseCase {
+func NewVerifyUserCodeUseCase(repository entities.UserRepository, readUserByEmail *ReadUserByEmailUseCase, hashService ports.HashService) *VerifyUserCodeUseCase {
 	return &VerifyUserCodeUseCase{
 		repository:      repository,
 		readUserByEmail: readUserByEmail,
-		hashService: hashService,
+		hashService:     hashService,
 	}
 }
 
@@ -38,6 +38,8 @@ func (useCase *VerifyUserCodeUseCase) UseCase(email string, verificationCode str
 	}
 
 	user.IsVerified = true
+	user.VerificationCode = ""
+	user.CodeExpires = time.Date(1970, 1, 1, 0, 0, 1, 0, time.UTC)
 
 	if err := useCase.repository.UpdateUser(*user, user.ID.String()); err != nil {
 		return err

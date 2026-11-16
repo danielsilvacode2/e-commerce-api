@@ -18,7 +18,7 @@ CREATE TABLE users (
     verification_code VARCHAR(6),
     is_verified BOOLEAN DEFAULT FALSE,
     code_expires_at DATETIME,
-    password_reset_code VARCHAR(255) NULL,
+    password_reset_code VARCHAR(6) ,
     password_reset_expires_at DATETIME NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
