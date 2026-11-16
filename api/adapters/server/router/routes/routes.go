@@ -21,34 +21,34 @@ func NewRoutes(
 
 	r := gin.Default()
 
-	
 	if err := r.SetTrustedProxies(nil); err != nil {
 		panic(err)
 	}
 
-	
 	globalLimiter := middleware.NewRateLimiter(rate.Every(100*time.Millisecond), 20)
-	
+
 	createEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(1*time.Minute), 3)
 
 	loginEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(5*time.Minute), 4)
 	resendCodeLimiter := middleware.NewEmailRateLimiter(rate.Every(1*time.Minute), 3)
 	verifyCodeEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(20*time.Minute), 3)
+	verifyCodePasswordEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(40*time.Minute), 3)
 
 	r.Use(middleware.CorsMiddleware())
 	r.Use(middleware.RateLimiterMiddleware(globalLimiter))
 
 	v1 := r.Group("/api/v1")
 	{
-		
+
 		users := v1.Group("/users")
 		{
 			users.POST("", middleware.EmailRateLimiterMiddleware(createEmailLimiter), userController.CreateUser)
 			users.POST("/verify", middleware.EmailRateLimiterMiddleware(resendCodeLimiter), userController.VerifyEmailMe)
 			users.POST("/new-verify-code", middleware.EmailRateLimiterMiddleware(verifyCodeEmailLimiter), userController.NewVerifyCode)
+			users.POST("/reset-password", middleware.EmailRateLimiterMiddleware(resendCodeLimiter), userController.ResetPassword)
+			users.POST("/confirm-reset-password", middleware.EmailRateLimiterMiddleware(verifyCodePasswordEmailLimiter), userController.ConfirmeResetPassword)
 		}
 
-		
 		usersProtected := users.Group("")
 		{
 			usersProtected.GET("", middleware.AuthMiddleware("admin"), userController.ReadAllUsers)
@@ -58,14 +58,12 @@ func NewRoutes(
 			usersProtected.DELETE("/:id", middleware.AuthMiddleware("admin"), userController.DeleteUser)
 		}
 
-	
 		auth := v1.Group("")
 		{
 			auth.POST("/login", middleware.EmailRateLimiterLoginMiddleware(loginEmailLimiter), authController.Login)
 			auth.POST("/logout", authController.Logout)
 		}
 
-		
 		products := v1.Group("/products")
 		{
 			products.GET("", productController.ReadAllProducts)
@@ -75,7 +73,6 @@ func NewRoutes(
 			products.DELETE("/:id", middleware.AuthMiddleware("admin"), productController.DeleteProductById)
 		}
 
-		
 		cart := v1.Group("/cart", middleware.AuthMiddleware("user"))
 		{
 			cart.GET("", cartController.ReadAllProductCartMe)

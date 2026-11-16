@@ -37,4 +37,5 @@ type UserRepository interface {
 	ReadAllUsers() ([]User, error)
 	ReadUserByEmail(email string) (*User, error)
 	UpdateUser(user User, ID string) error
+	UpdatePasswordUser(user User, ID string) error
 }

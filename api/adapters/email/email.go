@@ -50,8 +50,8 @@ func (m *Mailer) SendEmail(to, title, text, html string) error {
 
 
 
-func (m *Mailer) SendVerificationCode(to, code string) error {
-	html := fmt.Sprintf(verificationHTML, code)
+func (m *Mailer) SendVerificationCode(to, code string, textType string) error {
+	html := fmt.Sprintf(verificationHTML, textType ,code)
 	text := "Seu código de verificação NERO: " + code
 	return m.SendEmail(to, "Seu código de verificação", text, html)
 }

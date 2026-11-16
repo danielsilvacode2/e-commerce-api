@@ -98,7 +98,7 @@ func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, er
 
 	go func() {
 
-		if err := useCase.emailService.SendVerificationCode(user.Email, codeFortm); err != nil {
+		if err := useCase.emailService.SendVerificationCode(user.Email, codeFortm, "Verificar email"); err != nil {
 			log.Printf("[ERROR] [VerificationCodeEmail] Falha ao enviar para userID=%s email=%s: %v", user.ID, user.Email, err)
 		} else {
 			log.Printf("[INFO] [VerificationCodeEmail] E-mail enviado com sucesso para userID=%s email=%s", user.ID, user.Email)

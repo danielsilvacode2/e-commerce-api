@@ -291,6 +291,42 @@ func (userCtrl *UserController) UpdateUser(c *gin.Context) {
 
 }
 
+func (userCtrl *UserController) ResetPassword(c *gin.Context) {
+
+	var requestDTO dto.UserResetPasswordDTO
+
+	if err := c.ShouldBindJSON(&requestDTO); err != nil {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	if err := userCtrl.resetPassword.UseCase(requestDTO.Email); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	helpers.HelperResponse(nil, 200, "successfully request", c)
+
+}
+
+func (userCtrl *UserController) ConfirmeResetPassword(c *gin.Context) {
+
+	var requestDTO dto.UserConfirmResetPasswordDTO
+
+	if err := c.ShouldBindJSON(&requestDTO); err != nil {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	if err := userCtrl.verifyUserCodePassword.UseCase(requestDTO.Email, requestDTO.Code, requestDTO.NewPassword); err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	helpers.HelperResponse(nil, 200, "successfully request", c)
+
+}
+
 func (userCtrl *UserController) validatorPermissionId(c *gin.Context) (string, error) {
 
 	valClaims, exists := c.Get("claims")

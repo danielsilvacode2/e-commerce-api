@@ -270,3 +270,37 @@ func (r *userRepository) UpdateUser(user entities.User, ID string) error {
 
 	return nil
 }
+
+func (r *userRepository) UpdatePasswordUser(user entities.User, ID string) error {
+
+	statement, err := r.db.Prepare("UPDATE users SET " +
+		" user_password = ?," +
+		" password_reset_code = ?," +
+		" password_reset_expires_at = ? " +
+		" WHERE id = ?")
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	_, err = statement.Exec(
+		user.Password,
+		user.PasswordResetCode,
+		user.PasswordResetExpires,
+		ID)
+
+	if err != nil {
+		var errSQL *mysql.MySQLError
+
+		if errors.As(err, &errSQL) && errSQL.Number == 1062 {
+			return apperrors.ErrConflict
+		}
+
+		return err
+
+	}
+
+	return nil
+}

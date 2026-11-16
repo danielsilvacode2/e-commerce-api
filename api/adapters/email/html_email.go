@@ -28,7 +28,7 @@ const accountExistsHTML = `<div style="background:#121212;padding:32px 16px;font
 
 const verificationHTML = `<div style="background:#121212;padding:32px 16px;font-family:Arial,sans-serif;">
   <div style="max-width:420px;margin:0 auto;background:#1c1c1c;border:1px solid #333;padding:28px;text-align:center;">
-    <h2 style="margin:0 0 8px;color:#eaeaea;text-transform:uppercase;letter-spacing:1px;">Verificar e-mail</h2>
+    <h2 style="margin:0 0 8px;color:#eaeaea;text-transform:uppercase;letter-spacing:1px;">%s</h2>
     <p style="margin:0 0 20px;color:#a3a3a3;font-size:13px;">Use o código abaixo para confirmar sua conta</p>
     <div style="display:inline-block;border:1px solid #ff6a00;background:#161616;color:#ff6a00;font-family:'Courier New',monospace;font-size:32px;font-weight:bold;letter-spacing:8px;padding:12px 20px;">%s</div>
     <p style="margin:20px 0 0;color:#a3a3a3;font-size:12px;">Nunca compartilhe este código. Se você não solicitou, ignore este e-mail.</p>

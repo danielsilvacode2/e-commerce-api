@@ -41,7 +41,7 @@ func (useCase *VerifyUserCodePasswordUseCase) UseCase(email string, code string,
 	user.PasswordResetCode = ""
 	user.PasswordResetExpires = time.Date(1970, 1, 1, 0, 0, 1, 0, time.UTC)
 
-	if err := useCase.repository.UpdateUser(*user, user.ID.String()); err != nil {
+	if err := useCase.repository.UpdatePasswordUser(*user, user.ID.String()); err != nil {
 		return err
 	}
 

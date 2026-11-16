@@ -135,7 +135,7 @@ func (consumer *UserRabbitMQConsumerDeclare) ConsumerUser() error {
 
 			go func() {
 
-				if err := consumer.serviceEmail.SendVerificationCode(user.Email, code); err != nil {
+				if err := consumer.serviceEmail.SendVerificationCode(user.Email, code, "Verificar email"); err != nil {
 					log.Printf("[ERROR] [VerificationCodeEmail] Falha ao enviar para userID=%s email=%s: %v", user.ID, user.Email, err)
 				} else {
 					log.Printf("[INFO] [VerificationCodeEmail] E-mail enviado com sucesso para userID=%s email=%s", user.ID, user.Email)

@@ -46,7 +46,7 @@ func (useCase *ResetPasswordUseCase) UseCase(email string) error {
 	}
 
 	go func() {
-		if err := useCase.emailService.SendVerificationCode(user.Email, codeFortm); err != nil {
+		if err := useCase.emailService.SendVerificationCode(user.Email, codeFortm,"Mudar senha"); err != nil {
 			log.Printf("[ERROR] Falha ao enviar email para userID=%s userEmail=%s erro=(%v)", user.ID, user.Email, err)
 		} else {
 			log.Printf("[INFO] Email enviado com sucesso para userID=%s userEmail=%s", user.ID, user.Email)
