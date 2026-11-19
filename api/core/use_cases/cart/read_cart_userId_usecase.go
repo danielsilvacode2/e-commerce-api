@@ -6,8 +6,7 @@ type ReadCartByUserId struct {
 	repository entities.CartRepository
 }
 
-
-func NewReadCartByUserId (repository entities.CartRepository) *ReadCartByUserId{
+func NewReadCartByUserIdAtive(repository entities.CartRepository) *ReadCartByUserId {
 	return &ReadCartByUserId{
 		repository: repository,
 	}
@@ -15,7 +14,7 @@ func NewReadCartByUserId (repository entities.CartRepository) *ReadCartByUserId{
 
 func (useCase *ReadCartByUserId) UseCase(userId string) (*entities.Cart, error) {
 
-	cart, err := useCase.repository.ReadCartByUserId(userId)
+	cart, err := useCase.repository.ReadCartByUserId(userId, entities.CartStatusActive)
 
 	if err != nil {
 		return nil, err

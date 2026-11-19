@@ -22,7 +22,12 @@ func NewCartRepository(db *sql.DB) entitiesCart.CartRepository {
 
 func (r *cartRepository) CreateCart(cart entitiesCart.Cart) error {
 
-	statement, err := r.db.Prepare("INSERT INTO carts (id, user_id) VALUES (?,?)")
+	status := cart.Status
+	if status == "" {
+		status = entitiesCart.CartStatusActive
+	}
+
+	statement, err := r.db.Prepare("INSERT INTO carts (id, user_id, status) VALUES (?,?,?)")
 
 	if err != nil {
 		return err
@@ -30,7 +35,7 @@ func (r *cartRepository) CreateCart(cart entitiesCart.Cart) error {
 
 	defer statement.Close()
 
-	if _, err = statement.Exec(cart.Id, cart.User.ID); err != nil {
+	if _, err = statement.Exec(cart.Id, cart.User.ID, status); err != nil {
 
 		var sqlErr *mysql.MySQLError
 
@@ -44,10 +49,11 @@ func (r *cartRepository) CreateCart(cart entitiesCart.Cart) error {
 	return nil
 }
 
-func (r *cartRepository) ReadCartByUserId(userId string) (*entitiesCart.Cart, error) {
+func (r *cartRepository) ReadCartByUserId(userId string, status string) (*entitiesCart.Cart, error) {
 
 	row, err := r.db.Query("SELECT"+
 		" carts.id AS cart_id,"+
+		" carts.status AS cart_status,"+
 		" carts.updated_at AS cart_updated_at, "+
 		" carts.created_at AS cart_created_at,"+
 		" users.id AS user_id,"+
@@ -57,7 +63,7 @@ func (r *cartRepository) ReadCartByUserId(userId string) (*entitiesCart.Cart, er
 		" users.user_role"+
 		" FROM carts"+
 		" INNER JOIN users ON carts.user_id = users.id"+
-		" WHERE carts.user_id = ?", userId)
+		" WHERE carts.user_id = ? AND carts.status = ?", userId, status)
 
 	if err != nil {
 		return nil, err
@@ -80,6 +86,7 @@ func (r *cartRepository) ReadCartByUserId(userId string) (*entitiesCart.Cart, er
 
 	if err = row.Scan(
 		&cart.Id,
+		&cart.Status,
 		&cart.UpdateAt,
 		&cart.CreateAt,
 		&cart.User.ID,

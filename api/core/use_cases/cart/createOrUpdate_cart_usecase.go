@@ -21,7 +21,7 @@ func NewReadOrCreateCartUseCase (repository entitiesCart.CartRepository) *ReadOr
 
 func (useCase *ReadOrCreateCartUseCase) UseCase(userId string) (*entitiesCart.Cart, error) {
 
-	potentialCart, err := useCase.repository.ReadCartByUserId(userId)
+	potentialCart, err := useCase.repository.ReadCartByUserId(userId, entitiesCart.CartStatusActive)
 
 	if err != nil && err != apperrors.ErrNotFound {
 		return nil, err
@@ -31,24 +31,23 @@ func (useCase *ReadOrCreateCartUseCase) UseCase(userId string) (*entitiesCart.Ca
 		return potentialCart, nil
 	}
 
+	userUUID, err := uuid.Parse(userId)
 
-	userUUID, err  := uuid.Parse(userId)
-	
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
 	cart := entitiesCart.Cart{
-		Id: uuid.New(),
+		Id:     uuid.New(),
+		Status: entitiesCart.CartStatusActive,
 		User: &entities.User{
-			ID: userUUID ,
+			ID: userUUID,
 		},
 	}
 
-	if err = useCase.repository.CreateCart(cart); err != nil{
+	if err = useCase.repository.CreateCart(cart); err != nil {
 		return nil, err
 	}
-
 
 	return &cart, nil
 }

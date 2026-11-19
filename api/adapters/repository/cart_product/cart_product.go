@@ -93,6 +93,7 @@ func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entitiesCa
             cartproducts.quantity,
             cartproducts.isSelect,
             cart.id,
+            cart.status,
             user.id,
             user.user_name,
             user.user_email,
@@ -105,7 +106,7 @@ func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entitiesCa
 			product.product_sku
         FROM cart_products cartproducts
         JOIN products product ON cartproducts.product_id = product.id
-        JOIN carts cart ON cartproducts.cart_id = cart.id
+        JOIN carts cart ON cartproducts.cart_id = cart.id AND cart.status = 'ACTIVE'
         JOIN users user ON cart.user_id = user.id
         WHERE user.id = ?
     `, userId)
@@ -132,6 +133,7 @@ func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entitiesCa
 			&cartProduct.Quantity,
 			&cartProduct.IsSelect,
 			&cartProduct.Cart.Id,
+			&cartProduct.Cart.Status,
 			&cartProduct.Cart.User.ID,
 			&cartProduct.Cart.User.Name,
 			&cartProduct.Cart.User.Email,
@@ -166,6 +168,7 @@ func (r *cartProductRepository) ReadProductsCart(cartProductId string) (*entitie
             cartproducts.quantity,
             cartproducts.isSelect,
             cart.id,
+            cart.status,
             user.id,
             user.user_name,
             user.user_email,
@@ -178,7 +181,7 @@ func (r *cartProductRepository) ReadProductsCart(cartProductId string) (*entitie
 			product.product_sku
         FROM cart_products cartproducts
         JOIN products product ON cartproducts.product_id = product.id
-        JOIN carts cart ON cartproducts.cart_id = cart.id
+        JOIN carts cart ON cartproducts.cart_id = cart.id AND cart.status = 'ACTIVE'
         JOIN users user ON cart.user_id = user.id
         WHERE cartproducts.id = ?
     `, cartProductId)
@@ -203,6 +206,7 @@ func (r *cartProductRepository) ReadProductsCart(cartProductId string) (*entitie
 			&cartProduct.Quantity,
 			&cartProduct.IsSelect,
 			&cartProduct.Cart.Id,
+			&cartProduct.Cart.Status,
 			&cartProduct.Cart.User.ID,
 			&cartProduct.Cart.User.Name,
 			&cartProduct.Cart.User.Email,
@@ -264,7 +268,7 @@ func (r *cartProductRepository) UpdateAllIsSelect(valueSelect bool, userID strin
 	statement, err := r.db.Prepare("UPDATE cart_products cartp " +
 		"JOIN carts c ON  cartp.cart_id = c.id " +
 		"SET cartp.isSelect = ? " +
-		"WHERE c.user_id = ? ")
+		"WHERE c.user_id = ? AND c.status = 'ACTIVE'")
 
 	if err != nil {
 		return err
