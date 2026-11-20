@@ -3,6 +3,7 @@ package builder
 import (
 	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
+	controllerOrder "e-commerce/adapters/controller/order"
 	controllerProduct "e-commerce/adapters/controller/product"
 	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/database"
@@ -10,6 +11,9 @@ import (
 	"e-commerce/adapters/rabbitmq"
 	repositoryCart "e-commerce/adapters/repository/cart"
 	repositoryCartProduct "e-commerce/adapters/repository/cart_product"
+	repositoryOrder "e-commerce/adapters/repository/order"
+	repositoryOrderItem "e-commerce/adapters/repository/order_item"
+	repositoryOrderStatusHistory "e-commerce/adapters/repository/order_status_history"
 	repositoryProduct "e-commerce/adapters/repository/product"
 	repositoryUser "e-commerce/adapters/repository/user"
 	"e-commerce/adapters/security"
@@ -17,6 +21,9 @@ import (
 	"e-commerce/core/ports"
 	useCasesCart "e-commerce/core/use_cases/cart"
 	useCasesCartProduct "e-commerce/core/use_cases/cart_product"
+	useCasesOrder "e-commerce/core/use_cases/order"
+	useCasesOrderItem "e-commerce/core/use_cases/order_item"
+	useCasesOrderStatusHistory "e-commerce/core/use_cases/order_status_history"
 	useCasesProduct "e-commerce/core/use_cases/product"
 	useCasesUser "e-commerce/core/use_cases/user"
 )
@@ -119,4 +126,53 @@ func BuilderConsumerRabbitMQ() ports.EventeUserQueueConsumerDeclare {
 	rabbitConsumer := rabbitmq.NewUserRabbitMQConsumer(rabbitmq.ChannelRabbitMQ, userRepository, emailService, hashService)
 
 	return rabbitConsumer
+}
+
+
+func BuilderOrderController() *controllerOrder.OrderController {
+
+	orderRepository := repositoryOrder.NewOrderRepository(database.DB_MySQL)
+	orderItemRepository := repositoryOrderItem.NewOrderItemRepository(database.DB_MySQL)
+	orderStatusHistoryRepository := repositoryOrderStatusHistory.NewOrderStatusHistoryRepository(database.DB_MySQL)
+	userRepository := repositoryUser.NewUserRepository(database.DB_MySQL)
+	productRepository := repositoryProduct.NewProductRepository(database.DB_MySQL)
+	cartProductRepository := repositoryCartProduct.NewCartProductRepository(database.DB_MySQL)
+
+	readUserById := useCasesUser.NewReadUserByIdUseCase(userRepository)
+	readProductById := useCasesProduct.NewReadProductByIdUseCase(productRepository)
+	readAllCartProduct := useCasesCartProduct.NewReadAllCartProductsUseCase(cartProductRepository)
+
+	readOrderById := useCasesOrder.NewReadOrderByIdUseCase(orderRepository)
+	createOrder := useCasesOrder.NewCreateOrderUseCase(orderRepository, readUserById, readAllCartProduct)
+	readAllOrders := useCasesOrder.NewReadAllOrdersUseCase(orderRepository)
+	readOrdersByUserId := useCasesOrder.NewReadOrdersByUserIdUseCase(orderRepository)
+	updateOrder := useCasesOrder.NewUpdateOrderUseCase(orderRepository, readOrderById)
+	updateOrderStatus := useCasesOrder.NewUpdateOrderStatusUseCase(orderRepository, readOrderById)
+	cancelOrder := useCasesOrder.NewCancelOrderUseCase(orderRepository, readOrderById)
+	deleteOrder := useCasesOrder.NewDeleteOrderUseCase(orderRepository)
+
+	readOrderItems := useCasesOrderItem.NewReadOrderItemsUseCase(orderItemRepository, readOrderById)
+	addOrderItem := useCasesOrderItem.NewAddOrderItemUseCase(orderItemRepository, readOrderById, readProductById)
+	updateOrderItem := useCasesOrderItem.NewUpdateOrderItemUseCase(orderItemRepository, readOrderById)
+	removeOrderItem := useCasesOrderItem.NewRemoveOrderItemUseCase(orderItemRepository, readOrderById)
+
+	readOrderHistory := useCasesOrderStatusHistory.NewReadOrderStatusHistoryUseCase(orderStatusHistoryRepository, readOrderById)
+
+	orderController := controllerOrder.NewOrderController(
+		createOrder,
+		readOrderById,
+		readAllOrders,
+		readOrdersByUserId,
+		updateOrder,
+		updateOrderStatus,
+		cancelOrder,
+		deleteOrder,
+		readOrderItems,
+		addOrderItem,
+		updateOrderItem,
+		removeOrderItem,
+		readOrderHistory,
+	)
+
+	return orderController
 }

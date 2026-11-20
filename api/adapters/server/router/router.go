@@ -14,7 +14,9 @@ func NewGinRouter() *gin.Engine {
 	productController := builder.BuilderProductController()
 	cartController := builder.BuilderCartController()
 
-	r := routes.NewRoutes(userController,loginController,productController,cartController)
+	orderController := builder.BuilderOrderController()
+
+	r := routes.NewRoutes(userController,loginController,productController,cartController,orderController)
 
 	return r
 

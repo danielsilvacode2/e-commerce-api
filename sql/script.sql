@@ -97,3 +97,58 @@ FROM
     cart_products;
 
 DESC cart_products;
+
+-- A ENTIDADE DO PEDIDO
+CREATE TABLE orders (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    status ENUM('PREPARING', 'SHIPPED', 'DELIVERED', 'CANCELED') NOT NULL DEFAULT 'PREPARING',
+    zip_code VARCHAR(9) NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+);
+
+TRUNCATE TABLE orders;
+
+    SELECT
+        *
+    FROM
+        orders;
+
+DESC orders;
+
+-- A ENTIDADE DE PEDIDO E PRODUTOS
+CREATE TABLE order_items (
+    id VARCHAR(50) PRIMARY KEY,
+    order_id VARCHAR(50) NOT NULL,
+    product_id VARCHAR(50) NOT NULL,
+    quantity INT NOT NULL CHECK (quantity > 0),
+    unit_price DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+);
+
+TRUNCATE TABLE order_items;
+
+SELECT
+    *
+FROM
+    order_items;
+
+DESC order_items;
+
+-- OPCIONAL (segunda etapa): HISTORICO DE STATUS DO PEDIDO
+CREATE TABLE order_status_history (
+    id VARCHAR(50) PRIMARY KEY,
+    order_id VARCHAR(50) NOT NULL,
+    status ENUM('PREPARING', 'SHIPPED', 'DELIVERED', 'CANCELED') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+
+TRUNCATE TABLE order_status_history;
+
+
+
+DESC order_status_history;

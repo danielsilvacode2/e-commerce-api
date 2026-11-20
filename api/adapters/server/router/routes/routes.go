@@ -3,6 +3,7 @@ package routes
 import (
 	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
+	controllerOrder "e-commerce/adapters/controller/order"
 	controllerProduct "e-commerce/adapters/controller/product"
 	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/server/middleware"
@@ -17,6 +18,7 @@ func NewRoutes(
 	authController *controllerLogin.AuthController,
 	productController *controllerProduct.ProductController,
 	cartController *controllerCart.CartController,
+	orderController *controllerOrder.OrderController,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -81,6 +83,24 @@ func NewRoutes(
 			cart.PUT("/:id", cartController.UpdateIsSelectProductMe)
 			cart.PUT("/decrease/:id", cartController.DecreaseProductCartMe)
 			cart.DELETE("/:id", cartController.RemoveProductCartMe)
+		}
+
+		orders := v1.Group("/orders")
+		{
+			orders.POST("", middleware.AuthMiddleware("user"), orderController.CreateOrderMe)
+			orders.GET("/me", middleware.AuthMiddleware("user"), orderController.ReadAllOrdersMe)
+			orders.GET("/:id", middleware.AuthMiddleware("user"), orderController.ReadOrderById)
+			orders.PUT("/:id", middleware.AuthMiddleware("user"), orderController.UpdateOrder)
+			orders.PUT("/:id/cancel", middleware.AuthMiddleware("user"), orderController.CancelOrder)
+			orders.GET("/:id/history", middleware.AuthMiddleware("user"), orderController.ReadOrderHistory)
+			orders.GET("/:id/items", middleware.AuthMiddleware("user"), orderController.ReadOrderItems)
+			orders.POST("/:id/items", middleware.AuthMiddleware("user"), orderController.AddOrderItem)
+			orders.PUT("/:id/items/:itemId", middleware.AuthMiddleware("user"), orderController.UpdateOrderItem)
+			orders.DELETE("/:id/items/:itemId", middleware.AuthMiddleware("user"), orderController.RemoveOrderItem)
+
+			orders.GET("", middleware.AuthMiddleware("admin"), orderController.ReadAllOrders)
+			orders.PUT("/:id/status", middleware.AuthMiddleware("admin"), orderController.UpdateOrderStatus)
+			orders.DELETE("/:id", middleware.AuthMiddleware("admin"), orderController.DeleteOrder)
 		}
 	}
 
