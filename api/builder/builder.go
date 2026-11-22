@@ -85,6 +85,7 @@ func BuilderProductController() *controllerProduct.ProductController {
 	readAllProduct := useCasesProduct.NewReadAllProductsUseCase(productRepository)
 	readProductById := useCasesProduct.NewReadProductByIdUseCase(productRepository)
 	updateProduct := useCasesProduct.NewUpdateProductUseCase(productRepository)
+	searchProducts := useCasesProduct.NewSearchProductsUseCase(productRepository)
 
 	productController := controllerProduct.NewProductController(
 		createProduct,
@@ -92,6 +93,7 @@ func BuilderProductController() *controllerProduct.ProductController {
 		deleteProduct,
 		updateProduct,
 		readProductById,
+		searchProducts,
 	)
 
 	return productController

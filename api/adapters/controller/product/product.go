@@ -18,6 +18,7 @@ type ProductController struct {
 	deleteProductById *use_cases.DeleteProductByIdUseCase
 	updateProduct     *use_cases.UpdateProductUseCase
 	readProductById   *use_cases.ReadProductByIdUseCase
+	searchProducts    *use_cases.SearchProductsUseCase
 }
 
 func NewProductController(
@@ -25,7 +26,8 @@ func NewProductController(
 	readAllProducts *use_cases.ReadAllProductsUseCase,
 	deleteProductById *use_cases.DeleteProductByIdUseCase,
 	updateProduct *use_cases.UpdateProductUseCase,
-	readProductById *use_cases.ReadProductByIdUseCase) *ProductController {
+	readProductById *use_cases.ReadProductByIdUseCase,
+	searchProducts *use_cases.SearchProductsUseCase) *ProductController {
 
 	return &ProductController{
 		createProduct:     createProduct,
@@ -33,6 +35,7 @@ func NewProductController(
 		deleteProductById: deleteProductById,
 		updateProduct:     updateProduct,
 		readProductById:   readProductById,
+		searchProducts:    searchProducts,
 	}
 }
 

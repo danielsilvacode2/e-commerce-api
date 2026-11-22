@@ -69,6 +69,7 @@ func NewRoutes(
 		products := v1.Group("/products")
 		{
 			products.GET("", productController.ReadAllProducts)
+			products.GET("/search", productController.SearchProducts)
 			products.GET("/:id", middleware.AuthMiddleware("user"), productController.ReadProductById)
 			products.POST("", middleware.AuthMiddleware("admin"), productController.CreateProduct)
 			products.PUT("/:id", middleware.AuthMiddleware("admin"), productController.UpdateProduct)

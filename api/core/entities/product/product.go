@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +31,7 @@ type ProductRepository interface {
 	CreateProduct(product Product) error
 	ReadProdutById(Id string) (*Product, error)
 	ReadAllProduct(page, limit int) (*PaginatedProducts, error)
+	SearchProducts(ctx context.Context, term string, page, limit int) (*PaginatedProducts, error)
 	DeleteProductById(Id string) error
 	UpdateProduct(product Product, ID string) error
 }
