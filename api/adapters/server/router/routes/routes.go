@@ -4,6 +4,7 @@ import (
 	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
 	controllerOrder "e-commerce/adapters/controller/order"
+	controllerPayment "e-commerce/adapters/controller/payment"
 	controllerProduct "e-commerce/adapters/controller/product"
 	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/server/middleware"
@@ -19,6 +20,7 @@ func NewRoutes(
 	productController *controllerProduct.ProductController,
 	cartController *controllerCart.CartController,
 	orderController *controllerOrder.OrderController,
+	paymentController *controllerPayment.PaymentController,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -93,15 +95,29 @@ func NewRoutes(
 			orders.GET("/:id", middleware.AuthMiddleware("user"), orderController.ReadOrderById)
 			orders.PUT("/:id", middleware.AuthMiddleware("user"), orderController.UpdateOrder)
 			orders.PUT("/:id/cancel", middleware.AuthMiddleware("user"), orderController.CancelOrder)
+			orders.POST("/:id/refund", middleware.AuthMiddleware("user"), orderController.RequestRefund)
 			orders.GET("/:id/history", middleware.AuthMiddleware("user"), orderController.ReadOrderHistory)
 			orders.GET("/:id/items", middleware.AuthMiddleware("user"), orderController.ReadOrderItems)
 			orders.POST("/:id/items", middleware.AuthMiddleware("user"), orderController.AddOrderItem)
 			orders.PUT("/:id/items/:itemId", middleware.AuthMiddleware("user"), orderController.UpdateOrderItem)
 			orders.DELETE("/:id/items/:itemId", middleware.AuthMiddleware("user"), orderController.RemoveOrderItem)
 
+			// Pagamentos vinculados ao pedido
+			orders.POST("/:id/payments", middleware.AuthMiddleware("user"), paymentController.ProcessPayment)
+			orders.GET("/:id/payment", middleware.AuthMiddleware("user"), paymentController.ReadPaymentByOrder)
+			orders.POST("/:id/payment/confirm", middleware.AuthMiddleware("user"), paymentController.ConfirmOrderPayment)
+
+			// Rotas administrativas
 			orders.GET("", middleware.AuthMiddleware("admin"), orderController.ReadAllOrders)
 			orders.PUT("/:id/status", middleware.AuthMiddleware("admin"), orderController.UpdateOrderStatus)
+			orders.PUT("/:id/refund/approve", middleware.AuthMiddleware("admin"), orderController.ApproveRefund)
+			orders.PUT("/:id/refund/reject", middleware.AuthMiddleware("admin"), orderController.RejectRefund)
 			orders.DELETE("/:id", middleware.AuthMiddleware("admin"), orderController.DeleteOrder)
+		}
+
+		payments := v1.Group("/payments")
+		{
+			payments.POST("/webhook", paymentController.WebhookPayment)
 		}
 	}
 

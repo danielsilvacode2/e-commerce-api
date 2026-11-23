@@ -10,27 +10,36 @@ import (
 )
 
 const (
-	OrderStatusPreparing = "PREPARING"
-	OrderStatusShipped   = "SHIPPED"
-	OrderStatusDelivered = "DELIVERED"
-	OrderStatusCanceled  = "CANCELED"
+	OrderStatusPendingPayment  = "PENDING_PAYMENT"
+	OrderStatusPreparing       = "PREPARING"
+	OrderStatusShipped         = "SHIPPED"
+	OrderStatusDelivered       = "DELIVERED"
+	OrderStatusCanceled        = "CANCELED"
+	OrderStatusRefundRequested = "REFUND_REQUESTED"
+	OrderStatusRefunded        = "REFUNDED"
 )
 
 // orderStatusTransitions define as transicoes validas de status do pedido.
-// DELIVERED e CANCELED sao status finais (sem transicoes).
+// CANCELED e REFUNDED sao status finais (sem transicoes).
 var orderStatusTransitions = map[string][]string{
-	OrderStatusPreparing: {OrderStatusShipped, OrderStatusCanceled},
-	OrderStatusShipped:   {OrderStatusDelivered, OrderStatusCanceled},
+	OrderStatusPendingPayment:  {OrderStatusPreparing, OrderStatusCanceled},
+	OrderStatusPreparing:       {OrderStatusShipped, OrderStatusCanceled, OrderStatusRefunded},
+	OrderStatusShipped:         {OrderStatusDelivered, OrderStatusCanceled},
+	OrderStatusDelivered:       {OrderStatusRefundRequested},
+	OrderStatusRefundRequested: {OrderStatusRefunded, OrderStatusDelivered},
 }
 
 type Order struct {
-	Id       uuid.UUID
-	User     *entitiesUser.User
-	Status   string
-	ZipCode  string
-	Items    []entitiesOrderItem.OrderItem
-	UpdateAt time.Time
-	CreateAt time.Time
+	Id                    uuid.UUID
+	User                  *entitiesUser.User
+	Status                string
+	ZipCode               string
+	TrackingCode          string
+	RefundReason          string
+	RefundRejectionReason string
+	Items                 []entitiesOrderItem.OrderItem
+	UpdateAt              time.Time
+	CreateAt              time.Time
 }
 
 type OrderFilter struct {
@@ -51,7 +60,13 @@ type PaginatedOrders struct {
 // IsValidOrderStatus verifica se o status existe no ENUM da tabela orders
 func IsValidOrderStatus(status string) bool {
 	switch status {
-	case OrderStatusPreparing, OrderStatusShipped, OrderStatusDelivered, OrderStatusCanceled:
+	case OrderStatusPendingPayment,
+		OrderStatusPreparing,
+		OrderStatusShipped,
+		OrderStatusDelivered,
+		OrderStatusCanceled,
+		OrderStatusRefundRequested,
+		OrderStatusRefunded:
 		return true
 	}
 	return false
@@ -59,17 +74,33 @@ func IsValidOrderStatus(status string) bool {
 
 // IsFinalized indica se o pedido nao pode mais ser alterado
 func (o *Order) IsFinalized() bool {
-	return o.Status == OrderStatusDelivered || o.Status == OrderStatusCanceled
+	return o.Status == OrderStatusCanceled || o.Status == OrderStatusRefunded
 }
 
 // IsEditable indica se itens e CEP do pedido ainda podem ser alterados
 func (o *Order) IsEditable() bool {
-	return o.Status == OrderStatusPreparing
+	return o.Status == OrderStatusPendingPayment || o.Status == OrderStatusPreparing
 }
 
 // HasReservedStock indica se o estoque dos itens ainda esta reservado (nao entregue nem devolvido)
 func (o *Order) HasReservedStock() bool {
-	return o.Status == OrderStatusPreparing || o.Status == OrderStatusShipped
+	return o.Status == OrderStatusPendingPayment || o.Status == OrderStatusPreparing || o.Status == OrderStatusShipped
+}
+
+// IsAutoRefundable indica se o estorno solicitado pelo cliente e aprovado automaticamente (sem aprovacao manual do admin)
+func (o *Order) IsAutoRefundable() bool {
+	return o.Status == OrderStatusPreparing
+}
+
+// RequiresAdminRefundApproval indica se o estorno solicitado pelo cliente exige aprovacao manual do admin
+func (o *Order) RequiresAdminRefundApproval() bool {
+	return o.Status == OrderStatusDelivered
+}
+
+// CanCustomerRequestRefund indica se o cliente pode solicitar estorno no status atual.
+// Bloqueado explicitamente em SHIPPED (em transito), PENDING_PAYMENT, REFUND_REQUESTED, CANCELED e REFUNDED.
+func (o *Order) CanCustomerRequestRefund() bool {
+	return o.IsAutoRefundable() || o.RequiresAdminRefundApproval()
 }
 
 // CanTransitionTo verifica se a transicao do status atual para o novo status e valida
@@ -102,5 +133,6 @@ type OrderRepository interface {
 	ReadAllOrders(filter OrderFilter) (*PaginatedOrders, error)
 	UpdateOrderZipCode(zipCode string, ID string) error
 	UpdateOrderStatus(ID string, currentStatus string, newStatus string, restoreStock bool) error
+	UpdateOrderStatusWithDetails(ID string, currentStatus string, newStatus string, restoreStock bool, trackingCode *string, refundReason *string, refundRejectionReason *string) error
 	DeleteOrder(ID string, restoreStock bool) error
 }

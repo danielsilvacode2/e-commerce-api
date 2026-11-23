@@ -7,7 +7,8 @@ import (
 )
 
 type OrderStatusRequestDTO struct {
-	Status string `json:"status"`
+	Status       string `json:"status"`
+	TrackingCode string `json:"tracking_code"`
 }
 
 func (dto *OrderStatusRequestDTO) Validator() []fielderrors.FieldValidateErrors {
@@ -17,7 +18,7 @@ func (dto *OrderStatusRequestDTO) Validator() []fielderrors.FieldValidateErrors 
 	if !entities.IsValidOrderStatus(strings.ToUpper(strings.TrimSpace(dto.Status))) {
 		listFieldErrors = append(listFieldErrors, fielderrors.FieldValidateErrors{
 			Field:   "status",
-			Message: "the status field is invalid (PREPARING, SHIPPED, DELIVERED, CANCELED)",
+			Message: "the status field is invalid (PENDING_PAYMENT, PREPARING, SHIPPED, DELIVERED, CANCELED, REFUND_REQUESTED, REFUNDED)",
 		})
 	}
 

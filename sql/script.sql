@@ -18,7 +18,7 @@ CREATE TABLE users (
     verification_code VARCHAR(6),
     is_verified BOOLEAN DEFAULT FALSE,
     code_expires_at DATETIME,
-    password_reset_code VARCHAR(6) ,
+    password_reset_code VARCHAR(6),
     password_reset_expires_at DATETIME NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -59,7 +59,7 @@ DESC products;
 CREATE TABLE carts (
     id VARCHAR(50) PRIMARY KEY,
     user_id VARCHAR(50) NOT NULL,
-    status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+    status ENUM('ACTIVE', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -111,10 +111,10 @@ CREATE TABLE orders (
 
 TRUNCATE TABLE orders;
 
-    SELECT
-        *
-    FROM
-        orders;
+SELECT
+    *
+FROM
+    orders;
 
 DESC orders;
 
@@ -149,6 +149,20 @@ CREATE TABLE order_status_history (
 
 TRUNCATE TABLE order_status_history;
 
-
-
 DESC order_status_history;
+
+CREATE TABLE payments (
+    id VARCHAR(50) PRIMARY KEY,
+    order_id VARCHAR(50) NOT NULL,
+    provider VARCHAR(50) NOT NULL DEFAULT 'mercado_pago',
+    method VARCHAR(30) NOT NULL,
+    external_payment_id VARCHAR(100) NULL UNIQUE,
+    idempotency_key VARCHAR(100) NOT NULL UNIQUE,
+    amount DECIMAL(10, 2) NOT NULL,
+    installments TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    status ENUM('PENDING', 'APPROVED', 'FAILED', 'REFUNDED') NOT NULL DEFAULT 'PENDING',
+    paid_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders(id)
+);

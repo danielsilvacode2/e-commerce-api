@@ -39,13 +39,16 @@ func OrderToDto(order entitiesOrder.Order) dto.OrderResponseDTO {
 	}
 
 	dto := dto.OrderResponseDTO{
-		Id:       order.Id,
-		Status:   order.Status,
-		ZipCode:  order.ZipCode,
-		Total:    order.Total(),
-		Items:    listItemsDTO,
-		UpdateAt: order.UpdateAt,
-		CreateAt: order.CreateAt,
+		Id:                    order.Id,
+		Status:                order.Status,
+		ZipCode:               order.ZipCode,
+		TrackingCode:          order.TrackingCode,
+		RefundReason:          order.RefundReason,
+		RefundRejectionReason: order.RefundRejectionReason,
+		Total:                 order.Total(),
+		Items:                 listItemsDTO,
+		UpdateAt:              order.UpdateAt,
+		CreateAt:              order.CreateAt,
 	}
 
 	if order.User != nil {

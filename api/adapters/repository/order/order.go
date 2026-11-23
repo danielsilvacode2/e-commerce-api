@@ -97,6 +97,9 @@ func (r *orderRepository) ReadOrderById(ID string) (*entitiesOrder.Order, error)
             orders.id,
             orders.status,
             orders.zip_code,
+            orders.tracking_code,
+            orders.refund_reason,
+            orders.refund_rejection_reason,
             orders.updated_at,
             orders.created_at,
             users.id,
@@ -126,10 +129,15 @@ func (r *orderRepository) ReadOrderById(ID string) (*entitiesOrder.Order, error)
 		User: &entitiesUser.User{},
 	}
 
+	var trackingCode, refundReason, refundRejectionReason sql.NullString
+
 	if err = row.Scan(
 		&order.Id,
 		&order.Status,
 		&order.ZipCode,
+		&trackingCode,
+		&refundReason,
+		&refundRejectionReason,
 		&order.UpdateAt,
 		&order.CreateAt,
 		&order.User.ID,
@@ -138,6 +146,10 @@ func (r *orderRepository) ReadOrderById(ID string) (*entitiesOrder.Order, error)
 	); err != nil {
 		return nil, err
 	}
+
+	order.TrackingCode = trackingCode.String
+	order.RefundReason = refundReason.String
+	order.RefundRejectionReason = refundRejectionReason.String
 
 	mapItems, err := r.readItemsByOrderIds([]string{order.Id.String()})
 
@@ -182,7 +194,7 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 		return nil, err
 	}
 
-	query := "SELECT orders.id, orders.status, orders.zip_code, orders.updated_at, orders.created_at," +
+	query := "SELECT orders.id, orders.status, orders.zip_code, orders.tracking_code, orders.refund_reason, orders.refund_rejection_reason, orders.updated_at, orders.created_at," +
 		" users.id, users.user_name, users.user_email" +
 		" FROM orders" +
 		" INNER JOIN users ON orders.user_id = users.id" +
@@ -206,10 +218,15 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 			User: &entitiesUser.User{},
 		}
 
+		var trackingCode, refundReason, refundRejectionReason sql.NullString
+
 		if err = rows.Scan(
 			&order.Id,
 			&order.Status,
 			&order.ZipCode,
+			&trackingCode,
+			&refundReason,
+			&refundRejectionReason,
 			&order.UpdateAt,
 			&order.CreateAt,
 			&order.User.ID,
@@ -218,6 +235,10 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 		); err != nil {
 			return nil, err
 		}
+
+		order.TrackingCode = trackingCode.String
+		order.RefundReason = refundReason.String
+		order.RefundRejectionReason = refundRejectionReason.String
 
 		listOrders = append(listOrders, order)
 		listIds = append(listIds, order.Id.String())
@@ -271,7 +292,21 @@ func (r *orderRepository) UpdateOrderZipCode(zipCode string, ID string) error {
 // UpdateOrderStatus altera o status com lock na linha do pedido, grava o historico
 // e devolve o estoque quando restoreStock = true. Retorna ErrConflict se o status
 // atual mudou desde a leitura feita pelo caso de uso.
-func (r *orderRepository) UpdateOrderStatus(ID string, currentStatus string, newStatus string, restoreStock bool) (err error) {
+func (r *orderRepository) UpdateOrderStatus(ID string, currentStatus string, newStatus string, restoreStock bool) error {
+	return r.UpdateOrderStatusWithDetails(ID, currentStatus, newStatus, restoreStock, nil, nil, nil)
+}
+
+// UpdateOrderStatusWithDetails altera o status e campos opcionais (tracking_code, refund_reason, refund_rejection_reason)
+// na mesma transacao com lock FOR UPDATE.
+func (r *orderRepository) UpdateOrderStatusWithDetails(
+	ID string,
+	currentStatus string,
+	newStatus string,
+	restoreStock bool,
+	trackingCode *string,
+	refundReason *string,
+	refundRejectionReason *string,
+) (err error) {
 
 	tx, err := r.db.Begin()
 
@@ -307,7 +342,24 @@ func (r *orderRepository) UpdateOrderStatus(ID string, currentStatus string, new
 		}
 	}
 
-	if _, err = tx.Exec("UPDATE orders SET status = ? WHERE id = ?", newStatus, ID); err != nil {
+	setClauses := []string{"status = ?"}
+	args := []interface{}{newStatus}
+
+	if trackingCode != nil {
+		setClauses = append(setClauses, "tracking_code = ?")
+		args = append(args, *trackingCode)
+	}
+	if refundReason != nil {
+		setClauses = append(setClauses, "refund_reason = ?")
+		args = append(args, *refundReason)
+	}
+	if refundRejectionReason != nil {
+		setClauses = append(setClauses, "refund_rejection_reason = ?")
+		args = append(args, *refundRejectionReason)
+	}
+	args = append(args, ID)
+
+	if _, err = tx.Exec("UPDATE orders SET "+strings.Join(setClauses, ", ")+" WHERE id = ?", args...); err != nil {
 		return err
 	}
 

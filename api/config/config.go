@@ -20,6 +20,8 @@ var EmailPassword string
 var EmaiUser string
 var EmailFrom string
 
+var AccessTokenPayment string
+
 
 func LoadConfig() {
 
@@ -64,6 +66,6 @@ func LoadConfig() {
 		rabbitMQPort,
 	)
 
-	
+	AccessTokenPayment = os.Getenv("ACCESS_TOKEN_PAYMENT")
 
 }

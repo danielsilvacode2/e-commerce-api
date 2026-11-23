@@ -21,10 +21,20 @@ func main() {
 
 	rabbitConsumerDeclare := builder.BuilderConsumerRabbitMQ()
 
-	rabbitConsumerDeclare.DeclareQueue(ports.QueueCreateUser)
+	if err := rabbitConsumerDeclare.DeclareQueue(ports.QueueCreateUser); err != nil {
+		log.Fatalf("[ERROR] falha ao declarar fila de criacao de usuarios: %v", err)
+	}
 
 	if err := rabbitConsumerDeclare.ConsumerUser(); err != nil {
 		log.Fatalf("[ERROR] falhar ao iniciar consumer de criacao de usuarios: %v", err)
+	}
+
+	orderNotificationConsumer := builder.BuilderOrderNotificationConsumerRabbitMQ()
+	if err := orderNotificationConsumer.DeclareQueue(ports.QueueOrderNotifications); err != nil {
+		log.Fatalf("[ERROR] falha ao declarar fila de notificacoes de pedidos: %v", err)
+	}
+	if err := orderNotificationConsumer.ConsumeOrderNotifications(); err != nil {
+		log.Fatalf("[ERROR] falha ao iniciar consumer de notificacoes de pedidos: %v", err)
 	}
 
 	r := router.NewGinRouter()

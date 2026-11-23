@@ -4,6 +4,7 @@ import (
 	"e-commerce/core/ports"
 
 	"fmt"
+	"html"
 	"net/smtp"
 
 	"github.com/jordan-wright/email"
@@ -51,13 +52,18 @@ func (m *Mailer) SendEmail(to, title, text, html string) error {
 
 
 func (m *Mailer) SendVerificationCode(to, code string, textType string) error {
-	html := fmt.Sprintf(verificationHTML, textType ,code)
+	htmlBody := fmt.Sprintf(verificationHTML, html.EscapeString(textType), html.EscapeString(code))
 	text := "Seu código de verificação NERO: " + code
-	return m.SendEmail(to, "Seu código de verificação", text, html)
+	return m.SendEmail(to, "NERO — Seu código de verificação", text, htmlBody)
 }
 
 
 func (m *Mailer) SendSuspiciousLogin(to string) error {
 	text := "Tentativa de acesso suspeita na sua conta NERO. Se não foi você, troque sua senha."
-	return m.SendEmail(to, "Tentativa de acesso suspeita", text, accountExistsHTML)
+	return m.SendEmail(to, "NERO — Tentativa de acesso suspeita", text, accountExistsHTML)
+}
+
+func (m *Mailer) SendOrderNotification(event ports.OrderNotificationEvent) error {
+	subject, text, htmlBody := buildOrderNotificationEmail(event)
+	return m.SendEmail(event.UserEmail, subject, text, htmlBody)
 }

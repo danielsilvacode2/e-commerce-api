@@ -26,6 +26,9 @@ type OrderController struct {
 	updateOrder        *useCasesOrder.UpdateOrderUseCase
 	updateOrderStatus  *useCasesOrder.UpdateOrderStatusUseCase
 	cancelOrder        *useCasesOrder.CancelOrderUseCase
+	requestRefund      *useCasesOrder.RequestRefundUseCase
+	approveRefund      *useCasesOrder.ApproveRefundUseCase
+	rejectRefund       *useCasesOrder.RejectRefundUseCase
 	deleteOrder        *useCasesOrder.DeleteOrderUseCase
 	readOrderItems     *useCasesOrderItem.ReadOrderItemsUseCase
 	addOrderItem       *useCasesOrderItem.AddOrderItemUseCase
@@ -42,6 +45,9 @@ func NewOrderController(
 	updateOrder *useCasesOrder.UpdateOrderUseCase,
 	updateOrderStatus *useCasesOrder.UpdateOrderStatusUseCase,
 	cancelOrder *useCasesOrder.CancelOrderUseCase,
+	requestRefund *useCasesOrder.RequestRefundUseCase,
+	approveRefund *useCasesOrder.ApproveRefundUseCase,
+	rejectRefund *useCasesOrder.RejectRefundUseCase,
 	deleteOrder *useCasesOrder.DeleteOrderUseCase,
 	readOrderItems *useCasesOrderItem.ReadOrderItemsUseCase,
 	addOrderItem *useCasesOrderItem.AddOrderItemUseCase,
@@ -58,6 +64,9 @@ func NewOrderController(
 		updateOrder:        updateOrder,
 		updateOrderStatus:  updateOrderStatus,
 		cancelOrder:        cancelOrder,
+		requestRefund:      requestRefund,
+		approveRefund:      approveRefund,
+		rejectRefund:       rejectRefund,
 		deleteOrder:        deleteOrder,
 		readOrderItems:     readOrderItems,
 		addOrderItem:       addOrderItem,
@@ -241,7 +250,7 @@ func (orderCtrl *OrderController) UpdateOrderStatus(c *gin.Context) {
 
 	status := strings.ToUpper(strings.TrimSpace(dtoRequest.Status))
 
-	if err = orderCtrl.updateOrderStatus.UseCase(status, c.Param("id"), claims.Id.String(), claims.Role); err != nil {
+	if err = orderCtrl.updateOrderStatus.UseCase(status, dtoRequest.TrackingCode, c.Param("id"), claims.Id.String(), claims.Role); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
@@ -264,6 +273,89 @@ func (orderCtrl *OrderController) CancelOrder(c *gin.Context) {
 	}
 
 	helpers.HelperResponse(nil, http.StatusNoContent, "order successfully canceled", c)
+}
+
+// RequestRefund aplica a regra de estorno: automatico em PREPARING, bloqueado em SHIPPED e pendente de aprovacao admin em DELIVERED.
+func (orderCtrl *OrderController) RequestRefund(c *gin.Context) {
+
+	claims, err := orderCtrl.getClaims(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	var dtoRequest dto.OrderRefundRequestDTO
+	_ = c.ShouldBindJSON(&dtoRequest)
+
+	order, err := orderCtrl.requestRefund.UseCase(c.Param("id"), dtoRequest.Reason, claims.Id.String(), claims.Role)
+
+	if err != nil {
+		if errors.Is(err, apperrors.ErrUnprocessableEntity) {
+			helpers.HelperResponse(nil, http.StatusUnprocessableEntity, "Não é possível solicitar estorno para o status atual deste pedido (pedidos enviados/em trânsito não permitem estorno).", c)
+			return
+		}
+		if errors.Is(err, apperrors.ErrInvalidInput) {
+			helpers.HelperResponse(nil, http.StatusBadRequest, "Informe o motivo para solicitar o estorno de um pedido entregue.", c)
+			return
+		}
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	helpers.HelperResponse(mapper.OrderToDto(*order), http.StatusOK, "refund processed", c)
+}
+
+// ApproveRefund efetiva um estorno solicitado pelo cliente (somente admin).
+func (orderCtrl *OrderController) ApproveRefund(c *gin.Context) {
+
+	claims, err := orderCtrl.getClaims(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	order, err := orderCtrl.approveRefund.UseCase(c.Param("id"), claims.Id.String(), claims.Role)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	helpers.HelperResponse(mapper.OrderToDto(*order), http.StatusOK, "refund approved", c)
+}
+
+// RejectRefund recusa um estorno solicitado pelo cliente com justificativa e retorna o pedido para DELIVERED (somente admin).
+func (orderCtrl *OrderController) RejectRefund(c *gin.Context) {
+
+	claims, err := orderCtrl.getClaims(c)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	var dtoRequest dto.OrderRefundRejectRequestDTO
+
+	if err = c.ShouldBindJSON(&dtoRequest); err != nil {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	if listErrField := dtoRequest.Validator(); listErrField != nil {
+		helpers.HelperErrResponse(listErrField, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	order, err := orderCtrl.rejectRefund.UseCase(c.Param("id"), dtoRequest.Reason, claims.Id.String(), claims.Role)
+
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	helpers.HelperResponse(mapper.OrderToDto(*order), http.StatusOK, "refund rejected", c)
 }
 
 func (orderCtrl *OrderController) DeleteOrder(c *gin.Context) {

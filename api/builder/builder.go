@@ -4,16 +4,19 @@ import (
 	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
 	controllerOrder "e-commerce/adapters/controller/order"
+	controllerPayment "e-commerce/adapters/controller/payment"
 	controllerProduct "e-commerce/adapters/controller/product"
 	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/database"
 	"e-commerce/adapters/email"
+	adapterPayment "e-commerce/adapters/payment"
 	"e-commerce/adapters/rabbitmq"
 	repositoryCart "e-commerce/adapters/repository/cart"
 	repositoryCartProduct "e-commerce/adapters/repository/cart_product"
 	repositoryOrder "e-commerce/adapters/repository/order"
 	repositoryOrderItem "e-commerce/adapters/repository/order_item"
 	repositoryOrderStatusHistory "e-commerce/adapters/repository/order_status_history"
+	repositoryPayment "e-commerce/adapters/repository/payment"
 	repositoryProduct "e-commerce/adapters/repository/product"
 	repositoryUser "e-commerce/adapters/repository/user"
 	"e-commerce/adapters/security"
@@ -24,9 +27,21 @@ import (
 	useCasesOrder "e-commerce/core/use_cases/order"
 	useCasesOrderItem "e-commerce/core/use_cases/order_item"
 	useCasesOrderStatusHistory "e-commerce/core/use_cases/order_status_history"
+	useCasesPayment "e-commerce/core/use_cases/payment"
 	useCasesProduct "e-commerce/core/use_cases/product"
 	useCasesUser "e-commerce/core/use_cases/user"
+	"log"
+	"strings"
 )
+
+func buildPaymentGateway() ports.PaymentGateway {
+	if strings.TrimSpace(config.AccessTokenPayment) != "" {
+		log.Println("[INFO] ACCESS_TOKEN_PAYMENT configurado; usando MercadoPagoGateway.")
+		return adapterPayment.NewMercadoPagoGateway(config.AccessTokenPayment)
+	}
+	log.Println("[WARN] ACCESS_TOKEN_PAYMENT não configurado; usando MockPaymentGateway local.")
+	return adapterPayment.NewMockPaymentGateway()
+}
 
 func BuilderUserController() *controllerUser.UserController {
 
@@ -130,27 +145,39 @@ func BuilderConsumerRabbitMQ() ports.EventeUserQueueConsumerDeclare {
 	return rabbitConsumer
 }
 
+func BuilderOrderNotificationConsumerRabbitMQ() ports.EventOrderQueueConsumer {
+	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	return rabbitmq.NewOrderNotificationConsumer(rabbitmq.ChannelRabbitMQ, emailService)
+}
 
 func BuilderOrderController() *controllerOrder.OrderController {
 
 	orderRepository := repositoryOrder.NewOrderRepository(database.DB_MySQL)
+	paymentRepository := repositoryPayment.NewPaymentRepository(database.DB_MySQL)
 	orderItemRepository := repositoryOrderItem.NewOrderItemRepository(database.DB_MySQL)
 	orderStatusHistoryRepository := repositoryOrderStatusHistory.NewOrderStatusHistoryRepository(database.DB_MySQL)
 	userRepository := repositoryUser.NewUserRepository(database.DB_MySQL)
 	productRepository := repositoryProduct.NewProductRepository(database.DB_MySQL)
 	cartProductRepository := repositoryCartProduct.NewCartProductRepository(database.DB_MySQL)
 
+	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	orderEventQueue := rabbitmq.NewOrderNotificationRabbitMQ(rabbitmq.ChannelRabbitMQ, emailService)
+	paymentGateway := buildPaymentGateway()
+
 	readUserById := useCasesUser.NewReadUserByIdUseCase(userRepository)
 	readProductById := useCasesProduct.NewReadProductByIdUseCase(productRepository)
 	readAllCartProduct := useCasesCartProduct.NewReadAllCartProductsUseCase(cartProductRepository)
 
 	readOrderById := useCasesOrder.NewReadOrderByIdUseCase(orderRepository)
-	createOrder := useCasesOrder.NewCreateOrderUseCase(orderRepository, readUserById, readAllCartProduct)
+	createOrder := useCasesOrder.NewCreateOrderUseCase(orderRepository, paymentRepository, readUserById, readAllCartProduct)
 	readAllOrders := useCasesOrder.NewReadAllOrdersUseCase(orderRepository)
 	readOrdersByUserId := useCasesOrder.NewReadOrdersByUserIdUseCase(orderRepository)
 	updateOrder := useCasesOrder.NewUpdateOrderUseCase(orderRepository, readOrderById)
-	updateOrderStatus := useCasesOrder.NewUpdateOrderStatusUseCase(orderRepository, readOrderById)
+	updateOrderStatus := useCasesOrder.NewUpdateOrderStatusUseCase(orderRepository, readOrderById, orderEventQueue)
 	cancelOrder := useCasesOrder.NewCancelOrderUseCase(orderRepository, readOrderById)
+	requestRefund := useCasesOrder.NewRequestRefundUseCase(orderRepository, paymentRepository, readOrderById, paymentGateway, orderEventQueue)
+	approveRefund := useCasesOrder.NewApproveRefundUseCase(orderRepository, paymentRepository, readOrderById, paymentGateway, orderEventQueue)
+	rejectRefund := useCasesOrder.NewRejectRefundUseCase(orderRepository, readOrderById, orderEventQueue)
 	deleteOrder := useCasesOrder.NewDeleteOrderUseCase(orderRepository)
 
 	readOrderItems := useCasesOrderItem.NewReadOrderItemsUseCase(orderItemRepository, readOrderById)
@@ -168,6 +195,9 @@ func BuilderOrderController() *controllerOrder.OrderController {
 		updateOrder,
 		updateOrderStatus,
 		cancelOrder,
+		requestRefund,
+		approveRefund,
+		rejectRefund,
 		deleteOrder,
 		readOrderItems,
 		addOrderItem,
@@ -177,4 +207,19 @@ func BuilderOrderController() *controllerOrder.OrderController {
 	)
 
 	return orderController
+}
+
+func BuilderPaymentController() *controllerPayment.PaymentController {
+	orderRepository := repositoryOrder.NewOrderRepository(database.DB_MySQL)
+	paymentRepository := repositoryPayment.NewPaymentRepository(database.DB_MySQL)
+	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	orderEventQueue := rabbitmq.NewOrderNotificationRabbitMQ(rabbitmq.ChannelRabbitMQ, emailService)
+	paymentGateway := buildPaymentGateway()
+
+	readOrderById := useCasesOrder.NewReadOrderByIdUseCase(orderRepository)
+	processPayment := useCasesPayment.NewProcessPaymentUseCase(paymentRepository, readOrderById, paymentGateway, orderEventQueue)
+	readPaymentByOrder := useCasesPayment.NewReadPaymentByOrderUseCase(paymentRepository, readOrderById, paymentGateway, orderEventQueue)
+	webhookPayment := useCasesPayment.NewWebhookPaymentUseCase(paymentRepository, orderRepository, paymentGateway, orderEventQueue)
+
+	return controllerPayment.NewPaymentController(processPayment, readPaymentByOrder, webhookPayment)
 }
