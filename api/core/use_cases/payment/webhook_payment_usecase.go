@@ -6,6 +6,7 @@ import (
 	entitiesPayment "e-commerce/core/entities/payment"
 	"e-commerce/core/ports"
 	"log"
+	"math"
 	"strings"
 	"time"
 )
@@ -96,6 +97,10 @@ func (uc *WebhookPaymentUseCase) UseCase(paymentId string, externalPaymentId str
 
 	switch act {
 	case PaymentActionApprove:
+		if math.Abs(order.Total()-payment.Amount) > 0.01 {
+			log.Printf("[WARN] divergencia de valor ao aprovar pagamento order=%s payment=%s orderTotal=%.2f paymentAmount=%.2f", order.Id, payment.Id, order.Total(), payment.Amount)
+			return nil, apperrors.ErrConflict
+		}
 		now := time.Now()
 		payment.Status = entitiesPayment.PaymentStatusApproved
 		payment.PaidAt = &now

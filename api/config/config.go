@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -21,7 +22,14 @@ var EmaiUser string
 var EmailFrom string
 
 var AccessTokenPayment string
+var WebhookSecret string
+var AllowPaymentSimulation bool
 
+var CookieSecure bool
+var CookieDomain string
+var AllowedOrigins []string
+
+const minSecretKeyLength = 32
 
 func LoadConfig() {
 
@@ -35,7 +43,6 @@ func LoadConfig() {
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 
-
 	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
 		dbUser,
 		dbPassword,
@@ -43,16 +50,18 @@ func LoadConfig() {
 		dbPort,
 		dbName,
 	)
-	
+
 	ApiPort = os.Getenv("API_PORT")
-	SecretKey = os.Getenv("SECRET_KEY")
+	SecretKey = strings.TrimSpace(os.Getenv("SECRET_KEY"))
+	if len(SecretKey) < minSecretKeyLength {
+		log.Fatalf("[ERROR] SECRET_KEY deve estar configurada e possuir no minimo %d caracteres", minSecretKeyLength)
+	}
 
 	EmaiUser = os.Getenv("EMAIL_USER")
 	EmailHost = os.Getenv("EMAIL_HOST")
 	EmailPassword = os.Getenv("EMAIL_PASSWORD")
 	EmailPort = os.Getenv("EMAIL_PORT")
 	EmailFrom = os.Getenv("EMAIL_FROM")
-
 
 	rabbitMQUser := os.Getenv("RABBITMQ_USER")
 	rabbitMQPassword := os.Getenv("RABBITMQ_PASSWORD")
@@ -66,6 +75,21 @@ func LoadConfig() {
 		rabbitMQPort,
 	)
 
-	AccessTokenPayment = os.Getenv("ACCESS_TOKEN_PAYMENT")
+	AccessTokenPayment = strings.TrimSpace(os.Getenv("ACCESS_TOKEN_PAYMENT"))
+	WebhookSecret = strings.TrimSpace(os.Getenv("MERCADO_PAGO_WEBHOOK_SECRET"))
+	AllowPaymentSimulation = strings.EqualFold(strings.TrimSpace(os.Getenv("ALLOW_PAYMENT_SIMULATION")), "true")
 
+	CookieSecure = strings.EqualFold(strings.TrimSpace(os.Getenv("COOKIE_SECURE")), "true")
+	CookieDomain = strings.TrimSpace(os.Getenv("COOKIE_DOMAIN"))
+
+	originsEnv := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
+	if originsEnv == "" {
+		AllowedOrigins = []string{"http://localhost:3000"}
+	} else {
+		for _, o := range strings.Split(originsEnv, ",") {
+			if trimmed := strings.TrimSpace(o); trimmed != "" {
+				AllowedOrigins = append(AllowedOrigins, trimmed)
+			}
+		}
+	}
 }

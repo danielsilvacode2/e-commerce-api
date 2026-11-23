@@ -18,7 +18,7 @@ func NewUpdateOrderItemUseCase(repository entities.OrderItemRepository, readOrde
 	}
 }
 
-// UseCase define a nova quantidade de um item do pedido (somente em PREPARING)
+// UseCase define a nova quantidade de um item do pedido (somente em PENDING_PAYMENT)
 func (useCase *UpdateOrderItemUseCase) UseCase(quantity int64, orderId string, orderItemId string, userId string, role string) error {
 
 	if quantity < 1 {
@@ -31,7 +31,7 @@ func (useCase *UpdateOrderItemUseCase) UseCase(quantity int64, orderId string, o
 		return err
 	}
 
-	if !order.IsEditable() {
+	if !order.CanModifyItems() {
 		return apperrors.ErrUnprocessableEntity
 	}
 

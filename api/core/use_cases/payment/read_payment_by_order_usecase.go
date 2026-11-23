@@ -6,6 +6,7 @@ import (
 	"e-commerce/core/ports"
 	useCasesOrder "e-commerce/core/use_cases/order"
 	"log"
+	"math"
 	"time"
 )
 
@@ -49,6 +50,10 @@ func (uc *ReadPaymentByOrderUseCase) UseCase(orderId string, userId string, role
 			if remoteStatus, gwErr := uc.paymentGateway.GetPaymentStatus(payment.ExternalPaymentId); gwErr == nil {
 				switch remoteStatus {
 				case entitiesPayment.PaymentStatusApproved:
+					if math.Abs(order.Total()-payment.Amount) > 0.01 {
+						log.Printf("[WARN] divergencia de valor ao sincronizar pagamento order=%s payment=%s orderTotal=%.2f paymentAmount=%.2f", order.Id, payment.Id, order.Total(), payment.Amount)
+						break
+					}
 					now := time.Now()
 					payment.Status = entitiesPayment.PaymentStatusApproved
 					payment.PaidAt = &now

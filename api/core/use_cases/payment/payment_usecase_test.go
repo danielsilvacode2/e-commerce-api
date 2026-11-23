@@ -10,6 +10,7 @@ import (
 	"e-commerce/core/ports"
 	useCasesOrder "e-commerce/core/use_cases/order"
 	useCasesPayment "e-commerce/core/use_cases/payment"
+	"errors"
 	"testing"
 	"time"
 
@@ -262,6 +263,41 @@ func TestProcessPaymentIdempotencyAndTransitions(t *testing.T) {
 		}
 		if paymentRepo.approveCalls != callsBefore {
 			t.Fatalf("webhook should be idempotent, approveCalls changed from %d to %d", callsBefore, paymentRepo.approveCalls)
+		}
+	})
+
+	t.Run("Webhook rejects approval if order total diverges from payment amount", func(t *testing.T) {
+		orderId := uuid.New()
+		orderRepo.orders[orderId.String()] = &entitiesOrder.Order{
+			Id:     orderId,
+			User:   &entitiesUser.User{ID: userId, Name: "Lucas", Email: "lucas@example.com"},
+			Status: entitiesOrder.OrderStatusPendingPayment,
+			Items:  []entitiesOrderItem.OrderItem{{Quantity: 1, UnitPrice: 10.00}},
+		}
+
+		pix, err := processUC.UseCase(useCasesPayment.ProcessPaymentInput{
+			OrderId:        orderId.String(),
+			UserId:         userId.String(),
+			Role:           "user",
+			IdempotencyKey: "idem-pix-tamper",
+			Method:         entitiesPayment.PaymentMethodPix,
+		})
+		if err != nil {
+			t.Fatalf("expected nil err, got %v", err)
+		}
+
+		// Simula tentativa de adicionar item caro apos gerar o Pix
+		orderRepo.orders[orderId.String()].Items = append(orderRepo.orders[orderId.String()].Items, entitiesOrderItem.OrderItem{
+			Quantity:  1,
+			UnitPrice: 9990.00,
+		})
+
+		_, err = webhookUC.UseCase(pix.Id.String(), "", useCasesPayment.PaymentActionApprove)
+		if !errors.Is(err, apperrors.ErrConflict) {
+			t.Fatalf("expected ErrConflict on amount mismatch, got %v", err)
+		}
+		if orderRepo.orders[orderId.String()].Status != entitiesOrder.OrderStatusPendingPayment {
+			t.Fatalf("order must remain PENDING_PAYMENT, got %s", orderRepo.orders[orderId.String()].Status)
 		}
 	})
 }

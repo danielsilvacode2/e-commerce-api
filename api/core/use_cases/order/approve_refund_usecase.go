@@ -47,20 +47,26 @@ func (useCase *ApproveRefundUseCase) UseCase(orderId string, adminUserId string,
 		return nil, apperrors.ErrUnprocessableEntity
 	}
 
-	refundedPayment, err := useCase.paymentRepository.RefundPaymentAndOrder(
+	// Executa estorno no gateway ANTES de confirmar no banco para evitar dessincronizacao financeira
+	if useCase.paymentGateway != nil {
+		if currentPayment, pErr := useCase.paymentRepository.ReadPaymentByOrderId(order.Id.String()); pErr == nil &&
+			currentPayment != nil &&
+			currentPayment.Status == entitiesPayment.PaymentStatusApproved &&
+			currentPayment.ExternalPaymentId != "" {
+			if gwErr := useCase.paymentGateway.RefundPayment(currentPayment.ExternalPaymentId, currentPayment.Amount); gwErr != nil {
+				log.Printf("[ERROR] falha ao efetivar aprovacao de estorno no gateway order=%s: %v", order.Id, gwErr)
+				return nil, gwErr
+			}
+		}
+	}
+
+	if _, err := useCase.paymentRepository.RefundPaymentAndOrder(
 		order.Id.String(),
 		entitiesOrder.OrderStatusRefundRequested,
 		false,
 		nil,
-	)
-	if err != nil {
+	); err != nil {
 		return nil, err
-	}
-
-	if refundedPayment != nil && refundedPayment.ExternalPaymentId != "" && useCase.paymentGateway != nil {
-		if gwErr := useCase.paymentGateway.RefundPayment(refundedPayment.ExternalPaymentId, refundedPayment.Amount); gwErr != nil {
-			log.Printf("[WARN] falha ao notificar gateway sobre aprovacao de estorno order=%s: %v", order.Id, gwErr)
-		}
 	}
 
 	if useCase.eventQueue != nil && order.User != nil {

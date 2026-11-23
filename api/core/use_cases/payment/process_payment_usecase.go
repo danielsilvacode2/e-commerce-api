@@ -67,29 +67,32 @@ func (uc *ProcessPaymentUseCase) UseCase(input ProcessPaymentInput) (*entitiesPa
 		return nil, apperrors.ErrInvalidInput
 	}
 
+	// 1. Valida acesso e propriedade do pedido ANTES de consultar qualquer pagamento por Idempotency-Key (previne IDOR)
+	order, err := uc.readOrderById.UseCase(input.OrderId, input.UserId, input.Role)
+	if err != nil {
+		return nil, err
+	}
+
 	// Protecao contra requisicoes simultaneas com a mesma Idempotency-Key (ex: clique duplo)
 	if _, loaded := uc.inFlightKeys.LoadOrStore(key, struct{}{}); loaded {
-		// Se ja existe no banco, retorna o resultado original; caso contrario retorna conflito de processamento em andamento
+		// Se ja existe no banco para este mesmo pedido, retorna o resultado original; caso contrario retorna conflito
 		if existing, err := uc.paymentRepo.ReadPaymentByIdempotencyKey(key); err == nil {
+			if existing.OrderId.String() != order.Id.String() {
+				return nil, apperrors.ErrConflict
+			}
 			return existing, nil
 		}
 		return nil, apperrors.ErrConflict
 	}
 	defer uc.inFlightKeys.Delete(key)
 
-	// 1. Verifica idempotencia no banco de dados
+	// 2. Verifica idempotencia no banco de dados
 	if existing, err := uc.paymentRepo.ReadPaymentByIdempotencyKey(key); err == nil {
-		if existing.OrderId.String() != input.OrderId {
+		if existing.OrderId.String() != order.Id.String() {
 			return nil, apperrors.ErrConflict
 		}
 		return existing, nil
 	} else if !errors.Is(err, apperrors.ErrNotFound) {
-		return nil, err
-	}
-
-	// 2. Valida acesso e estado do pedido
-	order, err := uc.readOrderById.UseCase(input.OrderId, input.UserId, input.Role)
-	if err != nil {
 		return nil, err
 	}
 

@@ -154,9 +154,26 @@ func (g *MercadoPagoGateway) ProcessCreditCardPayment(input ports.CreditCardGate
 	}, nil
 }
 
+func isSafeExternalPaymentID(id string) bool {
+	id = strings.TrimSpace(id)
+	if id == "" || len(id) > 64 {
+		return false
+	}
+	for _, r := range id {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || r == '-' || r == '_') {
+			return false
+		}
+	}
+	return true
+}
+
 func (g *MercadoPagoGateway) RefundPayment(externalPaymentId string, amount float64) error {
-	if strings.TrimSpace(externalPaymentId) == "" {
+	externalPaymentId = strings.TrimSpace(externalPaymentId)
+	if externalPaymentId == "" {
 		return nil
+	}
+	if !isSafeExternalPaymentID(externalPaymentId) {
+		return fmt.Errorf("external_payment_id invalido")
 	}
 
 	path := fmt.Sprintf("/v1/payments/%s/refunds", externalPaymentId)
@@ -167,8 +184,12 @@ func (g *MercadoPagoGateway) RefundPayment(externalPaymentId string, amount floa
 }
 
 func (g *MercadoPagoGateway) GetPaymentStatus(externalPaymentId string) (string, error) {
-	if strings.TrimSpace(externalPaymentId) == "" {
+	externalPaymentId = strings.TrimSpace(externalPaymentId)
+	if externalPaymentId == "" {
 		return "", nil
+	}
+	if !isSafeExternalPaymentID(externalPaymentId) {
+		return "", fmt.Errorf("external_payment_id invalido")
 	}
 
 	path := fmt.Sprintf("/v1/payments/%s", externalPaymentId)

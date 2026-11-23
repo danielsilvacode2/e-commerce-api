@@ -77,9 +77,14 @@ func (o *Order) IsFinalized() bool {
 	return o.Status == OrderStatusCanceled || o.Status == OrderStatusRefunded
 }
 
-// IsEditable indica se itens e CEP do pedido ainda podem ser alterados
+// IsEditable indica se o CEP ou cancelamento pelo cliente ainda sao permitidos
 func (o *Order) IsEditable() bool {
 	return o.Status == OrderStatusPendingPayment || o.Status == OrderStatusPreparing
+}
+
+// CanModifyItems indica se os itens do pedido ainda podem ser adicionados, alterados ou removidos (somente antes do pagamento)
+func (o *Order) CanModifyItems() bool {
+	return o.Status == OrderStatusPendingPayment
 }
 
 // HasReservedStock indica se o estoque dos itens ainda esta reservado (nao entregue nem devolvido)

@@ -38,11 +38,17 @@ func (dto *UserCreateRequestDTO) Validator() []fielderrors.FieldValidateErrors {
 			Field:   "password",
 			Message: "the password field is and very short and required 8 caracters",
 		})
+	} else if len([]byte(dto.Password)) > 72 {
+		listErrCampo = append(listErrCampo, fielderrors.FieldValidateErrors{
+			Field:   "password",
+			Message: "the password field must be at most 72 bytes",
+		})
 	} else {
 
 		if strings.Contains(dto.Password, " ") {
 			listErrCampo = append(listErrCampo, fielderrors.FieldValidateErrors{
-				Message: "the password field cannot	contain spaces",
+				Field:   "password",
+				Message: "the password field cannot contain spaces",
 			})
 		}
 

@@ -27,7 +27,7 @@ func NewAddOrderItemUseCase(
 	}
 }
 
-// UseCase adiciona um produto ao pedido (somente em PREPARING).
+// UseCase adiciona um produto ao pedido (somente em PENDING_PAYMENT).
 // Se o produto ja estiver no pedido, a quantidade e somada ao item existente.
 func (useCase *AddOrderItemUseCase) UseCase(item entities.OrderItem, orderId string, userId string, role string) error {
 
@@ -41,7 +41,7 @@ func (useCase *AddOrderItemUseCase) UseCase(item entities.OrderItem, orderId str
 		return err
 	}
 
-	if !order.IsEditable() {
+	if !order.CanModifyItems() {
 		return apperrors.ErrUnprocessableEntity
 	}
 

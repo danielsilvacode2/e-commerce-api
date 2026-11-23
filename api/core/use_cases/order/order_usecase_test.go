@@ -375,25 +375,39 @@ func TestCancelOrderUseCase(t *testing.T) {
 	cancelUseCase := useCasesOrder.NewCancelOrderUseCase(repo, readUseCase)
 
 	userId := uuid.New()
-	orderId := uuid.New()
-	repo.orders[orderId.String()] = &entitiesOrder.Order{
-		Id:     orderId,
+	pendingOrderId := uuid.New()
+	repo.orders[pendingOrderId.String()] = &entitiesOrder.Order{
+		Id:     pendingOrderId,
+		User:   &entitiesUser.User{ID: userId},
+		Status: entitiesOrder.OrderStatusPendingPayment,
+	}
+
+	preparingOrderId := uuid.New()
+	repo.orders[preparingOrderId.String()] = &entitiesOrder.Order{
+		Id:     preparingOrderId,
 		User:   &entitiesUser.User{ID: userId},
 		Status: entitiesOrder.OrderStatusPreparing,
 	}
 
-	t.Run("User can cancel order in PREPARING", func(t *testing.T) {
-		err := cancelUseCase.UseCase(orderId.String(), userId.String(), "user")
+	t.Run("User cannot cancel paid order in PREPARING without refund flow", func(t *testing.T) {
+		err := cancelUseCase.UseCase(preparingOrderId.String(), userId.String(), "user")
+		if !errors.Is(err, apperrors.ErrUnprocessableEntity) {
+			t.Fatalf("expected ErrUnprocessableEntity, got %v", err)
+		}
+	})
+
+	t.Run("User can cancel unpaid order in PENDING_PAYMENT", func(t *testing.T) {
+		err := cancelUseCase.UseCase(pendingOrderId.String(), userId.String(), "user")
 		if err != nil {
 			t.Fatalf("expected nil err, got %v", err)
 		}
-		if repo.orders[orderId.String()].Status != entitiesOrder.OrderStatusCanceled {
-			t.Fatalf("expected status CANCELED, got %s", repo.orders[orderId.String()].Status)
+		if repo.orders[pendingOrderId.String()].Status != entitiesOrder.OrderStatusCanceled {
+			t.Fatalf("expected status CANCELED, got %s", repo.orders[pendingOrderId.String()].Status)
 		}
 	})
 
 	t.Run("Cannot cancel already canceled order", func(t *testing.T) {
-		err := cancelUseCase.UseCase(orderId.String(), userId.String(), "user")
+		err := cancelUseCase.UseCase(pendingOrderId.String(), userId.String(), "user")
 		if !errors.Is(err, apperrors.ErrUnprocessableEntity) {
 			t.Fatalf("expected ErrUnprocessableEntity, got %v", err)
 		}

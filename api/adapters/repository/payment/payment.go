@@ -6,6 +6,7 @@ import (
 	entitiesOrder "e-commerce/core/entities/order"
 	entitiesPayment "e-commerce/core/entities/payment"
 	"errors"
+	"math"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -191,6 +192,19 @@ func (r *paymentRepository) ApprovePaymentAndOrder(payment entitiesPayment.Payme
 	}
 
 	if orderStatus != entitiesOrder.OrderStatusPendingPayment {
+		err = apperrors.ErrConflict
+		return err
+	}
+
+	// Garante integridade financeira: o valor pago deve coincidir com o total atual dos itens do pedido
+	var currentOrderTotal float64
+	if err = tx.QueryRow(
+		"SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = ?",
+		orderId,
+	).Scan(&currentOrderTotal); err != nil {
+		return err
+	}
+	if math.Abs(currentOrderTotal-payment.Amount) > 0.01 {
 		err = apperrors.ErrConflict
 		return err
 	}

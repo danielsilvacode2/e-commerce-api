@@ -240,8 +240,8 @@ func (r *orderItemRepository) RemoveOrderItem(orderId string, orderItemId string
 	return tx.Commit()
 }
 
-// lockEditableOrder trava a linha do pedido e garante que ele ainda esta em PREPARING,
-// evitando concorrencia com uma mudanca de status
+// lockEditableOrder trava a linha do pedido e garante que ele ainda esta em PENDING_PAYMENT,
+// evitando modificacao de itens apos pagamento aprovado ou concorrencia com mudanca de status
 func lockEditableOrder(tx *sql.Tx, orderId string) error {
 
 	var status string
@@ -255,8 +255,20 @@ func lockEditableOrder(tx *sql.Tx, orderId string) error {
 		return err
 	}
 
-	if status != entitiesOrder.OrderStatusPreparing {
+	if status != entitiesOrder.OrderStatusPendingPayment {
 		return apperrors.ErrUnprocessableEntity
+	}
+
+	// Impede alteracao de itens apos cobranca ja gerada no gateway de pagamento (previne divergencia de valor)
+	var activeGatewayPayments int
+	if err := tx.QueryRow(
+		"SELECT COUNT(*) FROM payments WHERE order_id = ? AND status = 'PENDING' AND external_payment_id IS NOT NULL AND external_payment_id <> ''",
+		orderId,
+	).Scan(&activeGatewayPayments); err != nil {
+		return err
+	}
+	if activeGatewayPayments > 0 {
+		return apperrors.ErrConflict
 	}
 
 	return nil

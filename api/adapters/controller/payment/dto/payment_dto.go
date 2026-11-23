@@ -2,6 +2,7 @@ package dto
 
 import (
 	fielderrors "e-commerce/adapters/controller/fieldErrors"
+	"e-commerce/config"
 	entitiesPayment "e-commerce/core/entities/payment"
 	"strings"
 	"time"
@@ -36,6 +37,15 @@ func (dto *ProcessPaymentRequestDTO) Validator() []fielderrors.FieldValidateErro
 	}
 
 	if method == entitiesPayment.PaymentMethodCreditCard {
+		// Em producao (Mercado Pago ativo), exige tokenizacao no front-end (PCI-DSS) e recusa dados brutos de cartao
+		if config.AccessTokenPayment != "" && strings.TrimSpace(dto.CardToken) == "" {
+			listFieldErrors = append(listFieldErrors, fielderrors.FieldValidateErrors{
+				Field:   "card_token",
+				Message: "card_token é obrigatório para pagamento com cartão",
+			})
+			return listFieldErrors
+		}
+
 		// Quando tokenizado pelo SDK do Mercado Pago no front, valida card_token e payment_method_id
 		if strings.TrimSpace(dto.CardToken) != "" {
 			if strings.TrimSpace(dto.PaymentMethodId) == "" {

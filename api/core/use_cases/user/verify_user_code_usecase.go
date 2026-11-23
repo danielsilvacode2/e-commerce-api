@@ -29,12 +29,12 @@ func (useCase *VerifyUserCodeUseCase) UseCase(email string, verificationCode str
 		return err
 	}
 
-	if user.CodeExpires.Before(time.Now()) {
+	if user.VerificationCode == "" || user.CodeExpires.Before(time.Now()) {
 		return apperrors.ErrUnprocessableEntity
 	}
 
 	if err = useCase.hashService.CompareHash(user.VerificationCode, verificationCode); err != nil {
-		return err
+		return apperrors.ErrUnauthorized
 	}
 
 	user.IsVerified = true

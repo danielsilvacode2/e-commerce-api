@@ -2,6 +2,8 @@ package helpers
 
 import (
 	"e-commerce/core/apperrors"
+	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -37,36 +39,32 @@ func HelperResponse(body interface{}, status int, msg string, c *gin.Context) {
 
 func HelperErrResponse(body interface{}, c *gin.Context, err error) {
 
-	switch err {
+	switch {
 
-	case apperrors.ErrNotFound:
-		HelperResponse(body, http.StatusNotFound, err.Error(), c)
+	case errors.Is(err, apperrors.ErrNotFound):
+		HelperResponse(body, http.StatusNotFound, apperrors.ErrNotFound.Error(), c)
 		return
-	case apperrors.ErrInvalidInput:
-		HelperResponse(body, http.StatusBadRequest, err.Error(), c)
+	case errors.Is(err, apperrors.ErrInvalidInput):
+		HelperResponse(body, http.StatusBadRequest, apperrors.ErrInvalidInput.Error(), c)
 		return
-
-	case apperrors.ErrConflict:
-		HelperResponse(body, http.StatusConflict, err.Error(), c)
+	case errors.Is(err, apperrors.ErrConflict):
+		HelperResponse(body, http.StatusConflict, apperrors.ErrConflict.Error(), c)
 		return
-
-	case apperrors.ErrForbidden:
-		HelperResponse(body, http.StatusForbidden, err.Error(), c)
+	case errors.Is(err, apperrors.ErrForbidden):
+		HelperResponse(body, http.StatusForbidden, apperrors.ErrForbidden.Error(), c)
 		return
-	case apperrors.ErrUnauthorized:
-		HelperResponse(body, http.StatusUnauthorized, err.Error(), c)
+	case errors.Is(err, apperrors.ErrUnauthorized):
+		HelperResponse(body, http.StatusUnauthorized, apperrors.ErrUnauthorized.Error(), c)
 		return
-
-	case apperrors.ErrTooManyRequests:
-		HelperResponse(body, http.StatusTooManyRequests, err.Error(), c)
+	case errors.Is(err, apperrors.ErrTooManyRequests):
+		HelperResponse(body, http.StatusTooManyRequests, apperrors.ErrTooManyRequests.Error(), c)
 		return
-
-	case apperrors.ErrUnprocessableEntity:
-		HelperResponse(body, http.StatusUnprocessableEntity, err.Error(), c)
+	case errors.Is(err, apperrors.ErrUnprocessableEntity):
+		HelperResponse(body, http.StatusUnprocessableEntity, apperrors.ErrUnprocessableEntity.Error(), c)
 		return
-
 	default:
-		HelperResponse(body, http.StatusInternalServerError, err.Error(), c)
+		log.Printf("[ERROR] internal server error [%s %s]: %v", c.Request.Method, c.FullPath(), err)
+		HelperResponse(body, http.StatusInternalServerError, "internal server error", c)
 		return
 
 	}

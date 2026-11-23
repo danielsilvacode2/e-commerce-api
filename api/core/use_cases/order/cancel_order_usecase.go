@@ -18,7 +18,8 @@ func NewCancelOrderUseCase(repository entities.OrderRepository, readOrderById *R
 }
 
 // UseCase cancela o pedido e devolve o estoque.
-// O dono so pode cancelar em PREPARING; o admin tambem pode cancelar em SHIPPED.
+// O dono so pode cancelar enquanto o pedido ainda nao foi pago (PENDING_PAYMENT);
+// pedidos pagos em PREPARING devem usar o fluxo de estorno (RequestRefund).
 func (useCase *CancelOrderUseCase) UseCase(orderId string, userId string, role string) error {
 
 	order, err := useCase.readOrderById.UseCase(orderId, userId, role)
@@ -27,7 +28,7 @@ func (useCase *CancelOrderUseCase) UseCase(orderId string, userId string, role s
 		return err
 	}
 
-	if role != roleAdmin && !order.IsEditable() {
+	if role != roleAdmin && order.Status != entities.OrderStatusPendingPayment {
 		return apperrors.ErrUnprocessableEntity
 	}
 

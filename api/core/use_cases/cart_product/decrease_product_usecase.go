@@ -19,6 +19,9 @@ func NewDecreaseProductCartUseCase(repository entities.CartProductRepository, re
 }
 
 func (useCase *DecreaseProductCartUseCase) UseCase(cartProductId string, quantity int64, userId string) error {
+	if quantity < 1 {
+		return apperrors.ErrInvalidInput
+	}
 
 	cart, err := useCase.readCartUseCase.UseCase(cartProductId)
 

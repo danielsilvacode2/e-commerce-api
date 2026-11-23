@@ -8,6 +8,7 @@ import (
 	controllerProduct "e-commerce/adapters/controller/product"
 	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/server/middleware"
+	"e-commerce/config"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,7 @@ func NewRoutes(
 	}
 
 	globalLimiter := middleware.NewRateLimiter(rate.Every(100*time.Millisecond), 20)
+	webhookLimiter := middleware.NewRateLimiter(rate.Every(200*time.Millisecond), 10)
 
 	createEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(1*time.Minute), 3)
 
@@ -38,7 +40,10 @@ func NewRoutes(
 	verifyCodeEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(20*time.Minute), 3)
 	verifyCodePasswordEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(40*time.Minute), 3)
 
+	r.Use(middleware.SecurityHeadersMiddleware())
+	r.Use(middleware.MaxBodySizeMiddleware(1 << 20))
 	r.Use(middleware.CorsMiddleware())
+	r.Use(middleware.CSRFOriginMiddleware())
 	r.Use(middleware.RateLimiterMiddleware(globalLimiter))
 
 	v1 := r.Group("/api/v1")
@@ -47,8 +52,8 @@ func NewRoutes(
 		users := v1.Group("/users")
 		{
 			users.POST("", middleware.EmailRateLimiterMiddleware(createEmailLimiter), userController.CreateUser)
-			users.POST("/verify", middleware.EmailRateLimiterMiddleware(resendCodeLimiter), userController.VerifyEmailMe)
-			users.POST("/new-verify-code", middleware.EmailRateLimiterMiddleware(verifyCodeEmailLimiter), userController.NewVerifyCode)
+			users.POST("/verify", middleware.EmailRateLimiterMiddleware(verifyCodeEmailLimiter), userController.VerifyEmailMe)
+			users.POST("/new-verify-code", middleware.EmailRateLimiterMiddleware(resendCodeLimiter), userController.NewVerifyCode)
 			users.POST("/reset-password", middleware.EmailRateLimiterMiddleware(resendCodeLimiter), userController.ResetPassword)
 			users.POST("/confirm-reset-password", middleware.EmailRateLimiterMiddleware(verifyCodePasswordEmailLimiter), userController.ConfirmeResetPassword)
 		}
@@ -105,7 +110,9 @@ func NewRoutes(
 			// Pagamentos vinculados ao pedido
 			orders.POST("/:id/payments", middleware.AuthMiddleware("user"), paymentController.ProcessPayment)
 			orders.GET("/:id/payment", middleware.AuthMiddleware("user"), paymentController.ReadPaymentByOrder)
-			orders.POST("/:id/payment/confirm", middleware.AuthMiddleware("user"), paymentController.ConfirmOrderPayment)
+			if config.AllowPaymentSimulation && config.AccessTokenPayment == "" {
+				orders.POST("/:id/payment/confirm", middleware.AuthMiddleware("user"), paymentController.ConfirmOrderPayment)
+			}
 
 			// Rotas administrativas
 			orders.GET("", middleware.AuthMiddleware("admin"), orderController.ReadAllOrders)
@@ -117,7 +124,7 @@ func NewRoutes(
 
 		payments := v1.Group("/payments")
 		{
-			payments.POST("/webhook", paymentController.WebhookPayment)
+			payments.POST("/webhook", middleware.RateLimiterMiddleware(webhookLimiter), paymentController.WebhookPayment)
 		}
 	}
 

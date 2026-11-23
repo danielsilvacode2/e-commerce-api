@@ -3,9 +3,7 @@ package use_cases
 import (
 	entities "e-commerce/core/entities/user"
 	"e-commerce/core/ports"
-	"fmt"
 	"log"
-	"math/rand/v2"
 	"time"
 )
 
@@ -32,10 +30,15 @@ func (useCase *ResetPasswordUseCase) UseCase(email string) error {
 		return err
 	}
 
-	code := rand.Int64N(900000)
-	codeFortm := fmt.Sprintf("%06d", code)
+	codeFortm, err := generateSecureVerificationCode()
+	if err != nil {
+		return err
+	}
 
 	codeHashPassword, err := useCase.hashService.HashGenerate(codeFortm)
+	if err != nil {
+		return err
+	}
 	user.PasswordResetCode = codeHashPassword
 
 	timeExpiresCode := time.Now().Add(5 * time.Minute)

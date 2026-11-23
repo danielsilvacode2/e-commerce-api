@@ -1,17 +1,26 @@
 package use_cases
 
 import (
+	"crypto/rand"
 	"e-commerce/core/apperrors"
 	"e-commerce/core/entities/user"
 	"e-commerce/core/ports"
 	"errors"
 	"fmt"
 	"log"
-	"math/rand/v2"
+	"math/big"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+func generateSecureVerificationCode() (string, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
+}
 
 type CreateUserUseCase struct {
 	repository   entities.UserRepository
@@ -53,8 +62,10 @@ func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, er
 
 	user.NormalizeData()
 
-	code := rand.Int64N(900000)
-	codeFortm := fmt.Sprintf("%06d", code)
+	codeFortm, err := generateSecureVerificationCode()
+	if err != nil {
+		return nil, err
+	}
 
 	codeHash, err := useCase.hashService.HashGenerate(codeFortm)
 

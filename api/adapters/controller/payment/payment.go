@@ -1,16 +1,23 @@
 package controller
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/payment/dto"
 	"e-commerce/adapters/controller/payment/mapper"
 	"e-commerce/adapters/security/auth"
+	"e-commerce/config"
 	"e-commerce/core/apperrors"
 	useCasesPayment "e-commerce/core/use_cases/payment"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -113,8 +120,13 @@ func (ctrl *PaymentController) ReadPaymentByOrder(c *gin.Context) {
 	helpers.HelperResponse(mapper.PaymentToDto(*payment), http.StatusOK, "found payment", c)
 }
 
-// ConfirmOrderPayment permite confirmar/recusar/expirar o pagamento pendente de um pedido (usado na simulacao Pix / callback autenticado).
+// ConfirmOrderPayment permite simular confirmacao/recusa/expiracao apenas quando o gateway mock e a simulacao estiverem explicitamente habilitados.
 func (ctrl *PaymentController) ConfirmOrderPayment(c *gin.Context) {
+	if !config.AllowPaymentSimulation || config.AccessTokenPayment != "" {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrForbidden)
+		return
+	}
+
 	claims, err := ctrl.getClaims(c)
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -147,7 +159,7 @@ func (ctrl *PaymentController) ConfirmOrderPayment(c *gin.Context) {
 	helpers.HelperResponse(mapper.PaymentToDto(*payment), http.StatusOK, "payment updated", c)
 }
 
-// WebhookPayment recebe callbacks externos (Mercado Pago nativo ou payload interno) de forma idempotente.
+// WebhookPayment recebe callbacks externos do Mercado Pago validando assinatura HMAC e sincronizando o status real no gateway.
 func (ctrl *PaymentController) WebhookPayment(c *gin.Context) {
 	var raw map[string]any
 	_ = c.ShouldBindJSON(&raw)
@@ -162,43 +174,91 @@ func (ctrl *PaymentController) WebhookPayment(c *gin.Context) {
 		}
 	}
 
-	if mpExternalId != "" {
-		payment, err := ctrl.webhookPayment.SyncByExternalId(mpExternalId)
-		if err != nil {
-			helpers.HelperErrResponse(nil, c, err)
-			return
-		}
-		helpers.HelperResponse(mapper.PaymentToDto(*payment), http.StatusOK, "mercado pago webhook synced", c)
+	if !isValidExternalPaymentID(mpExternalId) {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
 		return
 	}
 
-	var dtoRequest dto.WebhookPaymentRequestDTO
-	if raw != nil {
-		dtoRequest.PaymentId = toString(raw["payment_id"])
-		dtoRequest.ExternalPaymentId = toString(raw["external_payment_id"])
-		dtoRequest.Action = toString(raw["action"])
-	}
-
-	if listErrField := dtoRequest.Validator(); listErrField != nil {
-		helpers.HelperErrResponse(listErrField, c, apperrors.ErrInvalidInput)
+	if !verifyMercadoPagoSignature(c.GetHeader("x-signature"), c.GetHeader("x-request-id"), mpExternalId, config.WebhookSecret) {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrUnauthorized)
 		return
 	}
 
-	payment, err := ctrl.webhookPayment.UseCase(dtoRequest.PaymentId, dtoRequest.ExternalPaymentId, dtoRequest.Action)
+	payment, err := ctrl.webhookPayment.SyncByExternalId(mpExternalId)
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
+	helpers.HelperResponse(mapper.PaymentToDto(*payment), http.StatusOK, "mercado pago webhook synced", c)
+}
 
-	helpers.HelperResponse(mapper.PaymentToDto(*payment), http.StatusOK, "webhook processed", c)
+func isValidExternalPaymentID(id string) bool {
+	if id == "" || len(id) > 64 {
+		return false
+	}
+	for _, r := range id {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || r == '-' || r == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+const webhookMaxTimestampSkew = 5 * time.Minute
+
+// verifyMercadoPagoSignature valida o header x-signature (ts=...,v1=...) usando HMAC-SHA256 com MERCADO_PAGO_WEBHOOK_SECRET
+// e rejeita timestamps fora da janela toleravel para mitigar ataques de replay.
+func verifyMercadoPagoSignature(xSignature, xRequestID, dataID, secret string) bool {
+	if strings.TrimSpace(secret) == "" {
+		return false
+	}
+	var ts, v1 string
+	for _, part := range strings.Split(xSignature, ",") {
+		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		switch strings.TrimSpace(kv[0]) {
+		case "ts":
+			ts = strings.TrimSpace(kv[1])
+		case "v1":
+			v1 = strings.TrimSpace(kv[1])
+		}
+	}
+	if ts == "" || v1 == "" {
+		return false
+	}
+
+	tsInt, err := strconv.ParseInt(ts, 10, 64)
+	if err != nil || tsInt <= 0 {
+		return false
+	}
+	// Suporta timestamp em milissegundos ou segundos
+	if tsInt > 1_000_000_000_000 {
+		tsInt = tsInt / 1000
+	}
+	delta := time.Since(time.Unix(tsInt, 0))
+	if delta < -webhookMaxTimestampSkew || delta > webhookMaxTimestampSkew {
+		return false
+	}
+
+	manifest := fmt.Sprintf("id:%s;request-id:%s;ts:%s;", strings.ToLower(dataID), strings.TrimSpace(xRequestID), ts)
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(manifest))
+	expected := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(strings.ToLower(v1)), []byte(expected))
 }
 
 func toString(v any) string {
 	if v == nil {
 		return ""
 	}
-	if s, ok := v.(string); ok {
-		return s
+	switch val := v.(type) {
+	case string:
+		return val
+	case float64:
+		return fmt.Sprintf("%.0f", val)
+	default:
+		return ""
 	}
-	return ""
 }

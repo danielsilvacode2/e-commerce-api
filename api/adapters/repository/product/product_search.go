@@ -23,6 +23,9 @@ func (r *productRepository) SearchProducts(ctx context.Context, term string, pag
 	if limit < 1 {
 		limit = 10
 	}
+	if limit > 100 {
+		limit = 100
+	}
 	offset := (page - 1) * limit
 
 	pattern := "%" + escapeLike(term) + "%"

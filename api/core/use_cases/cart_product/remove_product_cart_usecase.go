@@ -3,7 +3,6 @@ package use_cases
 import (
 	"e-commerce/core/apperrors"
 	entities "e-commerce/core/entities/cart_product"
-	"fmt"
 )
 
 type RemoveProductCartUseCase struct {
@@ -29,8 +28,6 @@ func (useCase RemoveProductCartUseCase) UseCase(ProductCartId string, userId str
 	userCartID := cartProduct.Cart.User.ID.String()
 
 	if userCartID != userId {
-
-		fmt.Println("user id:" + userId + " AGORA USER CART ID: " + userCartID)
 		return apperrors.ErrForbidden
 	}
 

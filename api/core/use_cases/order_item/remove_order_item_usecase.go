@@ -18,7 +18,7 @@ func NewRemoveOrderItemUseCase(repository entities.OrderItemRepository, readOrde
 	}
 }
 
-// UseCase remove um item do pedido (somente em PREPARING).
+// UseCase remove um item do pedido (somente em PENDING_PAYMENT).
 // O ultimo item nao pode ser removido: nesse caso o pedido deve ser cancelado.
 func (useCase *RemoveOrderItemUseCase) UseCase(orderId string, orderItemId string, userId string, role string) error {
 
@@ -28,7 +28,7 @@ func (useCase *RemoveOrderItemUseCase) UseCase(orderId string, orderItemId strin
 		return err
 	}
 
-	if !order.IsEditable() {
+	if !order.CanModifyItems() {
 		return apperrors.ErrUnprocessableEntity
 	}
 

@@ -6,6 +6,8 @@ import (
 	"e-commerce/builder"
 	"e-commerce/core/ports"
 	"log"
+	"net/http"
+	"time"
 
 	"e-commerce/adapters/server/router"
 	"e-commerce/config"
@@ -38,6 +40,16 @@ func main() {
 	}
 
 	r := router.NewGinRouter()
-	r.Run(config.ApiPort)
+	srv := &http.Server{
+		Addr:              config.ApiPort,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
+		log.Fatalf("[ERROR] falha ao iniciar servidor HTTP: %v", err)
+	}
 
 }

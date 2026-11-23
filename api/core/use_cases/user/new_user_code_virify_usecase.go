@@ -3,8 +3,6 @@ package use_cases
 import (
 	"e-commerce/core/entities/user"
 	"e-commerce/core/ports"
-	"fmt"
-	"math/rand/v2"
 	"time"
 )
 
@@ -38,8 +36,10 @@ func (useCase *NewUserCodeUseCase) UseCase(email string) error {
 		return err
 	}
 
-	code := rand.Int64N(900000)
-	codeFortm := fmt.Sprintf("%06d", code)
+	codeFortm, err := generateSecureVerificationCode()
+	if err != nil {
+		return err
+	}
 
 	codeHash, err := useCase.hashService.HashGenerate(codeFortm)
 

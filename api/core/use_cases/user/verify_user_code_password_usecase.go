@@ -28,6 +28,10 @@ func (useCase *VerifyUserCodePasswordUseCase) UseCase(email string, code string,
 		return err
 	}
 
+	if user.PasswordResetCode == "" || user.PasswordResetExpires.Before(time.Now()) {
+		return apperrors.ErrUnprocessableEntity
+	}
+
 	if err = useCase.hashService.CompareHash(user.PasswordResetCode, code); err != nil {
 		return apperrors.ErrUnauthorized
 	}

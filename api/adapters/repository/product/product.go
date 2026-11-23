@@ -102,6 +102,9 @@ func (r *productRepository) ReadAllProduct(page, limit int) (*entities.Paginated
 	if limit < 1 {
 		limit = 10
 	}
+	if limit > 100 {
+		limit = 100
+	}
 	offset := (page - 1) * limit
 
 	// 2. Obter o total de registros na tabela

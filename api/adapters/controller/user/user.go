@@ -71,7 +71,7 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 
 	potentialUser := mapper.DtoCreateRequestToUser(userRequestDto)
 
-	user, err := userCtrl.createUser.UseCase(potentialUser)
+	_, err := userCtrl.createUser.UseCase(potentialUser)
 
 	if err != nil {
 
@@ -84,9 +84,7 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	mapperUser := mapper.UserToResponseDTO(*user)
-
-	helpers.HelperResponse(mapperUser, 202, "We have sent the next instructions to your email.", c)
+	helpers.HelperResponse(nil, 202, "We have sent the next instructions to your email.", c)
 }
 
 func (userCtrl *UserController) VerifyEmailMe(c *gin.Context) {
@@ -107,8 +105,8 @@ func (userCtrl *UserController) VerifyEmailMe(c *gin.Context) {
 
 	if err != nil {
 
-		if errors.Is(err, apperrors.ErrNotFound) {
-			helpers.HelperErrResponse(nil, c, apperrors.ErrUnprocessableEntity)
+		if errors.Is(err, apperrors.ErrNotFound) || errors.Is(err, apperrors.ErrUnprocessableEntity) {
+			helpers.HelperErrResponse(nil, c, apperrors.ErrUnauthorized)
 			return
 		}
 
@@ -138,7 +136,7 @@ func (userCtrl *UserController) NewVerifyCode(c *gin.Context) {
 
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
-			helpers.HelperErrResponse(nil, c, apperrors.ErrUnprocessableEntity)
+			helpers.HelperResponse(nil, http.StatusOK, "If your email is registered, a new verification code has been sent.", c)
 			return
 		}
 		helpers.HelperErrResponse(nil, c, err)
@@ -146,7 +144,7 @@ func (userCtrl *UserController) NewVerifyCode(c *gin.Context) {
 	}
 
 	if user.IsVerified {
-		helpers.HelperErrResponse(nil, c, apperrors.ErrUnprocessableEntity)
+		helpers.HelperResponse(nil, http.StatusOK, "If your email is registered, a new verification code has been sent.", c)
 		return
 	}
 
@@ -154,7 +152,7 @@ func (userCtrl *UserController) NewVerifyCode(c *gin.Context) {
 
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
-			helpers.HelperErrResponse(nil, c, apperrors.ErrUnprocessableEntity)
+			helpers.HelperResponse(nil, http.StatusOK, "If your email is registered, a new verification code has been sent.", c)
 			return
 		}
 		helpers.HelperErrResponse(nil, c, err)
@@ -199,6 +197,8 @@ func (userCtrl *UserController) DeleteUser(c *gin.Context) {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
+
+	auth.RevokeUserTokensBefore(id)
 
 	helpers.HelperResponse(nil, http.StatusNoContent, "user successfully deleted ", c)
 }
@@ -271,7 +271,7 @@ func (userCtrl *UserController) UpdateUser(c *gin.Context) {
 	var dtorequest dto.UserUpdateRequestDTO
 
 	if err := c.ShouldBindJSON(&dtorequest); err != nil {
-		helpers.HelperErrResponse(nil, c, err)
+		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
 		return
 	}
 
@@ -280,9 +280,7 @@ func (userCtrl *UserController) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user := mapper.DtoUpdateRequestToUser(dtorequest)
-
-	if err := userCtrl.updateUser.UseCase(user, id); err != nil {
+	if err := userCtrl.updateUser.UpdateProfile(dtorequest.Name, dtorequest.Email, id); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
@@ -300,12 +298,12 @@ func (userCtrl *UserController) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	if err := userCtrl.resetPassword.UseCase(requestDTO.Email); err != nil {
+	if err := userCtrl.resetPassword.UseCase(requestDTO.Email); err != nil && !errors.Is(err, apperrors.ErrNotFound) {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
-	helpers.HelperResponse(nil, 200, "successfully request", c)
+	helpers.HelperResponse(nil, http.StatusOK, "If your email is registered, reset instructions have been sent.", c)
 
 }
 
@@ -318,12 +316,25 @@ func (userCtrl *UserController) ConfirmeResetPassword(c *gin.Context) {
 		return
 	}
 
+	if listFieldErrors := requestDTO.Validator(); listFieldErrors != nil {
+		helpers.HelperErrResponse(listFieldErrors, c, apperrors.ErrInvalidInput)
+		return
+	}
+
 	if err := userCtrl.verifyUserCodePassword.UseCase(requestDTO.Email, requestDTO.Code, requestDTO.NewPassword); err != nil {
+		if errors.Is(err, apperrors.ErrNotFound) || errors.Is(err, apperrors.ErrUnprocessableEntity) {
+			helpers.HelperErrResponse(nil, c, apperrors.ErrUnauthorized)
+			return
+		}
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}
 
-	helpers.HelperResponse(nil, 200, "successfully request", c)
+	if updatedUser, err := userCtrl.readUserByEmail.UseCase(requestDTO.Email); err == nil && updatedUser != nil {
+		auth.RevokeUserTokensBefore(updatedUser.ID.String())
+	}
+
+	helpers.HelperResponse(nil, http.StatusOK, "successfully request", c)
 
 }
 

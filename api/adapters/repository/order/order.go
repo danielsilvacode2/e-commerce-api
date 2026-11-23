@@ -173,6 +173,9 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 	if limit < 1 {
 		limit = 10
 	}
+	if limit > 100 {
+		limit = 100
+	}
 	offset := (page - 1) * limit
 
 	where := " WHERE 1 = 1"
