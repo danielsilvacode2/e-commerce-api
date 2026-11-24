@@ -1,168 +1,127 @@
 package middleware
 
 import (
+	"context"
+	"errors"
+	"math"
 	"strings"
-	"sync"
-	"time"
 
+	goredis "github.com/redis/go-redis/v9"
 	"golang.org/x/time/rate"
 )
 
-const (
-	rateLimiterTTL     = 1 * time.Hour
-	rateLimiterMaxKeys = 50000
-)
+const minRateLimitTTLMs int64 = 1000
 
-type limiterEntry struct {
-	limiter  *rate.Limiter
-	lastSeen time.Time
-}
+// tokenBucketScript implementa um Token Bucket atomico no Redis usando o relogio do servidor (TIME).
+// KEYS[1]: chave do bucket
+// ARGV[1]: taxa de reposicao em tokens/segundo
+// ARGV[2]: burst maximo (capacidade do bucket)
+// ARGV[3]: TTL em milissegundos para expiracao automatica da chave
+var tokenBucketScript = goredis.NewScript(`
+local key = KEYS[1]
+local refill_rate = tonumber(ARGV[1])
+local burst = tonumber(ARGV[2])
+local ttl_ms = tonumber(ARGV[3])
 
-type EmailRateLimiter struct {
-	emails map[string]*limiterEntry
-	mu     *sync.Mutex
+local now_tbl = redis.call("TIME")
+local now_ms = tonumber(now_tbl[1]) * 1000 + math.floor(tonumber(now_tbl[2]) / 1000)
+
+local data = redis.call("HMGET", key, "tokens", "ts")
+local tokens = tonumber(data[1])
+local last_ts = tonumber(data[2])
+
+if tokens == nil or last_ts == nil then
+	tokens = burst
+	last_ts = now_ms
+else
+	local elapsed_ms = now_ms - last_ts
+	if elapsed_ms > 0 then
+		local refill = (elapsed_ms / 1000.0) * refill_rate
+		tokens = math.min(burst, tokens + refill)
+		last_ts = now_ms
+	end
+end
+
+local allowed = 0
+if tokens >= 1 then
+	tokens = tokens - 1
+	allowed = 1
+end
+
+redis.call("HSET", key, "tokens", tostring(tokens), "ts", tostring(last_ts))
+redis.call("PEXPIRE", key, ttl_ms)
+
+return allowed
+`)
+
+type redisRateLimiter struct {
+	client goredis.Scripter
+	prefix string
 	r      rate.Limit
 	b      int
 }
 
-func NewEmailRateLimiter(r rate.Limit, b int) *EmailRateLimiter {
-	rl := &EmailRateLimiter{
-		emails: make(map[string]*limiterEntry),
-		mu:     &sync.Mutex{},
-		r:      r,
-		b:      b,
+func (l *redisRateLimiter) allow(ctx context.Context, rawKey string) (bool, error) {
+	if l.b <= 0 || l.r <= 0 {
+		return false, nil
 	}
-	go rl.cleanupLoop()
-	return rl
+	if l.r == rate.Inf {
+		return true, nil
+	}
+	if l.client == nil {
+		return false, errors.New("cliente Redis nao inicializado")
+	}
+
+	redisKey := l.prefix + ":" + rawKey
+	ttlMs := int64(math.Ceil(float64(l.b)/float64(l.r)*1000.0)) + minRateLimitTTLMs
+	if ttlMs < minRateLimitTTLMs {
+		ttlMs = minRateLimitTTLMs
+	}
+
+	res, err := tokenBucketScript.Run(ctx, l.client, []string{redisKey}, float64(l.r), l.b, ttlMs).Int()
+	if err != nil {
+		return false, err
+	}
+
+	return res == 1, nil
 }
 
-func (e *EmailRateLimiter) cleanupLoop() {
-	ticker := time.NewTicker(10 * time.Minute)
-	defer ticker.Stop()
-	for range ticker.C {
-		e.evictStale(time.Now())
+type EmailRateLimiter struct {
+	limiter redisRateLimiter
+}
+
+func NewEmailRateLimiter(client goredis.Scripter, prefix string, r rate.Limit, b int) *EmailRateLimiter {
+	return &EmailRateLimiter{
+		limiter: redisRateLimiter{
+			client: client,
+			prefix: strings.TrimSpace(prefix),
+			r:      r,
+			b:      b,
+		},
 	}
 }
 
-func (e *EmailRateLimiter) evictStale(now time.Time) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	for k, entry := range e.emails {
-		if now.Sub(entry.lastSeen) > rateLimiterTTL {
-			delete(e.emails, k)
-		}
-	}
-}
-
-func (e *EmailRateLimiter) GetLimiter(email string) *rate.Limiter {
+func (e *EmailRateLimiter) Allow(ctx context.Context, email string) (bool, error) {
 	key := strings.ToLower(strings.TrimSpace(email))
-	now := time.Now()
-
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	if entry, exists := e.emails[key]; exists {
-		entry.lastSeen = now
-		return entry.limiter
-	}
-
-	if len(e.emails) >= rateLimiterMaxKeys {
-		for k, entry := range e.emails {
-			if now.Sub(entry.lastSeen) > rateLimiterTTL {
-				delete(e.emails, k)
-			}
-		}
-		// Se ainda estiver no teto (ex: rajada de chaves novas < TTL), evicta a entrada mais antiga para evitar OOM
-		if len(e.emails) >= rateLimiterMaxKeys {
-			var oldestKey string
-			var oldestTime time.Time
-			for k, entry := range e.emails {
-				if oldestKey == "" || entry.lastSeen.Before(oldestTime) {
-					oldestKey = k
-					oldestTime = entry.lastSeen
-				}
-			}
-			if oldestKey != "" {
-				delete(e.emails, oldestKey)
-			}
-		}
-	}
-
-	limiter := rate.NewLimiter(e.r, e.b)
-	e.emails[key] = &limiterEntry{limiter: limiter, lastSeen: now}
-	return limiter
+	return e.limiter.allow(ctx, key)
 }
 
 type IPRateLimiter struct {
-	ips map[string]*limiterEntry
-	mu  *sync.Mutex
-	r   rate.Limit
-	b   int
+	limiter redisRateLimiter
 }
 
-func NewRateLimiter(r rate.Limit, b int) *IPRateLimiter {
-	rl := &IPRateLimiter{
-		ips: make(map[string]*limiterEntry),
-		mu:  &sync.Mutex{},
-		r:   r,
-		b:   b,
-	}
-	go rl.cleanupLoop()
-	return rl
-}
-
-func (i *IPRateLimiter) cleanupLoop() {
-	ticker := time.NewTicker(10 * time.Minute)
-	defer ticker.Stop()
-	for range ticker.C {
-		i.evictStale(time.Now())
+func NewRateLimiter(client goredis.Scripter, prefix string, r rate.Limit, b int) *IPRateLimiter {
+	return &IPRateLimiter{
+		limiter: redisRateLimiter{
+			client: client,
+			prefix: strings.TrimSpace(prefix),
+			r:      r,
+			b:      b,
+		},
 	}
 }
 
-func (i *IPRateLimiter) evictStale(now time.Time) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-	for k, entry := range i.ips {
-		if now.Sub(entry.lastSeen) > rateLimiterTTL {
-			delete(i.ips, k)
-		}
-	}
-}
-
-func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
-	now := time.Now()
-
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	if entry, exists := i.ips[ip]; exists {
-		entry.lastSeen = now
-		return entry.limiter
-	}
-
-	if len(i.ips) >= rateLimiterMaxKeys {
-		for k, entry := range i.ips {
-			if now.Sub(entry.lastSeen) > rateLimiterTTL {
-				delete(i.ips, k)
-			}
-		}
-		// Se ainda estiver no teto (ex: rajada de IPs novos < TTL), evicta a entrada mais antiga para evitar OOM
-		if len(i.ips) >= rateLimiterMaxKeys {
-			var oldestKey string
-			var oldestTime time.Time
-			for k, entry := range i.ips {
-				if oldestKey == "" || entry.lastSeen.Before(oldestTime) {
-					oldestKey = k
-					oldestTime = entry.lastSeen
-				}
-			}
-			if oldestKey != "" {
-				delete(i.ips, oldestKey)
-			}
-		}
-	}
-
-	limiter := rate.NewLimiter(i.r, i.b)
-	i.ips[ip] = &limiterEntry{limiter: limiter, lastSeen: now}
-	return limiter
+func (i *IPRateLimiter) Allow(ctx context.Context, ip string) (bool, error) {
+	key := strings.TrimSpace(ip)
+	return i.limiter.allow(ctx, key)
 }

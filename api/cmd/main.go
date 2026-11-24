@@ -3,6 +3,7 @@ package main
 import (
 	"e-commerce/adapters/database"
 	"e-commerce/adapters/rabbitmq"
+	"e-commerce/adapters/redis"
 	"e-commerce/builder"
 	"e-commerce/core/ports"
 	"log"
@@ -17,6 +18,7 @@ func init() {
 	config.LoadConfig()
 	database.NewMySQLConnection()
 	rabbitmq.NewRabbitMQConnection()
+	redis.NewRedisConnection()
 }
 
 func main() {

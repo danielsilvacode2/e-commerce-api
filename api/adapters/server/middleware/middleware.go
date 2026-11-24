@@ -8,6 +8,7 @@ import (
 	"e-commerce/core/apperrors"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -138,9 +139,14 @@ func RateLimiterMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
 
 		clientIp := c.ClientIP()
 
-		clientLimiter := limiter.GetLimiter(clientIp)
+		allowed, err := limiter.Allow(c.Request.Context(), clientIp)
+		if err != nil {
+			log.Printf("[WARN] falha ao verificar rate limit por IP no Redis: %v", err)
+			c.Next()
+			return
+		}
 
-		if !clientLimiter.Allow() {
+		if !allowed {
 			helpers.HelperErrResponse(nil, c, apperrors.ErrTooManyRequests)
 			c.Abort()
 			return
@@ -177,7 +183,14 @@ func EmailRateLimiterMiddleware(limiter *EmailRateLimiter) gin.HandlerFunc {
 			return
 		}
 
-		if !limiter.GetLimiter(payload.Email).Allow() {
+		allowed, err := limiter.Allow(c.Request.Context(), payload.Email)
+		if err != nil {
+			log.Printf("[WARN] falha ao verificar rate limit por email no Redis: %v", err)
+			c.Next()
+			return
+		}
+
+		if !allowed {
 			helpers.HelperErrResponse(nil, c, apperrors.ErrTooManyRequests)
 			c.Abort()
 			return
@@ -204,8 +217,15 @@ func EmailRateLimiterLoginMiddleware(limiter *EmailRateLimiter) gin.HandlerFunc 
 			return
 		}
 
-		// Consumo atomico antes de c.Next() evita bypass por race condition em rajadas concorrentes.
-		if !limiter.GetLimiter(payload.Email).Allow() {
+		// Consumo atomico no Redis antes de c.Next() evita bypass por race condition em rajadas concorrentes.
+		allowed, err := limiter.Allow(c.Request.Context(), payload.Email)
+		if err != nil {
+			log.Printf("[WARN] falha ao verificar rate limit de login no Redis: %v", err)
+			c.Next()
+			return
+		}
+
+		if !allowed {
 			helpers.HelperErrResponse(nil, c, apperrors.ErrTooManyRequests)
 			c.Abort()
 			return

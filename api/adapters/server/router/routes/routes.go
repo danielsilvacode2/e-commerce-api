@@ -7,6 +7,7 @@ import (
 	controllerPayment "e-commerce/adapters/controller/payment"
 	controllerProduct "e-commerce/adapters/controller/product"
 	controllerUser "e-commerce/adapters/controller/user"
+	redisAdapter "e-commerce/adapters/redis"
 	"e-commerce/adapters/server/middleware"
 	"e-commerce/config"
 	"time"
@@ -30,15 +31,15 @@ func NewRoutes(
 		panic(err)
 	}
 
-	globalLimiter := middleware.NewRateLimiter(rate.Every(100*time.Millisecond), 20)
-	webhookLimiter := middleware.NewRateLimiter(rate.Every(200*time.Millisecond), 10)
+	globalLimiter := middleware.NewRateLimiter(redisAdapter.Client, "rl:ip:global", rate.Every(20*time.Millisecond), 60)
+	webhookLimiter := middleware.NewRateLimiter(redisAdapter.Client, "rl:ip:webhook", rate.Every(200*time.Millisecond), 10)
 
-	createEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(1*time.Minute), 3)
+	createEmailLimiter := middleware.NewEmailRateLimiter(redisAdapter.Client, "rl:email:create", rate.Every(1*time.Minute), 3)
 
-	loginEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(5*time.Minute), 4)
-	resendCodeLimiter := middleware.NewEmailRateLimiter(rate.Every(1*time.Minute), 3)
-	verifyCodeEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(20*time.Minute), 3)
-	verifyCodePasswordEmailLimiter := middleware.NewEmailRateLimiter(rate.Every(40*time.Minute), 3)
+	loginEmailLimiter := middleware.NewEmailRateLimiter(redisAdapter.Client, "rl:email:login", rate.Every(5*time.Minute), 4)
+	resendCodeLimiter := middleware.NewEmailRateLimiter(redisAdapter.Client, "rl:email:resend_code", rate.Every(1*time.Minute), 3)
+	verifyCodeEmailLimiter := middleware.NewEmailRateLimiter(redisAdapter.Client, "rl:email:verify_code", rate.Every(20*time.Minute), 3)
+	verifyCodePasswordEmailLimiter := middleware.NewEmailRateLimiter(redisAdapter.Client, "rl:email:verify_password_code", rate.Every(40*time.Minute), 3)
 
 	r.Use(middleware.SecurityHeadersMiddleware())
 	r.Use(middleware.MaxBodySizeMiddleware(1 << 20))
