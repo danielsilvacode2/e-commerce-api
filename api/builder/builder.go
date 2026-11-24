@@ -150,6 +150,13 @@ func BuilderOrderNotificationConsumerRabbitMQ() ports.EventOrderQueueConsumer {
 	return rabbitmq.NewOrderNotificationConsumer(rabbitmq.ChannelRabbitMQ, emailService)
 }
 
+func BuilderPaymentSyncConsumerRabbitMQ() ports.EventPaymentSyncConsumer {
+	paymentRepository := repositoryPayment.NewPaymentRepository(database.DB_MySQL)
+	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	orderEventQueue := rabbitmq.NewOrderNotificationRabbitMQ(rabbitmq.ChannelRabbitMQ, emailService)
+	return rabbitmq.NewPaymentSyncConsumer(rabbitmq.ChannelRabbitMQ, paymentRepository, orderEventQueue)
+}
+
 func BuilderOrderController() *controllerOrder.OrderController {
 
 	orderRepository := repositoryOrder.NewOrderRepository(database.DB_MySQL)
@@ -214,10 +221,11 @@ func BuilderPaymentController() *controllerPayment.PaymentController {
 	paymentRepository := repositoryPayment.NewPaymentRepository(database.DB_MySQL)
 	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
 	orderEventQueue := rabbitmq.NewOrderNotificationRabbitMQ(rabbitmq.ChannelRabbitMQ, emailService)
+	paymentSyncQueue := rabbitmq.NewPaymentSyncRabbitMQ(rabbitmq.ChannelRabbitMQ)
 	paymentGateway := buildPaymentGateway()
 
 	readOrderById := useCasesOrder.NewReadOrderByIdUseCase(orderRepository)
-	processPayment := useCasesPayment.NewProcessPaymentUseCase(paymentRepository, readOrderById, paymentGateway, orderEventQueue)
+	processPayment := useCasesPayment.NewProcessPaymentUseCase(paymentRepository, readOrderById, paymentGateway, orderEventQueue, paymentSyncQueue)
 	readPaymentByOrder := useCasesPayment.NewReadPaymentByOrderUseCase(paymentRepository, readOrderById, paymentGateway, orderEventQueue)
 	webhookPayment := useCasesPayment.NewWebhookPaymentUseCase(paymentRepository, orderRepository, paymentGateway, orderEventQueue)
 

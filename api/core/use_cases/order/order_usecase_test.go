@@ -151,6 +151,12 @@ func (f *fakePaymentRepoForOrder) ReadPaymentByExternalId(externalId string) (*e
 func (f *fakePaymentRepoForOrder) ApprovePaymentAndOrder(p entitiesPayment.Payment, orderId string) error {
 	return nil
 }
+func (f *fakePaymentRepoForOrder) UpdatePaymentGatewayData(p entitiesPayment.Payment) error {
+	return nil
+}
+func (f *fakePaymentRepoForOrder) DeletePayment(id string) error {
+	return nil
+}
 func (f *fakePaymentRepoForOrder) FailOrExpirePaymentAndCancelOrder(p entitiesPayment.Payment, orderId string) error {
 	return nil
 }

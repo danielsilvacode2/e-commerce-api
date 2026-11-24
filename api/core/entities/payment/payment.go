@@ -62,6 +62,8 @@ func (p *Payment) IsExpired(now time.Time) bool {
 
 type PaymentRepository interface {
 	CreatePayment(payment Payment) error
+	UpdatePaymentGatewayData(payment Payment) error
+	DeletePayment(id string) error
 	ReadPaymentById(id string) (*Payment, error)
 	ReadPaymentByOrderId(orderId string) (*Payment, error)
 	ReadPaymentByIdempotencyKey(key string) (*Payment, error)

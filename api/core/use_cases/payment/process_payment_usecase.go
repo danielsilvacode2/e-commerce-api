@@ -34,11 +34,12 @@ type ProcessPaymentInput struct {
 }
 
 type ProcessPaymentUseCase struct {
-	paymentRepo    entitiesPayment.PaymentRepository
-	readOrderById  *useCasesOrder.ReadOrderByIdUseCase
-	paymentGateway ports.PaymentGateway
-	eventQueue     ports.EventOrderQueue
-	inFlightKeys   sync.Map
+	paymentRepo      entitiesPayment.PaymentRepository
+	readOrderById    *useCasesOrder.ReadOrderByIdUseCase
+	paymentGateway   ports.PaymentGateway
+	eventQueue       ports.EventOrderQueue
+	paymentSyncQueue ports.EventPaymentSyncQueue
+	inFlightKeys     sync.Map
 }
 
 func NewProcessPaymentUseCase(
@@ -46,12 +47,18 @@ func NewProcessPaymentUseCase(
 	readOrderById *useCasesOrder.ReadOrderByIdUseCase,
 	paymentGateway ports.PaymentGateway,
 	eventQueue ports.EventOrderQueue,
+	paymentSyncQueue ...ports.EventPaymentSyncQueue,
 ) *ProcessPaymentUseCase {
+	var syncQ ports.EventPaymentSyncQueue
+	if len(paymentSyncQueue) > 0 {
+		syncQ = paymentSyncQueue[0]
+	}
 	return &ProcessPaymentUseCase{
-		paymentRepo:    paymentRepo,
-		readOrderById:  readOrderById,
-		paymentGateway: paymentGateway,
-		eventQueue:     eventQueue,
+		paymentRepo:      paymentRepo,
+		readOrderById:    readOrderById,
+		paymentGateway:   paymentGateway,
+		eventQueue:       eventQueue,
+		paymentSyncQueue: syncQ,
 	}
 }
 
@@ -110,36 +117,66 @@ func (uc *ProcessPaymentUseCase) UseCase(input ProcessPaymentInput) (*entitiesPa
 		payerEmail = order.User.Email
 	}
 
-	// 3. Processa de acordo com o metodo escolhido
+	// 3. Pre-persiste o pagamento como PENDING ANTES de chamar o gateway.
+	// Se o banco ja estiver indisponivel, falha antes de cobrar o cliente.
+	// Tambem garante idempotencia no banco entre multiplas instancias da API.
+	paymentInstallments := installments
+	if method == entitiesPayment.PaymentMethodPix {
+		paymentInstallments = 1
+	}
+
+	payment := entitiesPayment.Payment{
+		Id:             uuid.New(),
+		OrderId:        order.Id,
+		Provider:       entitiesPayment.PaymentProviderDefault,
+		Method:         method,
+		IdempotencyKey: key,
+		Amount:         order.Total(),
+		Installments:   paymentInstallments,
+		Status:         entitiesPayment.PaymentStatusPending,
+	}
+
+	if err := uc.paymentRepo.CreatePayment(payment); err != nil {
+		if errors.Is(err, apperrors.ErrConflict) {
+			existing, readErr := uc.paymentRepo.ReadPaymentByIdempotencyKey(key)
+			if readErr != nil {
+				return nil, readErr
+			}
+			if existing.OrderId.String() != order.Id.String() {
+				return nil, apperrors.ErrConflict
+			}
+			return existing, nil
+		}
+		return nil, err
+	}
+
+	// 4. Processa no gateway de acordo com o metodo escolhido
 	if method == entitiesPayment.PaymentMethodPix {
 		res, err := uc.paymentGateway.CreatePixPayment(order.Id.String(), order.Total(), payerEmail, key)
 		if err != nil {
-			return nil, err
-		}
-
-		payment := entitiesPayment.Payment{
-			Id:                uuid.New(),
-			OrderId:           order.Id,
-			Provider:          entitiesPayment.PaymentProviderDefault,
-			Method:            entitiesPayment.PaymentMethodPix,
-			ExternalPaymentId: res.ExternalPaymentId,
-			IdempotencyKey:    key,
-			Amount:            order.Total(),
-			Installments:      1,
-			Status:            entitiesPayment.PaymentStatusPending,
-			PixQrCode:         res.PixQrCode,
-			PixCopyPaste:      res.PixCopyPaste,
-			ExpiresAt:         &res.ExpiresAt,
-		}
-
-		if err := uc.paymentRepo.CreatePayment(payment); err != nil {
-			if errors.Is(err, apperrors.ErrConflict) {
-				return uc.paymentRepo.ReadPaymentByIdempotencyKey(key)
+			if delErr := uc.paymentRepo.DeletePayment(payment.Id.String()); delErr != nil {
+				log.Printf("[WARN] falha ao remover pagamento Pix pendente orfao id=%s: %v", payment.Id, delErr)
 			}
 			return nil, err
 		}
 
-		return uc.paymentRepo.ReadPaymentById(payment.Id.String())
+		payment.ExternalPaymentId = res.ExternalPaymentId
+		payment.PixQrCode = res.PixQrCode
+		payment.PixCopyPaste = res.PixCopyPaste
+		payment.ExpiresAt = &res.ExpiresAt
+
+		if err := uc.paymentRepo.UpdatePaymentGatewayData(payment); err != nil {
+			if uc.enqueuePaymentSync(ports.PaymentSyncActionUpdateGatewayData, payment, order) {
+				return &payment, nil
+			}
+			return nil, err
+		}
+
+		persisted, err := uc.paymentRepo.ReadPaymentById(payment.Id.String())
+		if err != nil {
+			return &payment, nil
+		}
+		return persisted, nil
 	}
 
 	// CREDIT_CARD
@@ -160,47 +197,80 @@ func (uc *ProcessPaymentUseCase) UseCase(input ProcessPaymentInput) (*entitiesPa
 		IdempotencyKey:  key,
 	})
 	if err != nil {
-		return nil, err
-	}
-
-	payment := entitiesPayment.Payment{
-		Id:                uuid.New(),
-		OrderId:           order.Id,
-		Provider:          entitiesPayment.PaymentProviderDefault,
-		Method:            entitiesPayment.PaymentMethodCreditCard,
-		ExternalPaymentId: cardRes.ExternalPaymentId,
-		IdempotencyKey:    key,
-		Amount:            order.Total(),
-		Installments:      installments,
-		Status:            entitiesPayment.PaymentStatusPending,
-		CardLast4:         cardRes.CardLast4,
-		CardBrand:         cardRes.CardBrand,
-	}
-
-	if err := uc.paymentRepo.CreatePayment(payment); err != nil {
-		if errors.Is(err, apperrors.ErrConflict) {
-			return uc.paymentRepo.ReadPaymentByIdempotencyKey(key)
+		if delErr := uc.paymentRepo.DeletePayment(payment.Id.String()); delErr != nil {
+			log.Printf("[WARN] falha ao remover pagamento Cartao pendente orfao id=%s: %v", payment.Id, delErr)
 		}
 		return nil, err
 	}
+
+	payment.ExternalPaymentId = cardRes.ExternalPaymentId
+	payment.CardLast4 = cardRes.CardLast4
+	payment.CardBrand = cardRes.CardBrand
 
 	if cardRes.Approved {
 		now := time.Now()
 		payment.Status = entitiesPayment.PaymentStatusApproved
 		payment.PaidAt = &now
 		if err := uc.paymentRepo.ApprovePaymentAndOrder(payment, order.Id.String()); err != nil {
+			if uc.enqueuePaymentSync(ports.PaymentSyncActionApprove, payment, order) {
+				return &payment, nil
+			}
 			return nil, err
 		}
 		uc.publishEvent(order, ports.EventOrderPaymentApproved, entitiesPayment.PaymentMethodCreditCard)
 	} else {
 		payment.Status = entitiesPayment.PaymentStatusFailed
 		if err := uc.paymentRepo.FailOrExpirePaymentAndCancelOrder(payment, order.Id.String()); err != nil {
+			if uc.enqueuePaymentSync(ports.PaymentSyncActionFail, payment, order) {
+				return &payment, nil
+			}
 			return nil, err
 		}
 		uc.publishEvent(order, ports.EventOrderPaymentFailed, entitiesPayment.PaymentMethodCreditCard)
 	}
 
-	return uc.paymentRepo.ReadPaymentById(payment.Id.String())
+	persisted, err := uc.paymentRepo.ReadPaymentById(payment.Id.String())
+	if err != nil {
+		return &payment, nil
+	}
+	return persisted, nil
+}
+
+func (uc *ProcessPaymentUseCase) enqueuePaymentSync(action string, payment entitiesPayment.Payment, order *entitiesOrder.Order) bool {
+	if uc.paymentSyncQueue == nil {
+		return false
+	}
+
+	event := ports.PaymentSyncEvent{
+		Action:            action,
+		PaymentId:         payment.Id.String(),
+		OrderId:           order.Id.String(),
+		Provider:          payment.Provider,
+		Method:            payment.Method,
+		ExternalPaymentId: payment.ExternalPaymentId,
+		IdempotencyKey:    payment.IdempotencyKey,
+		Amount:            payment.Amount,
+		Installments:      payment.Installments,
+		Status:            payment.Status,
+		PixQrCode:         payment.PixQrCode,
+		PixCopyPaste:      payment.PixCopyPaste,
+		CardLast4:         payment.CardLast4,
+		CardBrand:         payment.CardBrand,
+		ExpiresAt:         payment.ExpiresAt,
+		PaidAt:            payment.PaidAt,
+	}
+	if order.User != nil {
+		event.UserEmail = order.User.Email
+		event.UserName = order.User.Name
+	}
+
+	if err := uc.paymentSyncQueue.PublishPaymentSync(event); err != nil {
+		log.Printf("[ERROR] falha ao enfileirar fallback payment_sync (%s) para payment=%s order=%s: %v", action, payment.Id, order.Id, err)
+		return false
+	}
+
+	log.Printf("[WARN] banco indisponivel apos gateway; pagamento enfileirado em payment_sync (%s) payment=%s order=%s", action, payment.Id, order.Id)
+	return true
 }
 
 func (uc *ProcessPaymentUseCase) publishEvent(order *entitiesOrder.Order, eventType string, method string) {

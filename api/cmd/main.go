@@ -41,6 +41,14 @@ func main() {
 		log.Fatalf("[ERROR] falha ao iniciar consumer de notificacoes de pedidos: %v", err)
 	}
 
+	paymentSyncConsumer := builder.BuilderPaymentSyncConsumerRabbitMQ()
+	if err := paymentSyncConsumer.DeclareQueue(ports.QueuePaymentSync); err != nil {
+		log.Fatalf("[ERROR] falha ao declarar fila de sincronizacao de pagamentos: %v", err)
+	}
+	if err := paymentSyncConsumer.ConsumePaymentSync(); err != nil {
+		log.Fatalf("[ERROR] falha ao iniciar consumer de sincronizacao de pagamentos: %v", err)
+	}
+
 	r := router.NewGinRouter()
 	srv := &http.Server{
 		Addr:              config.ApiPort,

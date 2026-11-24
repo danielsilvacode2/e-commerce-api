@@ -1,12 +1,17 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
+	"database/sql/driver"
 	"e-commerce/core/apperrors"
 	entitiesOrder "e-commerce/core/entities/order"
 	entitiesPayment "e-commerce/core/entities/payment"
 	"errors"
+	"io"
 	"math"
+	"net"
+	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -21,6 +26,38 @@ func NewPaymentRepository(db *sql.DB) entitiesPayment.PaymentRepository {
 	return &paymentRepository{
 		db: db,
 	}
+}
+
+func isDBUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, driver.ErrBadConn) || errors.Is(err, mysql.ErrInvalidConn) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, io.EOF) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "bad connection") ||
+		strings.Contains(msg, "broken pipe") ||
+		strings.Contains(msg, "connection reset")
+}
+
+func mapDBError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var sqlErr *mysql.MySQLError
+	if errors.As(err, &sqlErr) && sqlErr.Number == 1062 {
+		return apperrors.ErrConflict
+	}
+	if isDBUnavailable(err) {
+		return apperrors.ErrDatabaseUnavailable
+	}
+	return err
 }
 
 func (r *paymentRepository) CreatePayment(payment entitiesPayment.Payment) error {
@@ -74,14 +111,66 @@ func (r *paymentRepository) CreatePayment(payment entitiesPayment.Payment) error
 	)
 
 	if err != nil {
-		var sqlErr *mysql.MySQLError
-		if errors.As(err, &sqlErr) && sqlErr.Number == 1062 {
-			return apperrors.ErrConflict
-		}
-		return err
+		return mapDBError(err)
 	}
 
 	return nil
+}
+
+func (r *paymentRepository) UpdatePaymentGatewayData(payment entitiesPayment.Payment) error {
+	var externalId sql.NullString
+	if payment.ExternalPaymentId != "" {
+		externalId = sql.NullString{String: payment.ExternalPaymentId, Valid: true}
+	}
+
+	var pixQrCode sql.NullString
+	if payment.PixQrCode != "" {
+		pixQrCode = sql.NullString{String: payment.PixQrCode, Valid: true}
+	}
+
+	var pixCopyPaste sql.NullString
+	if payment.PixCopyPaste != "" {
+		pixCopyPaste = sql.NullString{String: payment.PixCopyPaste, Valid: true}
+	}
+
+	var cardLast4 sql.NullString
+	if payment.CardLast4 != "" {
+		cardLast4 = sql.NullString{String: payment.CardLast4, Valid: true}
+	}
+
+	var cardBrand sql.NullString
+	if payment.CardBrand != "" {
+		cardBrand = sql.NullString{String: payment.CardBrand, Valid: true}
+	}
+
+	_, err := r.db.Exec(`
+		UPDATE payments
+		SET external_payment_id = COALESCE(?, external_payment_id),
+			pix_qr_code = COALESCE(?, pix_qr_code),
+			pix_copy_paste = COALESCE(?, pix_copy_paste),
+			card_last4 = COALESCE(?, card_last4),
+			card_brand = COALESCE(?, card_brand),
+			expires_at = COALESCE(?, expires_at)
+		WHERE id = ?
+	`,
+		externalId,
+		pixQrCode,
+		pixCopyPaste,
+		cardLast4,
+		cardBrand,
+		payment.ExpiresAt,
+		payment.Id,
+	)
+	return mapDBError(err)
+}
+
+func (r *paymentRepository) DeletePayment(id string) error {
+	_, err := r.db.Exec(
+		"DELETE FROM payments WHERE id = ? AND status = ? AND external_payment_id IS NULL",
+		id,
+		entitiesPayment.PaymentStatusPending,
+	)
+	return mapDBError(err)
 }
 
 const paymentSelectColumns = `
@@ -118,7 +207,7 @@ func scanPaymentRow(scanner interface{ Scan(dest ...any) error }) (*entitiesPaym
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, apperrors.ErrNotFound
 		}
-		return nil, err
+		return nil, mapDBError(err)
 	}
 
 	p.ExternalPaymentId = externalId.String
@@ -175,7 +264,7 @@ func (r *paymentRepository) ReadPaymentByExternalId(externalId string) (*entitie
 func (r *paymentRepository) ApprovePaymentAndOrder(payment entitiesPayment.Payment, orderId string) (err error) {
 	tx, err := r.db.Begin()
 	if err != nil {
-		return err
+		return mapDBError(err)
 	}
 	defer func() {
 		if err != nil {
@@ -187,6 +276,8 @@ func (r *paymentRepository) ApprovePaymentAndOrder(payment entitiesPayment.Payme
 	if err = tx.QueryRow("SELECT status FROM orders WHERE id = ? FOR UPDATE", orderId).Scan(&orderStatus); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			err = apperrors.ErrNotFound
+		} else {
+			err = mapDBError(err)
 		}
 		return err
 	}
@@ -202,6 +293,7 @@ func (r *paymentRepository) ApprovePaymentAndOrder(payment entitiesPayment.Payme
 		"SELECT COALESCE(SUM(quantity * unit_price), 0) FROM order_items WHERE order_id = ?",
 		orderId,
 	).Scan(&currentOrderTotal); err != nil {
+		err = mapDBError(err)
 		return err
 	}
 	if math.Abs(currentOrderTotal-payment.Amount) > 0.01 {
@@ -214,12 +306,23 @@ func (r *paymentRepository) ApprovePaymentAndOrder(payment entitiesPayment.Payme
 		now = *payment.PaidAt
 	}
 
-	if _, err = tx.Exec(
-		"UPDATE payments SET status = ?, paid_at = ? WHERE id = ?",
+	if _, err = tx.Exec(`
+		UPDATE payments
+		SET status = ?,
+			paid_at = ?,
+			external_payment_id = COALESCE(NULLIF(?, ''), external_payment_id),
+			card_last4 = COALESCE(NULLIF(?, ''), card_last4),
+			card_brand = COALESCE(NULLIF(?, ''), card_brand)
+		WHERE id = ?
+	`,
 		entitiesPayment.PaymentStatusApproved,
 		now,
+		payment.ExternalPaymentId,
+		payment.CardLast4,
+		payment.CardBrand,
 		payment.Id,
 	); err != nil {
+		err = mapDBError(err)
 		return err
 	}
 
@@ -228,6 +331,7 @@ func (r *paymentRepository) ApprovePaymentAndOrder(payment entitiesPayment.Payme
 		entitiesOrder.OrderStatusPreparing,
 		orderId,
 	); err != nil {
+		err = mapDBError(err)
 		return err
 	}
 
@@ -237,17 +341,18 @@ func (r *paymentRepository) ApprovePaymentAndOrder(payment entitiesPayment.Payme
 		orderId,
 		entitiesOrder.OrderStatusPreparing,
 	); err != nil {
+		err = mapDBError(err)
 		return err
 	}
 
-	return tx.Commit()
+	return mapDBError(tx.Commit())
 }
 
 // FailOrExpirePaymentAndCancelOrder marca o pagamento como FAILED ou EXPIRED, cancela o pedido e restaura estoque.
 func (r *paymentRepository) FailOrExpirePaymentAndCancelOrder(payment entitiesPayment.Payment, orderId string) (err error) {
 	tx, err := r.db.Begin()
 	if err != nil {
-		return err
+		return mapDBError(err)
 	}
 	defer func() {
 		if err != nil {
@@ -259,6 +364,8 @@ func (r *paymentRepository) FailOrExpirePaymentAndCancelOrder(payment entitiesPa
 	if err = tx.QueryRow("SELECT status FROM orders WHERE id = ? FOR UPDATE", orderId).Scan(&orderStatus); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			err = apperrors.ErrNotFound
+		} else {
+			err = mapDBError(err)
 		}
 		return err
 	}
@@ -268,11 +375,21 @@ func (r *paymentRepository) FailOrExpirePaymentAndCancelOrder(payment entitiesPa
 		return err
 	}
 
-	if _, err = tx.Exec(
-		"UPDATE payments SET status = ? WHERE id = ?",
+	if _, err = tx.Exec(`
+		UPDATE payments
+		SET status = ?,
+			external_payment_id = COALESCE(NULLIF(?, ''), external_payment_id),
+			card_last4 = COALESCE(NULLIF(?, ''), card_last4),
+			card_brand = COALESCE(NULLIF(?, ''), card_brand)
+		WHERE id = ?
+	`,
 		payment.Status,
+		payment.ExternalPaymentId,
+		payment.CardLast4,
+		payment.CardBrand,
 		payment.Id,
 	); err != nil {
+		err = mapDBError(err)
 		return err
 	}
 
@@ -286,6 +403,7 @@ func (r *paymentRepository) FailOrExpirePaymentAndCancelOrder(payment entitiesPa
 		) orderitems ON orderitems.product_id = product.id
 		SET product.product_quantity = product.product_quantity + orderitems.quantity
 	`, orderId); err != nil {
+		err = mapDBError(err)
 		return err
 	}
 
@@ -294,6 +412,7 @@ func (r *paymentRepository) FailOrExpirePaymentAndCancelOrder(payment entitiesPa
 		entitiesOrder.OrderStatusCanceled,
 		orderId,
 	); err != nil {
+		err = mapDBError(err)
 		return err
 	}
 
@@ -303,10 +422,11 @@ func (r *paymentRepository) FailOrExpirePaymentAndCancelOrder(payment entitiesPa
 		orderId,
 		entitiesOrder.OrderStatusCanceled,
 	); err != nil {
+		err = mapDBError(err)
 		return err
 	}
 
-	return tx.Commit()
+	return mapDBError(tx.Commit())
 }
 
 // RefundPaymentAndOrder efetiva o estorno do pagamento aprovado e transiciona o pedido para REFUNDED atomicamente.
