@@ -41,18 +41,26 @@ func MaxBodySizeMiddleware(maxBytes int64) gin.HandlerFunc {
 	}
 }
 
-// CSRFOriginMiddleware valida Fetch Metadata (Sec-Fetch-Site) e Origin/Referer em requisicoes mutaveis
-// para mitigar CSRF em autenticacao baseada em cookie. Ignora webhooks externos autenticados via HMAC.
-func CSRFOriginMiddleware() gin.HandlerFunc {
+func buildAllowedOrigins() map[string]bool {
 	allowedOrigins := make(map[string]bool)
 	if len(config.AllowedOrigins) == 0 {
 		allowedOrigins["http://localhost:3000"] = true
 		allowedOrigins["https://nero-pi-teal.vercel.app"] = true
-	} else {
-		for _, o := range config.AllowedOrigins {
-			allowedOrigins[strings.TrimRight(o, "/")] = true
+		return allowedOrigins
+	}
+
+	for _, o := range config.AllowedOrigins {
+		if trimmed := strings.TrimRight(strings.TrimSpace(o), "/"); trimmed != "" {
+			allowedOrigins[trimmed] = true
 		}
 	}
+	return allowedOrigins
+}
+
+// CSRFOriginMiddleware valida Fetch Metadata (Sec-Fetch-Site) e Origin/Referer em requisicoes mutaveis
+// para mitigar CSRF em autenticacao baseada em cookie. Ignora webhooks externos autenticados via HMAC.
+func CSRFOriginMiddleware() gin.HandlerFunc {
+	allowedOrigins := buildAllowedOrigins()
 
 	return func(c *gin.Context) {
 		switch c.Request.Method {
@@ -66,13 +74,20 @@ func CSRFOriginMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if secFetchSite := strings.ToLower(strings.TrimSpace(c.GetHeader("Sec-Fetch-Site"))); secFetchSite == "cross-site" {
-			helpers.HelperErrResponse(nil, c, apperrors.ErrForbidden)
-			c.Abort()
+		origin := strings.TrimRight(strings.TrimSpace(c.GetHeader("Origin")), "/")
+		secFetchSite := strings.ToLower(strings.TrimSpace(c.GetHeader("Sec-Fetch-Site")))
+
+		if secFetchSite == "cross-site" {
+			if origin == "" || !allowedOrigins[origin] {
+				helpers.HelperErrResponse(nil, c, apperrors.ErrForbidden)
+				c.Abort()
+				return
+			}
+			c.Next()
 			return
 		}
 
-		if origin := strings.TrimRight(strings.TrimSpace(c.GetHeader("Origin")), "/"); origin != "" {
+		if origin != "" {
 			if !allowedOrigins[origin] {
 				helpers.HelperErrResponse(nil, c, apperrors.ErrForbidden)
 				c.Abort()
@@ -103,15 +118,7 @@ func CSRFOriginMiddleware() gin.HandlerFunc {
 
 func CorsMiddleware() gin.HandlerFunc {
 
-	allowedOrigins := make(map[string]bool)
-	if len(config.AllowedOrigins) == 0 {
-		allowedOrigins["http://localhost:3000"] = true
-		allowedOrigins["https://nero-pi-teal.vercel.app"] = true
-	} else {
-		for _, o := range config.AllowedOrigins {
-			allowedOrigins[strings.TrimRight(o, "/")] = true
-		}
-	}
+	allowedOrigins := buildAllowedOrigins()
 
 	return func(c *gin.Context) {
 

@@ -112,9 +112,9 @@ Copy-Item env_model .env
 | `MERCADO_PAGO_WEBHOOK_SECRET` | Segredo HMAC para validação de webhooks do Mercado Pago |
 | `ALLOW_PAYMENT_SIMULATION` | `true` habilita a rota de simulação de pagamento quando `ACCESS_TOKEN_PAYMENT` está vazio |
 | `KEY_OPEN_ROUTER`, `OPEN_ROUTER_MODEL` | Chave de API e modelo do OpenRouter (padrão `google/gemini-2.5-flash-lite`) |
-| `COOKIE_SECURE` | `true` em produção (HTTPS); `false` em desenvolvimento local HTTP |
+| `COOKIE_SECURE` | `true` em produção HTTPS (usa `SameSite=None; Secure` para suportar front-end em outro domínio); `false` em desenvolvimento local HTTP (`SameSite=Lax`) |
 | `COOKIE_DOMAIN` | Domínio do cookie de autenticação (vazio = host atual) |
-| `CORS_ALLOWED_ORIGINS` | Origens permitidas separadas por vírgula (padrão `http://localhost:3000`) |
+| `CORS_ALLOWED_ORIGINS` | Origens permitidas separadas por vírgula (padrão `http://localhost:3000,https://nero-pi-teal.vercel.app`) |
 
 ---
 

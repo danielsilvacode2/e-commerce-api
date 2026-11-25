@@ -19,6 +19,13 @@ type AuthController struct {
 	hashService ports.HashService
 }
 
+func cookieSameSite() http.SameSite {
+	if config.CookieSecure {
+		return http.SameSiteNoneMode
+	}
+	return http.SameSiteLaxMode
+}
+
 func NewAuthController(repository entities.UserRepository, hashService ports.HashService) *AuthController {
 	return &AuthController{
 		repository:  repository,
@@ -71,7 +78,7 @@ func (a *AuthController) Login(c *gin.Context) {
 		UserRole: user.Role,
 	}
 
-	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetSameSite(cookieSameSite())
 
 	c.SetCookie(
 		"token",             // nome (o mesmo que o getToken lê com c.Cookie("token"))
@@ -102,7 +109,7 @@ func (a *AuthController) Logout(c *gin.Context) {
 		}
 	}
 
-	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetSameSite(cookieSameSite())
 
 	c.SetCookie(
 		"token",             // Nome do cookie usado no login
