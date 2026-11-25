@@ -16,10 +16,7 @@ var SecretKey string
 
 var RabbitMQUrl string
 
-var RedisUser string
-var RedisHost string
-var RedisPort string
-var RedisPassword string
+var RedisURL string
 
 var EmailHost string
 var EmailPort string
@@ -97,16 +94,9 @@ func LoadConfig() {
 		rabbitMQVhost,
 	)
 
-	RedisUser = strings.TrimSpace(os.Getenv("REDIS_USER"))
-	RedisHost = strings.TrimSpace(os.Getenv("REDIS_HOST"))
-	if RedisHost == "" {
-		RedisHost = "localhost"
-	}
-	RedisPort = strings.TrimSpace(os.Getenv("REDIS_PORT"))
-	if RedisPort == "" {
-		RedisPort = "6379"
-	}
-	RedisPassword = os.Getenv("REDIS_PASSWORD")
+	RedisURL = os.Getenv("REDIS_URL")
+
+	
 
 	AccessTokenPayment = strings.TrimSpace(os.Getenv("ACCESS_TOKEN_PAYMENT"))
 	WebhookSecret = strings.TrimSpace(os.Getenv("MERCADO_PAGO_WEBHOOK_SECRET"))

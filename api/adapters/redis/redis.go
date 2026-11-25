@@ -3,8 +3,9 @@ package redis
 import (
 	"context"
 	"e-commerce/config"
+
 	"log"
-	"net"
+
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
@@ -13,18 +14,18 @@ import (
 var Client *goredis.Client
 
 func NewRedisConnection() {
-	addr := net.JoinHostPort(config.RedisHost, config.RedisPort)
 
-	client := goredis.NewClient(&goredis.Options{
-		Addr:         addr,
-		Username:     config.RedisUser,
-		Password:     config.RedisPassword,
-		DB:           0,
-		DialTimeout:  5 * time.Second,
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 3 * time.Second,
-	})
+	opts, err := goredis.ParseURL(config.RedisURL)
+	if err != nil {
+		log.Printf("[ERROR] ao analisar REDIS_URL: %v", err)
 
+	}
+
+	opts.DialTimeout = 5 * time.Second
+	opts.ReadTimeout = 3 * time.Second
+	opts.WriteTimeout = 3 * time.Second
+
+	client := goredis.NewClient(opts)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
