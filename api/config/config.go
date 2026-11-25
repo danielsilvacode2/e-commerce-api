@@ -52,13 +52,13 @@ func LoadConfig() {
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 
-	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
-		dbUser,
-		dbPassword,
-		dbHost,
-		dbPort,
-		dbName,
-	)
+	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=true",
+	dbUser,
+	dbPassword,
+	dbHost,
+	dbPort,
+	dbName,
+)
 
 	ApiPort = strings.TrimSpace(os.Getenv("API_PORT"))
 	if ApiPort == "" {
