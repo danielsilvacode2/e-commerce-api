@@ -53,12 +53,12 @@ func LoadConfig() {
 	dbPort := os.Getenv("DB_PORT")
 
 	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=true",
-	dbUser,
-	dbPassword,
-	dbHost,
-	dbPort,
-	dbName,
-)
+		dbUser,
+		dbPassword,
+		dbHost,
+		dbPort,
+		dbName,
+	)
 
 	ApiPort = strings.TrimSpace(os.Getenv("API_PORT"))
 	if ApiPort == "" {
@@ -81,12 +81,20 @@ func LoadConfig() {
 	rabbitMQPassword := os.Getenv("RABBITMQ_PASSWORD")
 	rabbitMQHost := os.Getenv("RABBITMQ_HOST")
 	rabbitMQPort := os.Getenv("RABBITMQ_PORT")
+	rabbitMQVhost := os.Getenv("RABBITMQ_VHOST")
 
-	RabbitMQUrl = fmt.Sprintf("amqp://%s:%s@%s:%s/",
+	protocol := "amqps"
+	if rabbitMQPort == "5672" {
+		protocol = "amqp"
+	}
+
+	RabbitMQUrl = fmt.Sprintf("%s://%s:%s@%s:%s/%s",
+		protocol,
 		rabbitMQUser,
 		rabbitMQPassword,
 		rabbitMQHost,
 		rabbitMQPort,
+		rabbitMQVhost,
 	)
 
 	RedisUser = strings.TrimSpace(os.Getenv("REDIS_USER"))
