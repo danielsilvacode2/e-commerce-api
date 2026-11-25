@@ -106,7 +106,8 @@ Copy-Item env_model .env
 | `API_PORT` | Porta HTTP da API (ex.: `:8080`) |
 | `SECRET_KEY` | Chave secreta para assinatura JWT (**mínimo 32 caracteres**) |
 | `REDIS_USER`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Configuração do Redis (padrão `localhost:6379`) |
-| `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD`, `EMAIL_FROM` | Configuração SMTP para envio de e-mails |
+| `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD`, `EMAIL_FROM` | Configuração de e-mail (SMTP local ou remetente `EMAIL_FROM` na Brevo) |
+| `BREVO_API_KEY` | Chave da API HTTP v3 da Brevo (`xkeysib-...`); quando preenchida, envia e-mails via HTTPS (porta 443) em vez de SMTP (recomendado no Render Free) |
 | `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, `RABBITMQ_HOST`, `RABBITMQ_PORT` | Configuração do RabbitMQ |
 | `ACCESS_TOKEN_PAYMENT` | Access Token do Mercado Pago (deixe vazio para usar o gateway mock) |
 | `MERCADO_PAGO_WEBHOOK_SECRET` | Segredo HMAC para validação de webhooks do Mercado Pago |

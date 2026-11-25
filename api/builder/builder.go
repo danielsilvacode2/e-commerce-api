@@ -35,7 +35,29 @@ import (
 	useCasesUser "e-commerce/core/use_cases/user"
 	"log"
 	"strings"
+	"sync"
 )
+
+var logEmailServiceOnce sync.Once
+
+func buildEmailService() ports.EmailService {
+	from := strings.TrimSpace(config.EmailFrom)
+	if from == "" {
+		from = strings.TrimSpace(config.EmaiUser)
+	}
+
+	if strings.TrimSpace(config.BrevoAPIKey) != "" {
+		logEmailServiceOnce.Do(func() {
+			log.Println("[INFO] BREVO_API_KEY configurada; usando BrevoMailer (API HTTP).")
+		})
+		return email.NewBrevoMailer(config.BrevoAPIKey, from)
+	}
+
+	logEmailServiceOnce.Do(func() {
+		log.Println("[INFO] BREVO_API_KEY não configurada; usando Mailer SMTP.")
+	})
+	return email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, from)
+}
 
 func buildPaymentGateway() ports.PaymentGateway {
 	if strings.TrimSpace(config.AccessTokenPayment) != "" {
@@ -54,7 +76,7 @@ func BuilderUserController() *controllerUser.UserController {
 
 	eventQueue := rabbitmq.NewUserRabbitMQ(rabbitmq.ChannelRabbitMQ)
 
-	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	emailService := buildEmailService()
 	createUser := useCasesUser.NewCreateUserUseCase(userRepository, hashService, emailService, eventQueue)
 	deleteUser := useCasesUser.NewDeleteUserUseCase(userRepository)
 	readAllUsers := useCasesUser.NewReadAllUsersUseCase(userRepository)
@@ -139,7 +161,7 @@ func BuilderCartController() *controllerCart.CartController {
 }
 
 func BuilderConsumerRabbitMQ() ports.EventeUserQueueConsumerDeclare {
-	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	emailService := buildEmailService()
 	userRepository := repositoryUser.NewUserRepository(database.DB_MySQL)
 	hashService := security.NewPasswordBcript()
 
@@ -149,13 +171,13 @@ func BuilderConsumerRabbitMQ() ports.EventeUserQueueConsumerDeclare {
 }
 
 func BuilderOrderNotificationConsumerRabbitMQ() ports.EventOrderQueueConsumer {
-	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	emailService := buildEmailService()
 	return rabbitmq.NewOrderNotificationConsumer(rabbitmq.ChannelRabbitMQ, emailService)
 }
 
 func BuilderPaymentSyncConsumerRabbitMQ() ports.EventPaymentSyncConsumer {
 	paymentRepository := repositoryPayment.NewPaymentRepository(database.DB_MySQL)
-	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	emailService := buildEmailService()
 	orderEventQueue := rabbitmq.NewOrderNotificationRabbitMQ(rabbitmq.ChannelRabbitMQ, emailService)
 	return rabbitmq.NewPaymentSyncConsumer(rabbitmq.ChannelRabbitMQ, paymentRepository, orderEventQueue)
 }
@@ -170,7 +192,7 @@ func BuilderOrderController() *controllerOrder.OrderController {
 	productRepository := repositoryProduct.NewProductRepository(database.DB_MySQL)
 	cartProductRepository := repositoryCartProduct.NewCartProductRepository(database.DB_MySQL)
 
-	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	emailService := buildEmailService()
 	orderEventQueue := rabbitmq.NewOrderNotificationRabbitMQ(rabbitmq.ChannelRabbitMQ, emailService)
 	paymentGateway := buildPaymentGateway()
 
@@ -237,7 +259,7 @@ func BuilderChatController() *controllerChat.ChatController {
 func BuilderPaymentController() *controllerPayment.PaymentController {
 	orderRepository := repositoryOrder.NewOrderRepository(database.DB_MySQL)
 	paymentRepository := repositoryPayment.NewPaymentRepository(database.DB_MySQL)
-	emailService := email.NewMailer(config.EmailHost, config.EmailPort, config.EmaiUser, config.EmailPassword, config.EmailFrom)
+	emailService := buildEmailService()
 	orderEventQueue := rabbitmq.NewOrderNotificationRabbitMQ(rabbitmq.ChannelRabbitMQ, emailService)
 	paymentSyncQueue := rabbitmq.NewPaymentSyncRabbitMQ(rabbitmq.ChannelRabbitMQ)
 	paymentGateway := buildPaymentGateway()

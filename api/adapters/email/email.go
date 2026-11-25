@@ -51,16 +51,27 @@ func (m *Mailer) SendEmail(to, title, text, html string) error {
 
 
 
-func (m *Mailer) SendVerificationCode(to, code string, textType string) error {
-	htmlBody := fmt.Sprintf(verificationHTML, html.EscapeString(textType), html.EscapeString(code))
-	text := "Seu código de verificação NERO: " + code
-	return m.SendEmail(to, "NERO — Seu código de verificação", text, htmlBody)
+func buildVerificationCodeEmail(code string, textType string) (subject string, text string, htmlBody string) {
+	subject = "NERO — Seu código de verificação"
+	text = "Seu código de verificação NERO: " + code
+	htmlBody = fmt.Sprintf(verificationHTML, html.EscapeString(textType), html.EscapeString(code))
+	return subject, text, htmlBody
 }
 
+func buildSuspiciousLoginEmail() (subject string, text string, htmlBody string) {
+	subject = "NERO — Tentativa de acesso suspeita"
+	text = "Tentativa de acesso suspeita na sua conta NERO. Se não foi você, troque sua senha."
+	return subject, text, accountExistsHTML
+}
+
+func (m *Mailer) SendVerificationCode(to, code string, textType string) error {
+	subject, text, htmlBody := buildVerificationCodeEmail(code, textType)
+	return m.SendEmail(to, subject, text, htmlBody)
+}
 
 func (m *Mailer) SendSuspiciousLogin(to string) error {
-	text := "Tentativa de acesso suspeita na sua conta NERO. Se não foi você, troque sua senha."
-	return m.SendEmail(to, "NERO — Tentativa de acesso suspeita", text, accountExistsHTML)
+	subject, text, htmlBody := buildSuspiciousLoginEmail()
+	return m.SendEmail(to, subject, text, htmlBody)
 }
 
 func (m *Mailer) SendOrderNotification(event ports.OrderNotificationEvent) error {

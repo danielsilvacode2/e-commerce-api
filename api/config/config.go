@@ -23,6 +23,7 @@ var EmailPort string
 var EmailPassword string
 var EmaiUser string
 var EmailFrom string
+var BrevoAPIKey string
 
 var AccessTokenPayment string
 var WebhookSecret string
@@ -72,7 +73,8 @@ func LoadConfig() {
 	EmailHost = os.Getenv("EMAIL_HOST")
 	EmailPassword = os.Getenv("EMAIL_PASSWORD")
 	EmailPort = os.Getenv("EMAIL_PORT")
-	EmailFrom = os.Getenv("EMAIL_FROM")
+	EmailFrom = strings.TrimSpace(os.Getenv("EMAIL_FROM"))
+	BrevoAPIKey = strings.TrimSpace(os.Getenv("BREVO_API_KEY"))
 
 	rabbitMQUser := os.Getenv("RABBITMQ_USER")
 	rabbitMQPassword := os.Getenv("RABBITMQ_PASSWORD")
