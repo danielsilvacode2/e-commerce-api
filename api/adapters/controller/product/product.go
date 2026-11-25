@@ -4,12 +4,19 @@ import (
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/product/dto"
 	"e-commerce/adapters/controller/product/mapper"
+	redisAdapter "e-commerce/adapters/redis"
 	"e-commerce/core/apperrors"
 	use_cases "e-commerce/core/use_cases/product"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	productListCacheTTL   = 30 * time.Second
+	productDetailCacheTTL = 60 * time.Second
 )
 
 type ProductController struct {
@@ -76,6 +83,7 @@ func (productCtrl *ProductController) CreateProduct(c *gin.Context) {
 	}
 
 	dtoResponse := mapper.ProductToDto(*product)
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 
 	helpers.HelperResponse(dtoResponse, http.StatusCreated, "create product", c)
 
@@ -96,6 +104,13 @@ func (productCtrl *ProductController) CreateProduct(c *gin.Context) {
 func (productCtrl *ProductController) ReadProductById(c *gin.Context) {
 
 	productID := c.Param("id")
+	c.Header("Cache-Control", "public, max-age=30, stale-while-revalidate=60")
+
+	var cached dto.ProcuctResponseDTO
+	if redisAdapter.GetCachedProductByID(c.Request.Context(), productID, &cached) {
+		helpers.HelperResponse(cached, http.StatusOK, "found product", c)
+		return
+	}
 
 	product, err := productCtrl.readProductById.UseCase(productID)
 
@@ -104,9 +119,10 @@ func (productCtrl *ProductController) ReadProductById(c *gin.Context) {
 		return
 	}
 
-	dto := mapper.ProductToDto(*product)
+	dtoResp := mapper.ProductToDto(*product)
+	redisAdapter.SetCachedProductByID(c.Request.Context(), productID, dtoResp, productDetailCacheTTL)
 
-	helpers.HelperResponse(dto, http.StatusOK, "found product", c)
+	helpers.HelperResponse(dtoResp, http.StatusOK, "found product", c)
 
 }
 
@@ -127,6 +143,23 @@ func (productCtrl *ProductController) ReadAllProducts(c *gin.Context) {
 
 	page, _ := strconv.Atoi(pageStr)
 	limit, _ := strconv.Atoi(limitStr)
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	c.Header("Cache-Control", "public, max-age=30, stale-while-revalidate=60")
+
+	var cachedDTO dto.PaginatedProducts
+	if redisAdapter.GetCachedProductList(c.Request.Context(), page, limit, &cachedDTO) {
+		helpers.HelperResponse(cachedDTO, http.StatusOK, "list products", c)
+		return
+	}
 
 	paginete, err := productCtrl.readAllProducts.UseCase(page, limit)
 
@@ -144,9 +177,9 @@ func (productCtrl *ProductController) ReadAllProducts(c *gin.Context) {
 
 	for _, product := range paginete.Data {
 
-		dto := mapper.ProductToDto(product)
+		dtoItem := mapper.ProductToDto(product)
 
-		listProductsDTO = append(listProductsDTO, dto)
+		listProductsDTO = append(listProductsDTO, dtoItem)
 	}
 
 	var pagineteDTO dto.PaginatedProducts
@@ -156,6 +189,8 @@ func (productCtrl *ProductController) ReadAllProducts(c *gin.Context) {
 	pagineteDTO.Page = paginete.Page
 	pagineteDTO.TotalPages = paginete.TotalPages
 	pagineteDTO.TotalRows = paginete.TotalRows
+
+	redisAdapter.SetCachedProductList(c.Request.Context(), page, limit, pagineteDTO, productListCacheTTL)
 
 	helpers.HelperResponse(pagineteDTO, http.StatusOK, "list products", c)
 }
@@ -182,6 +217,7 @@ func (productCtrl *ProductController) DeleteProductById(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(nil, http.StatusNoContent, "product successfully deleted", c)
 
 }
@@ -225,6 +261,7 @@ func (productCtrl *ProductController) UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(nil, http.StatusNoContent, "product successfully update", c)
 
 }

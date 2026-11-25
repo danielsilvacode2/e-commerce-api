@@ -4,6 +4,7 @@ import (
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/order/dto"
 	"e-commerce/adapters/controller/order/mapper"
+	redisAdapter "e-commerce/adapters/redis"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
 	entitiesOrder "e-commerce/core/entities/order"
@@ -146,6 +147,7 @@ func (orderCtrl *OrderController) CreateOrderMe(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(mapper.OrderToDto(*order), http.StatusCreated, "create order", c)
 }
 
@@ -374,6 +376,7 @@ func (orderCtrl *OrderController) CancelOrder(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(nil, http.StatusNoContent, "order successfully canceled", c)
 }
 
@@ -421,6 +424,7 @@ func (orderCtrl *OrderController) RequestRefund(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(mapper.OrderToDto(*order), http.StatusOK, "refund processed", c)
 }
 
@@ -454,6 +458,7 @@ func (orderCtrl *OrderController) ApproveRefund(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(mapper.OrderToDto(*order), http.StatusOK, "refund approved", c)
 }
 
@@ -525,6 +530,7 @@ func (orderCtrl *OrderController) DeleteOrder(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(nil, http.StatusNoContent, "order successfully deleted", c)
 }
 
@@ -621,6 +627,7 @@ func (orderCtrl *OrderController) AddOrderItem(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(nil, http.StatusCreated, "product add order", c)
 }
 
@@ -668,6 +675,7 @@ func (orderCtrl *OrderController) UpdateOrderItem(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(nil, http.StatusNoContent, "order item successfully update", c)
 }
 
@@ -700,6 +708,7 @@ func (orderCtrl *OrderController) RemoveOrderItem(c *gin.Context) {
 		return
 	}
 
+	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(nil, http.StatusNoContent, "remove order item", c)
 }
 

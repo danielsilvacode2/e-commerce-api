@@ -77,6 +77,7 @@ func (f *fakeLLM) Chat(ctx context.Context, messages []ports.ChatMessage, tools 
 
 func toolCall(name string, orderId string) ports.ChatMessage {
 	return ports.ChatMessage{Role: "assistant", ToolCalls: []ports.ToolCall{{
+		ID:       "call_1",
 		Function: ports.ToolCallFunction{Name: name, Arguments: map[string]any{"numero_pedido": orderId}},
 	}}}
 }
@@ -316,7 +317,39 @@ func TestHistoricoPorUsuarioELimitado(t *testing.T) {
 	}
 }
 
-func TestErroOllamaNaoCorrompeHistorico(t *testing.T) {
+func TestPropagaToolCallIDParaMensagemTool(t *testing.T) {
+	llm := &fakeLLM{}
+	uc, userId, orderId := setup(llm, entitiesOrder.OrderStatusShipped, "")
+	llm.responses = []ports.ChatMessage{
+		{
+			Role: "assistant",
+			ToolCalls: []ports.ToolCall{{
+				ID:       "call_abc_123",
+				Function: ports.ToolCallFunction{Name: "consultar_pedido", Arguments: map[string]any{"numero_pedido": orderId}},
+			}},
+		},
+		{Role: "assistant", Content: "ok"},
+	}
+
+	if _, err := uc.UseCase(context.Background(), userId, "status do pedido "+orderId); err != nil {
+		t.Fatal(err)
+	}
+	last := llm.calls[len(llm.calls)-1]
+	found := false
+	for _, msg := range last {
+		if msg.Role == "tool" {
+			found = true
+			if msg.ToolCallID != "call_abc_123" || msg.ToolName != "consultar_pedido" {
+				t.Fatalf("tool msg invalida: id=%q name=%q", msg.ToolCallID, msg.ToolName)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("nenhuma mensagem role=tool enviada ao modelo")
+	}
+}
+
+func TestErroLLMNaoCorrompeHistorico(t *testing.T) {
 	llm := &fakeLLM{responses: []ports.ChatMessage{{Role: "assistant", Content: "r"}}}
 	uc, userId, _ := setup(llm, entitiesOrder.OrderStatusShipped, "")
 	if _, err := uc.UseCase(context.Background(), userId, "oi"); err != nil {

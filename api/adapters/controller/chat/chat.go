@@ -41,7 +41,7 @@ func (chatCtrl *ChatController) getClaims(c *gin.Context) (*auth.Claims, error) 
 
 // SendMessage envia a mensagem do usuario logado ao chatbot e retorna a resposta.
 // @Summary      Enviar mensagem ao assistente
-// @Description  Envia uma mensagem do usuario autenticado para o chatbot (Ollama) e retorna a resposta gerada.
+// @Description  Envia uma mensagem do usuario autenticado para o chatbot (OpenRouter / Gemini 2.5 Flash Lite) e retorna a resposta gerada.
 // @Tags         Chat
 // @Accept       json
 // @Produce      json

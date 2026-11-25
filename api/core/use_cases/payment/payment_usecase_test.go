@@ -201,11 +201,12 @@ func (s *stubPaymentSyncQueue) PublishPaymentSync(ev ports.PaymentSyncEvent) err
 }
 
 type spyPaymentGateway struct {
-	inner      ports.PaymentGateway
-	pixCalls   int
-	cardCalls  int
-	cardErr    error
-	pixErr     error
+	inner       ports.PaymentGateway
+	pixCalls    int
+	cardCalls   int
+	statusCalls int
+	cardErr     error
+	pixErr      error
 }
 
 func (g *spyPaymentGateway) CreatePixPayment(orderId string, amount float64, payerEmail string, idempotencyKey string) (*ports.PixGatewayResult, error) {
@@ -226,6 +227,7 @@ func (g *spyPaymentGateway) RefundPayment(externalPaymentId string, amount float
 	return g.inner.RefundPayment(externalPaymentId, amount)
 }
 func (g *spyPaymentGateway) GetPaymentStatus(externalPaymentId string) (string, error) {
+	g.statusCalls++
 	return g.inner.GetPaymentStatus(externalPaymentId)
 }
 
@@ -606,4 +608,47 @@ func TestPrePersistAndRabbitMQFallback(t *testing.T) {
 			t.Fatalf("expected stored Pix data synced, got %+v err=%v", stored, err)
 		}
 	})
+}
+
+func TestReadPaymentByOrderGatewayPollingCooldown(t *testing.T) {
+	orderRepo := &stubOrderRepo{orders: make(map[string]*entitiesOrder.Order)}
+	paymentRepo := newStubPaymentRepo(orderRepo)
+	eventQueue := &stubEventQueue{}
+	spyGw := &spyPaymentGateway{inner: adapterPayment.NewMockPaymentGateway()}
+	readOrder := useCasesOrder.NewReadOrderByIdUseCase(orderRepo)
+
+	readPaymentUC := useCasesPayment.NewReadPaymentByOrderUseCase(paymentRepo, readOrder, spyGw, eventQueue)
+
+	userId := uuid.New()
+	orderId := uuid.New()
+	expiresAt := time.Now().Add(15 * time.Minute)
+	orderRepo.orders[orderId.String()] = &entitiesOrder.Order{
+		Id:     orderId,
+		User:   &entitiesUser.User{ID: userId, Name: "Eva", Email: "eva@example.com"},
+		Status: entitiesOrder.OrderStatusPendingPayment,
+		Items:  []entitiesOrderItem.OrderItem{{Quantity: 1, UnitPrice: 120.00}},
+	}
+	_ = paymentRepo.CreatePayment(entitiesPayment.Payment{
+		Id:                uuid.New(),
+		OrderId:           orderId,
+		Provider:          entitiesPayment.PaymentProviderDefault,
+		Method:            entitiesPayment.PaymentMethodPix,
+		ExternalPaymentId: "pix_cooldown_test_1",
+		IdempotencyKey:    "idem-cooldown-1",
+		Amount:            120.00,
+		Installments:      1,
+		Status:            entitiesPayment.PaymentStatusPending,
+		ExpiresAt:         &expiresAt,
+	})
+
+	// Multiplas leituras consecutivas dentro da janela de cooldown devem consultar o gateway apenas 1 vez
+	for i := 0; i < 3; i++ {
+		if _, err := readPaymentUC.UseCase(orderId.String(), userId.String(), "user"); err != nil {
+			t.Fatalf("unexpected error on poll %d: %v", i, err)
+		}
+	}
+
+	if spyGw.statusCalls != 1 {
+		t.Fatalf("expected exactly 1 gateway status call within cooldown window, got %d", spyGw.statusCalls)
+	}
 }

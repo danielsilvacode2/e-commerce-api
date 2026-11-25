@@ -188,9 +188,10 @@ func (useCase *SendMessageUseCase) UseCase(ctx context.Context, userId string, m
 
 		for _, tc := range resp.Message.ToolCalls {
 			toolMsg := ports.ChatMessage{
-				Role:     "tool",
-				Content:  useCase.executeTool(tc, userId, message),
-				ToolName: tc.Function.Name,
+				Role:       "tool",
+				Content:    useCase.executeTool(tc, userId, message),
+				ToolCallID: tc.ID,
+				ToolName:   tc.Function.Name,
 			}
 			conversation = append(conversation, toolMsg)
 			newMessages = append(newMessages, toolMsg)

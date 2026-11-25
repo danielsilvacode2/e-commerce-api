@@ -277,15 +277,7 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 
 func (r *orderRepository) UpdateOrderZipCode(zipCode string, ID string) error {
 
-	statement, err := r.db.Prepare("UPDATE orders SET zip_code = ? WHERE id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err = statement.Exec(zipCode, ID); err != nil {
+	if _, err := r.db.Exec("UPDATE orders SET zip_code = ? WHERE id = ?", zipCode, ID); err != nil {
 		return err
 	}
 

@@ -24,17 +24,9 @@ func NewProductRepository(db *sql.DB) entities.ProductRepository {
 // CreateProduct recebe um produto e persisti no banco de dados
 func (r *productRepository) CreateProduct(product entities.Product) error {
 
-	statement, err := r.db.Prepare("INSERT INTO products " +
-		"(Id, product_name, product_description, product_sku, product_price, product_quantity, product_image ) " +
-		"VALUES (?,?,?,?,?,?,?)")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err = statement.Exec(
+	if _, err := r.db.Exec("INSERT INTO products "+
+		"(Id, product_name, product_description, product_sku, product_price, product_quantity, product_image ) "+
+		"VALUES (?,?,?,?,?,?,?)",
 		product.Id,
 		product.Name,
 		product.Description,
@@ -58,26 +50,12 @@ func (r *productRepository) CreateProduct(product entities.Product) error {
 
 func (r *productRepository) ReadProdutById(Id string) (*entities.Product, error) {
 
-	row, err := r.db.Query("SELECT * FROM products WHERE id = ?", Id)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer row.Close()
-
-	if !row.Next() {
-
-		if err = row.Err(); err != nil {
-			return nil, err
-		}
-
-		return nil, apperrors.ErrNotFound
-	}
-
 	var product entities.Product
 
-	if err = row.Scan(
+	err := r.db.QueryRow(
+		"SELECT id, product_name, product_description, product_sku, product_price, product_image, updated_at, created_at, product_quantity FROM products WHERE id = ?",
+		Id,
+	).Scan(
 		&product.Id,
 		&product.Name,
 		&product.Description,
@@ -87,7 +65,12 @@ func (r *productRepository) ReadProdutById(Id string) (*entities.Product, error)
 		&product.UpdateAt,
 		&product.CreateAt,
 		&product.Quantity,
-	); err != nil {
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.ErrNotFound
+		}
 		return nil, err
 	}
 
@@ -114,8 +97,8 @@ func (r *productRepository) ReadAllProduct(page, limit int) (*entities.Paginated
 		return nil, err
 	}
 
-	// 3. Executar a query com LIMIT e OFFSET
-	query := "SELECT id,  product_name, product_description, product_sku, product_price, product_image, updated_at, created_at, product_quantity FROM products LIMIT ? OFFSET ?"
+	// 3. Executar a query com ORDER BY deterministico, LIMIT e OFFSET
+	query := "SELECT id, product_name, product_description, product_sku, product_price, product_image, updated_at, created_at, product_quantity FROM products ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
 	
 	// Nota: Se estiver usando PostgreSQL, substitua '?' por '$1', '$2' ($1 = limit, $2 = offset)
 	rows, err := r.db.Query(query, limit, offset)
@@ -165,15 +148,7 @@ func (r *productRepository) ReadAllProduct(page, limit int) (*entities.Paginated
 
 func (r *productRepository) DeleteProductById(Id string) error {
 
-	statement, err := r.db.Prepare("DELETE FROM products WHERE id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err := statement.Exec(Id); err != nil {
+	if _, err := r.db.Exec("DELETE FROM products WHERE id = ?", Id); err != nil {
 		return err
 	}
 
@@ -182,16 +157,8 @@ func (r *productRepository) DeleteProductById(Id string) error {
 
 func (r *productRepository) UpdateProduct(product entities.Product, ID string) error {
 
-	statement, err := r.db.Prepare("UPDATE products SET " +
-		"product_name = ? , product_sku = ?, product_description = ? , product_price = ?, product_image = ?, product_quantity = ? WHERE id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	_, err = statement.Exec(
+	_, err := r.db.Exec("UPDATE products SET "+
+		"product_name = ? , product_sku = ?, product_description = ? , product_price = ?, product_image = ?, product_quantity = ? WHERE id = ?",
 		product.Name,
 		product.Sku,
 		product.Description,

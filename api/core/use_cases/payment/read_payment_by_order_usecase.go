@@ -1,20 +1,26 @@
 package use_cases
 
 import (
+	"context"
+	redisAdapter "e-commerce/adapters/redis"
 	entitiesOrder "e-commerce/core/entities/order"
 	entitiesPayment "e-commerce/core/entities/payment"
 	"e-commerce/core/ports"
 	useCasesOrder "e-commerce/core/use_cases/order"
 	"log"
 	"math"
+	"sync"
 	"time"
 )
+
+const gatewayStatusSyncCooldown = 15 * time.Second
 
 type ReadPaymentByOrderUseCase struct {
 	paymentRepo    entitiesPayment.PaymentRepository
 	readOrderById  *useCasesOrder.ReadOrderByIdUseCase
 	paymentGateway ports.PaymentGateway
 	eventQueue     ports.EventOrderQueue
+	lastGatewaySync sync.Map
 }
 
 func NewReadPaymentByOrderUseCase(
@@ -45,8 +51,8 @@ func (uc *ReadPaymentByOrderUseCase) UseCase(orderId string, userId string, role
 	}
 
 	if order.Status == entitiesOrder.OrderStatusPendingPayment && payment.Status == entitiesPayment.PaymentStatusPending {
-		// 1. Consulta status em tempo real no gateway (ex: Mercado Pago) se houver external_payment_id
-		if uc.paymentGateway != nil && payment.ExternalPaymentId != "" {
+		// 1. Consulta status em tempo real no gateway com cooldown para evitar excesso de chamadas durante polling
+		if uc.paymentGateway != nil && payment.ExternalPaymentId != "" && uc.shouldSyncGatewayStatus(payment.ExternalPaymentId) {
 			if remoteStatus, gwErr := uc.paymentGateway.GetPaymentStatus(payment.ExternalPaymentId); gwErr == nil {
 				switch remoteStatus {
 				case entitiesPayment.PaymentStatusApproved:
@@ -82,6 +88,20 @@ func (uc *ReadPaymentByOrderUseCase) UseCase(orderId string, userId string, role
 	}
 
 	return payment, nil
+}
+
+func (uc *ReadPaymentByOrderUseCase) shouldSyncGatewayStatus(externalPaymentID string) bool {
+	now := time.Now()
+	if prev, ok := uc.lastGatewaySync.Load(externalPaymentID); ok {
+		if lastTime, valid := prev.(time.Time); valid && now.Sub(lastTime) < gatewayStatusSyncCooldown {
+			return false
+		}
+	}
+	if !redisAdapter.AcquirePaymentGatewaySyncSlot(context.Background(), externalPaymentID, gatewayStatusSyncCooldown) {
+		return false
+	}
+	uc.lastGatewaySync.Store(externalPaymentID, now)
+	return true
 }
 
 func (uc *ReadPaymentByOrderUseCase) publishEvent(order *entitiesOrder.Order, eventType string, method string) {

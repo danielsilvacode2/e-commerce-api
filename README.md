@@ -1,6 +1,6 @@
 # E-Commerce API
 
-API REST de e-commerce desenvolvida em **Go** com **Gin**, seguindo arquitetura limpa/hexagonal (`core` isolado de `adapters`), com autenticação via cookie `HttpOnly` (JWT), mensageria assíncrona com RabbitMQ, rate limiting distribuído em Redis, integração de pagamentos com Mercado Pago, chatbot via Ollama e documentação interativa com Swagger.
+API REST de e-commerce desenvolvida em **Go** com **Gin**, seguindo arquitetura limpa/hexagonal (`core` isolado de `adapters`), com autenticação via cookie `HttpOnly` (JWT), mensageria assíncrona com RabbitMQ, rate limiting distribuído em Redis, integração de pagamentos com Mercado Pago, chatbot via OpenRouter (Gemini 2.5 Flash Lite) e documentação interativa com Swagger.
 
 ---
 
@@ -23,7 +23,7 @@ API REST de e-commerce desenvolvida em **Go** com **Gin**, seguindo arquitetura 
   - Pagamento via **Pix** e **Cartão de Crédito** (Mercado Pago ou gateway mock para testes), exigindo header `Idempotency-Key`.
   - Webhook do Mercado Pago com validação de assinatura **HMAC-SHA256** (`x-signature` / `x-request-id`) e sincronização assíncrona.
 - **Chat (Assistente)**
-  - Endpoint de chatbot integrado ao **Ollama**.
+  - Endpoint de chatbot integrado ao **OpenRouter** (`google/gemini-2.5-flash-lite`).
 
 ---
 
@@ -34,7 +34,7 @@ API REST de e-commerce desenvolvida em **Go** com **Gin**, seguindo arquitetura 
 - **Cache / Rate Limit:** Redis (`go-redis/v9`)
 - **Mensageria:** RabbitMQ (`amqp091-go`)
 - **Pagamentos:** Mercado Pago (com opção de gateway mock local)
-- **IA / Chatbot:** Ollama
+- **IA / Chatbot:** OpenRouter (`google/gemini-2.5-flash-lite`)
 - **Documentação:** Swagger / OpenAPI 2.0 (`swaggo/swag`, `gin-swagger`, `swaggo/files`)
 
 ---
@@ -61,7 +61,7 @@ e-commerce-api/
     │   ├── controller/                   # Handlers HTTP, DTOs, mappers e helpers
     │   ├── database/                     # Conexão MySQL
     │   ├── email/                        # Envio de e-mails HTML (SMTP)
-    │   ├── ollama/                       # Cliente HTTP do Ollama
+    │   ├── openrouter/                   # Cliente HTTP do OpenRouter (Gemini 2.5 Flash Lite)
     │   ├── payment/                      # Gateways de pagamento (Mercado Pago e Mock)
     │   ├── rabbitmq/                     # Produtores e consumidores RabbitMQ
     │   ├── redis/                        # Cliente Redis
@@ -81,7 +81,7 @@ e-commerce-api/
 - **MySQL** (banco criado e scripts em `sql/` executados)
 - **Redis**
 - **RabbitMQ**
-- **Ollama** (opcional, necessário apenas para o endpoint `/api/v1/chat`)
+- **OpenRouter API Key** (opcional, necessária apenas para o endpoint `/api/v1/chat`)
 
 ---
 
@@ -111,7 +111,7 @@ Copy-Item env_model .env
 | `ACCESS_TOKEN_PAYMENT` | Access Token do Mercado Pago (deixe vazio para usar o gateway mock) |
 | `MERCADO_PAGO_WEBHOOK_SECRET` | Segredo HMAC para validação de webhooks do Mercado Pago |
 | `ALLOW_PAYMENT_SIMULATION` | `true` habilita a rota de simulação de pagamento quando `ACCESS_TOKEN_PAYMENT` está vazio |
-| `OLLAMA_HOST`, `OLLAMA_PORT`, `OLLAMA_MODEL` | Host, porta e modelo do Ollama (padrão `127.0.0.1:11434`, `llama3.2`) |
+| `KEY_OPEN_ROUTER`, `OPEN_ROUTER_MODEL` | Chave de API e modelo do OpenRouter (padrão `google/gemini-2.5-flash-lite`) |
 | `COOKIE_SECURE` | `true` em produção (HTTPS); `false` em desenvolvimento local HTTP |
 | `COOKIE_DOMAIN` | Domínio do cookie de autenticação (vazio = host atual) |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas separadas por vírgula (padrão `http://localhost:3000`) |
@@ -120,10 +120,29 @@ Copy-Item env_model .env
 
 ## Como Executar
 
+### Localmente
+
 ```powershell
 cd e-commerce-api\api
 go mod download
 go run ./cmd/main.go
+```
+
+### Com Docker (API + MySQL + Redis + RabbitMQ)
+
+1. Garanta que o arquivo `api/.env` esteja preenchido (a partir de `api/env_model`).
+2. Na raiz de `e-commerce-api/`, suba todos os serviços passando `api/.env` para sincronizar as credenciais de banco, Redis e RabbitMQ:
+
+```powershell
+cd e-commerce-api
+docker compose --env-file ./api/.env up -d --build
+```
+
+Para construir apenas a imagem da API:
+
+```powershell
+cd e-commerce-api
+docker build -t e-commerce-api .
 ```
 
 ---

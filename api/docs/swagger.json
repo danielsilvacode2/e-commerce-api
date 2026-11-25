@@ -353,7 +353,7 @@
                         "CookieAuth": []
                     }
                 ],
-                "description": "Envia uma mensagem do usuario autenticado para o chatbot (Ollama) e retorna a resposta gerada.",
+                "description": "Envia uma mensagem do usuario autenticado para o chatbot (OpenRouter / Gemini 2.5 Flash Lite) e retorna a resposta gerada.",
                 "consumes": [
                     "application/json"
                 ],

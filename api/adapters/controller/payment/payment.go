@@ -6,6 +6,7 @@ import (
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/payment/dto"
 	"e-commerce/adapters/controller/payment/mapper"
+	redisAdapter "e-commerce/adapters/redis"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/config"
 	"e-commerce/core/apperrors"
@@ -201,6 +202,9 @@ func (ctrl *PaymentController) ConfirmOrderPayment(c *gin.Context) {
 		return
 	}
 
+	if payment.Status == "FAILED" || payment.Status == "EXPIRED" {
+		redisAdapter.InvalidateProductCache(c.Request.Context())
+	}
 	helpers.HelperResponse(mapper.PaymentToDto(*payment), http.StatusOK, "payment updated", c)
 }
 
@@ -249,6 +253,9 @@ func (ctrl *PaymentController) WebhookPayment(c *gin.Context) {
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
+	}
+	if payment.Status == "FAILED" || payment.Status == "EXPIRED" {
+		redisAdapter.InvalidateProductCache(c.Request.Context())
 	}
 	helpers.HelperResponse(mapper.PaymentToDto(*payment), http.StatusOK, "mercado pago webhook synced", c)
 }

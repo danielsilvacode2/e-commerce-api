@@ -1,6 +1,9 @@
 package ports
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 type ToolCallFunction struct {
 	Name      string         `json:"name"`
@@ -8,14 +11,17 @@ type ToolCallFunction struct {
 }
 
 type ToolCall struct {
+	ID       string           `json:"id,omitempty"`
 	Function ToolCallFunction `json:"function"`
 }
 
 type ChatMessage struct {
-	Role      string     `json:"role"`
-	Content   string     `json:"content"`
-	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
-	ToolName  string     `json:"tool_name,omitempty"`
+	Role             string          `json:"role"`
+	Content          string          `json:"content"`
+	ToolCalls        []ToolCall      `json:"tool_calls,omitempty"`
+	ToolCallID       string          `json:"tool_call_id,omitempty"`
+	ToolName         string          `json:"tool_name,omitempty"`
+	ReasoningDetails json.RawMessage `json:"reasoning_details,omitempty"`
 }
 
 type ToolProperty struct {

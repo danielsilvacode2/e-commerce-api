@@ -745,8 +745,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Envia uma mensagem do usuario autenticado para o chatbot (Ollama)
-        e retorna a resposta gerada.
+      description: Envia uma mensagem do usuario autenticado para o chatbot (OpenRouter
+        / Gemini 2.5 Flash Lite) e retorna a resposta gerada.
       parameters:
       - description: Mensagem do usuario
         in: body

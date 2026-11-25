@@ -1,0 +1,17 @@
+.git
+.gitignore
+.vscode
+.idea
+README.md
+AGENTS.md
+Dockerfile
+.dockerignore
+docker-compose.yml
+sql
+api/.env
+*.env
+**/*.env
+**/*.exe
+**/*.test
+**/*.out
+**/vendor

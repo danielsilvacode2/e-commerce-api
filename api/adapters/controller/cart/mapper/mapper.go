@@ -19,6 +19,7 @@ func ProductCartToDto(productCart entitiesCartProduct.CartProduct) dto.ProcuctCa
 		ProductId:   productCart.Product.Id,
 		IsSelect:    productCart.IsSelect,
 		Quantity:    productCart.Quantity,
+		Stock:       productCart.Product.Quantity,
 		Name:        productCart.Product.Name,
 		Description: productCart.Product.Description,
 		Sku:         productCart.Product.Sku,

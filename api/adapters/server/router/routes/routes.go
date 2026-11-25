@@ -49,6 +49,7 @@ func NewRoutes(
 	r.Use(middleware.SecurityHeadersMiddleware())
 	r.Use(middleware.MaxBodySizeMiddleware(1 << 20))
 	r.Use(middleware.CorsMiddleware())
+	r.Use(middleware.GzipMiddleware())
 	r.Use(middleware.CSRFOriginMiddleware())
 	r.Use(middleware.RateLimiterMiddleware(globalLimiter))
 
@@ -85,7 +86,7 @@ func NewRoutes(
 		{
 			products.GET("", productController.ReadAllProducts)
 			products.GET("/search", productController.SearchProducts)
-			products.GET("/:id", middleware.AuthMiddleware("user"), productController.ReadProductById)
+			products.GET("/:id", productController.ReadProductById)
 			products.POST("", middleware.AuthMiddleware("admin"), productController.CreateProduct)
 			products.PUT("/:id", middleware.AuthMiddleware("admin"), productController.UpdateProduct)
 			products.DELETE("/:id", middleware.AuthMiddleware("admin"), productController.DeleteProductById)

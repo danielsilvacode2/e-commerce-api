@@ -27,15 +27,7 @@ func (r *cartRepository) CreateCart(cart entitiesCart.Cart) error {
 		status = entitiesCart.CartStatusActive
 	}
 
-	statement, err := r.db.Prepare("INSERT INTO carts (id, user_id, status) VALUES (?,?,?)")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err = statement.Exec(cart.Id, cart.User.ID, status); err != nil {
+	if _, err := r.db.Exec("INSERT INTO carts (id, user_id, status) VALUES (?,?,?)", cart.Id, cart.User.ID, status); err != nil {
 
 		var sqlErr *mysql.MySQLError
 

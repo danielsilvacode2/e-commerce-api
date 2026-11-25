@@ -4,13 +4,13 @@ import (
 	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
 	controllerChat "e-commerce/adapters/controller/chat"
-	adapterOllama "e-commerce/adapters/ollama"
 	controllerOrder "e-commerce/adapters/controller/order"
 	controllerPayment "e-commerce/adapters/controller/payment"
 	controllerProduct "e-commerce/adapters/controller/product"
 	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/database"
 	"e-commerce/adapters/email"
+	adapterOpenRouter "e-commerce/adapters/openrouter"
 	adapterPayment "e-commerce/adapters/payment"
 	"e-commerce/adapters/rabbitmq"
 	repositoryCart "e-commerce/adapters/repository/cart"
@@ -225,7 +225,10 @@ func BuilderChatController() *controllerChat.ChatController {
 
 	readOrderById := useCasesOrder.NewReadOrderByIdUseCase(orderRepository)
 	readOrdersByUserId := useCasesOrder.NewReadOrdersByUserIdUseCase(orderRepository)
-	llmClient := adapterOllama.NewOllamaClient(config.OllamaHost, config.OllamaPort, config.OllamaModel)
+	if config.KeyOpenRouter == "" {
+		log.Println("[WARN] KEY_OPEN_ROUTER não configurada; o endpoint de chat retornará indisponível.")
+	}
+	llmClient := adapterOpenRouter.NewOpenRouterClient(config.KeyOpenRouter, config.OpenRouterModel)
 	sendMessage := useCasesChat.NewSendMessageUseCase(llmClient, readOrderById, readOrdersByUserId)
 
 	return controllerChat.NewChatController(sendMessage)

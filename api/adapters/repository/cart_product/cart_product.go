@@ -24,19 +24,11 @@ func NewCartProductRepository(db *sql.DB) entitiesCartProduct.CartProductReposit
 
 func (r *cartProductRepository) AddProductCart(cartProduct entitiesCartProduct.CartProduct) error {
 
-	statement, err := r.db.Prepare("INSERT INTO cart_products " +
-		"(id, cart_id, product_id,quantity ,isSelect) " +
-		"VALUES (?,?,?,?,?)" +
-		"ON DUPLICATE KEY UPDATE " +
-		"quantity = VALUES(quantity)")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err = statement.Exec(
+	if _, err := r.db.Exec("INSERT INTO cart_products "+
+		"(id, cart_id, product_id,quantity ,isSelect) "+
+		"VALUES (?,?,?,?,?)"+
+		"ON DUPLICATE KEY UPDATE "+
+		"quantity = VALUES(quantity)",
 		cartProduct.Id,
 		cartProduct.Cart.Id,
 		cartProduct.Product.Id,
@@ -59,15 +51,7 @@ func (r *cartProductRepository) AddProductCart(cartProduct entitiesCartProduct.C
 
 func (r *cartProductRepository) DecreaseProductCart(cartProductId string, quantity int64) error {
 
-	statement, err := r.db.Prepare("UPDATE cart_products SET quantity = (quantity - ? ) WHERE id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err = statement.Exec(
+	if _, err := r.db.Exec("UPDATE cart_products SET quantity = (quantity - ? ) WHERE id = ?",
 		quantity,
 		cartProductId,
 	); err != nil {
@@ -103,7 +87,8 @@ func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entitiesCa
             product.product_description,
             product.product_price,
             product.product_image,
-			product.product_sku
+            product.product_sku,
+            product.product_quantity
         FROM cart_products cartproducts
         JOIN products product ON cartproducts.product_id = product.id
         JOIN carts cart ON cartproducts.cart_id = cart.id AND cart.status = 'ACTIVE'
@@ -144,6 +129,7 @@ func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entitiesCa
 			&cartProduct.Product.Price,
 			&cartProduct.Product.Image,
 			&cartProduct.Product.Sku,
+			&cartProduct.Product.Quantity,
 		); err != nil {
 
 			return nil, err
@@ -178,7 +164,8 @@ func (r *cartProductRepository) ReadProductsCart(cartProductId string) (*entitie
             product.product_description,
             product.product_price,
             product.product_image,
-			product.product_sku
+            product.product_sku,
+            product.product_quantity
         FROM cart_products cartproducts
         JOIN products product ON cartproducts.product_id = product.id
         JOIN carts cart ON cartproducts.cart_id = cart.id AND cart.status = 'ACTIVE'
@@ -217,6 +204,7 @@ func (r *cartProductRepository) ReadProductsCart(cartProductId string) (*entitie
 			&cartProduct.Product.Price,
 			&cartProduct.Product.Image,
 			&cartProduct.Product.Sku,
+			&cartProduct.Product.Quantity,
 		); err != nil {
 			return nil, err
 		}
@@ -231,15 +219,7 @@ func (r *cartProductRepository) ReadProductsCart(cartProductId string) (*entitie
 
 func (r *cartProductRepository) RemoveProductCart(id string) error {
 
-	statement, err := r.db.Prepare("DELETE FROM cart_products  WHERE id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err = statement.Exec(id); err != nil {
+	if _, err := r.db.Exec("DELETE FROM cart_products WHERE id = ?", id); err != nil {
 		return err
 	}
 
@@ -248,15 +228,7 @@ func (r *cartProductRepository) RemoveProductCart(id string) error {
 
 func (r *cartProductRepository) UpdateIsSelect(valueSelect bool, cartProductId string) error {
 
-	statement, err := r.db.Prepare("UPDATE cart_products SET isSelect = ? WHERE id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err := statement.Exec(valueSelect, cartProductId); err != nil {
+	if _, err := r.db.Exec("UPDATE cart_products SET isSelect = ? WHERE id = ?", valueSelect, cartProductId); err != nil {
 		return err
 	}
 
@@ -265,18 +237,10 @@ func (r *cartProductRepository) UpdateIsSelect(valueSelect bool, cartProductId s
 
 func (r *cartProductRepository) UpdateAllIsSelect(valueSelect bool, userID string) error {
 
-	statement, err := r.db.Prepare("UPDATE cart_products cartp " +
-		"JOIN carts c ON  cartp.cart_id = c.id " +
-		"SET cartp.isSelect = ? " +
-		"WHERE c.user_id = ? AND c.status = 'ACTIVE'")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err := statement.Exec(valueSelect, userID); err != nil {
+	if _, err := r.db.Exec("UPDATE cart_products cartp "+
+		"JOIN carts c ON cartp.cart_id = c.id "+
+		"SET cartp.isSelect = ? "+
+		"WHERE c.user_id = ? AND c.status = 'ACTIVE'", valueSelect, userID); err != nil {
 		return err
 	}
 

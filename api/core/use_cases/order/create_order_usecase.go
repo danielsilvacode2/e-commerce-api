@@ -37,23 +37,33 @@ func NewCreateOrderUseCase(
 // O pedido inicia em PENDING_PAYMENT e um registro inicial de pagamento PENDING e criado.
 func (useCase *CreateOrderUseCase) UseCase(zipCode string, userId string) (*entitiesOrder.Order, error) {
 
-	user, err := useCase.readUserById.UseCase(userId)
-
-	if err != nil {
-		return nil, err
-	}
-
 	listCartProducts, err := useCase.readAllCartProducts.UseCase(userId)
 
 	if err != nil {
 		return nil, err
 	}
 
+	if len(listCartProducts) == 0 {
+		return nil, apperrors.ErrUnprocessableEntity
+	}
+
+	// Reaproveita os dados do usuario ja trazidos no JOIN do carrinho, evitando uma consulta extra ao banco.
+	var user = listCartProducts[0].Cart.User
+	if user == nil || user.Email == "" {
+		user, err = useCase.readUserById.UseCase(userId)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	now := time.Now()
 	order := entitiesOrder.Order{
-		Id:      uuid.New(),
-		User:    user,
-		Status:  entitiesOrder.OrderStatusPendingPayment,
-		ZipCode: zipCode,
+		Id:       uuid.New(),
+		User:     user,
+		Status:   entitiesOrder.OrderStatusPendingPayment,
+		ZipCode:  zipCode,
+		CreateAt: now,
+		UpdateAt: now,
 	}
 
 	var cartProductIds []string
@@ -93,7 +103,7 @@ func (useCase *CreateOrderUseCase) UseCase(zipCode string, userId string) (*enti
 	}
 
 	if useCase.paymentRepository != nil {
-		expiresAt := time.Now().Add(15 * time.Minute)
+		expiresAt := now.Add(15 * time.Minute)
 		initialPayment := entitiesPayment.Payment{
 			Id:             uuid.New(),
 			OrderId:        order.Id,
@@ -108,11 +118,5 @@ func (useCase *CreateOrderUseCase) UseCase(zipCode string, userId string) (*enti
 		_ = useCase.paymentRepository.CreatePayment(initialPayment)
 	}
 
-	createdOrder, err := useCase.repository.ReadOrderById(order.Id.String())
-
-	if err != nil {
-		return nil, err
-	}
-
-	return createdOrder, nil
+	return &order, nil
 }

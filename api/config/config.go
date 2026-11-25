@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -30,9 +31,8 @@ var AccessTokenPayment string
 var WebhookSecret string
 var AllowPaymentSimulation bool
 
-var OllamaHost string
-var OllamaPort string
-var OllamaModel string
+var KeyOpenRouter string
+var OpenRouterModel string
 
 var CookieSecure bool
 var CookieDomain string
@@ -42,7 +42,7 @@ const minSecretKeyLength = 32
 
 func LoadConfig() {
 
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Fatalf("[ERROR] falha ao ler arquivo .env : %v", err)
 	}
 
@@ -60,7 +60,12 @@ func LoadConfig() {
 		dbName,
 	)
 
-	ApiPort = os.Getenv("API_PORT")
+	ApiPort = strings.TrimSpace(os.Getenv("API_PORT"))
+	if ApiPort == "" {
+		ApiPort = ":5000"
+	} else if !strings.Contains(ApiPort, ":") {
+		ApiPort = ":" + ApiPort
+	}
 	SecretKey = strings.TrimSpace(os.Getenv("SECRET_KEY"))
 	if len(SecretKey) < minSecretKeyLength {
 		log.Fatalf("[ERROR] SECRET_KEY deve estar configurada e possuir no minimo %d caracteres", minSecretKeyLength)
@@ -99,17 +104,10 @@ func LoadConfig() {
 	WebhookSecret = strings.TrimSpace(os.Getenv("MERCADO_PAGO_WEBHOOK_SECRET"))
 	AllowPaymentSimulation = strings.EqualFold(strings.TrimSpace(os.Getenv("ALLOW_PAYMENT_SIMULATION")), "true")
 
-	OllamaHost = strings.TrimSpace(os.Getenv("OLLAMA_HOST"))
-	if OllamaHost == "" {
-		OllamaHost = "127.0.0.1"
-	}
-	OllamaPort = strings.TrimSpace(os.Getenv("OLLAMA_PORT"))
-	if OllamaPort == "" {
-		OllamaPort = "11434"
-	}
-	OllamaModel = strings.TrimSpace(os.Getenv("OLLAMA_MODEL"))
-	if OllamaModel == "" {
-		OllamaModel = "llama3.2"
+	KeyOpenRouter = strings.TrimSpace(os.Getenv("KEY_OPEN_ROUTER"))
+	OpenRouterModel = strings.TrimSpace(os.Getenv("OPEN_ROUTER_MODEL"))
+	if OpenRouterModel == "" {
+		OpenRouterModel = "google/gemini-2.5-flash-lite"
 	}
 
 	CookieSecure = strings.EqualFold(strings.TrimSpace(os.Getenv("COOKIE_SECURE")), "true")

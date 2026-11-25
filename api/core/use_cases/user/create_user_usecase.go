@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,13 +49,6 @@ func NewCreateUserUseCase(
 func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, error) {
 
 	user.ID = uuid.New()
-	passwordHash, err := useCase.hashService.HashGenerate(user.Password)
-
-	if err != nil {
-		return nil, err
-	}
-
-	user.Password = passwordHash
 
 	if user.Role == "" {
 		user.Role = "user"
@@ -67,12 +61,33 @@ func (useCase CreateUserUseCase) UseCase(user entities.User) (*entities.User, er
 		return nil, err
 	}
 
-	codeHash, err := useCase.hashService.HashGenerate(codeFortm)
+	// Gera os hashes bcrypt de senha e codigo em paralelo para reduzir a latencia de cadastro pela metade.
+	var (
+		passwordHash string
+		codeHash     string
+		passErr      error
+		codeErr      error
+		wg           sync.WaitGroup
+	)
+	wg.Add(2)
+	go func(rawPassword string) {
+		defer wg.Done()
+		passwordHash, passErr = useCase.hashService.HashGenerate(rawPassword)
+	}(user.Password)
+	go func(rawCode string) {
+		defer wg.Done()
+		codeHash, codeErr = useCase.hashService.HashGenerate(rawCode)
+	}(codeFortm)
+	wg.Wait()
 
-	if err != nil {
-		return nil, err
+	if passErr != nil {
+		return nil, passErr
+	}
+	if codeErr != nil {
+		return nil, codeErr
 	}
 
+	user.Password = passwordHash
 	user.VerificationCode = codeHash
 
 	timeExpiresCode := time.Now().Add(15 * time.Minute)

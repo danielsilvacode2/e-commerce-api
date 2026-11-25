@@ -43,22 +43,10 @@ func (r *userRepository) isUnavailable(err error) bool {
 // CreateUser cria um usuario no banco de dados
 func (r *userRepository) CreateUser(user entities.User) error {
 
-	statement, err := r.db.Prepare(
-		"INSERT INTO users" +
-			" ( id, user_name, user_email, user_password, user_role, verification_code, is_verified,  code_expires_at)" +
-			" VALUES (?,?,?,?,?,?,?,?)")
-
-	if err != nil {
-
-		if r.isUnavailable(err) {
-			return apperrors.ErrDatabaseUnavailable
-		}
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err := statement.Exec(
+	if _, err := r.db.Exec(
+		"INSERT INTO users"+
+			" ( id, user_name, user_email, user_password, user_role, verification_code, is_verified,  code_expires_at)"+
+			" VALUES (?,?,?,?,?,?,?,?)",
 		user.ID,
 		user.Name,
 		user.Email,
@@ -68,6 +56,9 @@ func (r *userRepository) CreateUser(user entities.User) error {
 		user.IsVerified,
 		user.CodeExpires,
 	); err != nil {
+		if r.isUnavailable(err) {
+			return apperrors.ErrDatabaseUnavailable
+		}
 
 		var errSQL *mysql.MySQLError
 
@@ -167,10 +158,10 @@ func (r *userRepository) ReadUserByEmail(email string) (*entities.User, error) {
 	return &user, nil
 }
 
-// ReadAllUsers retorna todos os usuarios da api
+// ReadAllUsers retorna todos os usuarios da api sem carregar hashes de senha ou codigos sensiveis
 func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
 
-	rows, err := r.db.Query("SELECT * FROM users")
+	rows, err := r.db.Query("SELECT id, user_name, user_email, user_role, updated_at, created_at, is_verified FROM users ORDER BY created_at DESC")
 
 	if err != nil {
 		return nil, err
@@ -187,25 +178,19 @@ func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
 			&user.ID,
 			&user.Name,
 			&user.Email,
-			&user.Password,
 			&user.Role,
 			&user.UpdatedAt,
 			&user.CreatedAt,
-			&user.VerificationCode,
-			&user.CodeExpires,
-			&user.PasswordResetCode,
-			&user.PasswordResetExpires,
 			&user.IsVerified,
 		); err != nil {
 			return nil, err
 		}
 
-		if err = rows.Err(); err != nil {
-			return nil, err
-		}
-
 		listUsers = append(listUsers, user)
+	}
 
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return listUsers, nil
@@ -214,15 +199,7 @@ func (r *userRepository) ReadAllUsers() ([]entities.User, error) {
 // DeleteUser deleta um usuario pelo ID
 func (r *userRepository) DeleteUserById(ID string) error {
 
-	statement, err := r.db.Prepare("DELETE FROM users WHERE id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	if _, err = statement.Exec(ID); err != nil {
+	if _, err := r.db.Exec("DELETE FROM users WHERE id = ?", ID); err != nil {
 		return err
 	}
 
@@ -231,23 +208,15 @@ func (r *userRepository) DeleteUserById(ID string) error {
 
 func (r *userRepository) UpdateUser(user entities.User, ID string) error {
 
-	statement, err := r.db.Prepare("UPDATE users SET " +
-		" user_name = ? ," +
-		" user_email = ? ," +
-		" verification_code = ? ," +
-		" code_expires_at = ? ," +
-		" is_verified = ? ," +
-		" password_reset_code = ?," +
-		" password_reset_expires_at = ? " +
-		" WHERE id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	_, err = statement.Exec(
+	_, err := r.db.Exec("UPDATE users SET "+
+		" user_name = ? ,"+
+		" user_email = ? ,"+
+		" verification_code = ? ,"+
+		" code_expires_at = ? ,"+
+		" is_verified = ? ,"+
+		" password_reset_code = ?,"+
+		" password_reset_expires_at = ? "+
+		" WHERE id = ?",
 		user.Name,
 		user.Email,
 		user.VerificationCode,
@@ -273,19 +242,11 @@ func (r *userRepository) UpdateUser(user entities.User, ID string) error {
 
 func (r *userRepository) UpdatePasswordUser(user entities.User, ID string) error {
 
-	statement, err := r.db.Prepare("UPDATE users SET " +
-		" user_password = ?," +
-		" password_reset_code = ?," +
-		" password_reset_expires_at = ? " +
-		" WHERE id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	_, err = statement.Exec(
+	_, err := r.db.Exec("UPDATE users SET "+
+		" user_password = ?,"+
+		" password_reset_code = ?,"+
+		" password_reset_expires_at = ? "+
+		" WHERE id = ?",
 		user.Password,
 		user.PasswordResetCode,
 		user.PasswordResetExpires,
