@@ -53,6 +53,24 @@ func (ctrl *PaymentController) getClaims(c *gin.Context) (*auth.Claims, error) {
 }
 
 // ProcessPayment processa pagamento Pix ou Cartao de Credito exigindo Idempotency-Key no header HTTP.
+// @Summary      Processar pagamento de pedido
+// @Description  Processa o pagamento de um pedido via PIX ou CREDIT_CARD. Exige o header Idempotency-Key para garantir idempotencia.
+// @Tags         Payments
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id               path      string                        true  "ID do pedido (UUID)"
+// @Param        Idempotency-Key  header    string                        true  "Chave unica de idempotencia"
+// @Param        request          body      dto.ProcessPaymentRequestDTO  true  "Dados do pagamento"
+// @Success      200              {object}  helpers.SwaggerDataResponse[dto.PaymentResponseDTO]
+// @Failure      400              {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      401              {object}  helpers.SwaggerMessageResponse
+// @Failure      403              {object}  helpers.SwaggerMessageResponse
+// @Failure      404              {object}  helpers.SwaggerMessageResponse
+// @Failure      409              {object}  helpers.SwaggerMessageResponse
+// @Failure      422              {object}  helpers.SwaggerMessageResponse
+// @Failure      500              {object}  helpers.SwaggerMessageResponse
+// @Router       /orders/{id}/payments [post]
 func (ctrl *PaymentController) ProcessPayment(c *gin.Context) {
 	claims, err := ctrl.getClaims(c)
 	if err != nil {
@@ -104,6 +122,18 @@ func (ctrl *PaymentController) ProcessPayment(c *gin.Context) {
 }
 
 // ReadPaymentByOrder consulta o ultimo pagamento de um pedido (com verificacao automatica de expiracao).
+// @Summary      Consultar pagamento do pedido
+// @Description  Retorna o ultimo pagamento associado a um pedido, verificando automaticamente se houve expiracao.
+// @Tags         Payments
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id   path      string  true  "ID do pedido (UUID)"
+// @Success      200  {object}  helpers.SwaggerDataResponse[dto.PaymentResponseDTO]
+// @Failure      401  {object}  helpers.SwaggerMessageResponse
+// @Failure      403  {object}  helpers.SwaggerMessageResponse
+// @Failure      404  {object}  helpers.SwaggerMessageResponse
+// @Failure      500  {object}  helpers.SwaggerMessageResponse
+// @Router       /orders/{id}/payment [get]
 func (ctrl *PaymentController) ReadPaymentByOrder(c *gin.Context) {
 	claims, err := ctrl.getClaims(c)
 	if err != nil {
@@ -121,6 +151,21 @@ func (ctrl *PaymentController) ReadPaymentByOrder(c *gin.Context) {
 }
 
 // ConfirmOrderPayment permite simular confirmacao/recusa/expiracao apenas quando o gateway mock e a simulacao estiverem explicitamente habilitados.
+// @Summary      Simular confirmacao de pagamento (mock)
+// @Description  Simula aprovacao (APPROVE), falha (FAIL) ou expiracao (EXPIRE) de pagamento. Disponivel apenas quando ALLOW_PAYMENT_SIMULATION=true e sem ACCESS_TOKEN_PAYMENT.
+// @Tags         Payments
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id       path      string                        true  "ID do pedido (UUID)"
+// @Param        request  body      dto.WebhookPaymentRequestDTO  true  "Acao de simulacao (APPROVE, FAIL ou EXPIRE)"
+// @Success      200      {object}  helpers.SwaggerDataResponse[dto.PaymentResponseDTO]
+// @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      403      {object}  helpers.SwaggerMessageResponse
+// @Failure      404      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /orders/{id}/payment/confirm [post]
 func (ctrl *PaymentController) ConfirmOrderPayment(c *gin.Context) {
 	if !config.AllowPaymentSimulation || config.AccessTokenPayment != "" {
 		helpers.HelperErrResponse(nil, c, apperrors.ErrForbidden)
@@ -160,6 +205,22 @@ func (ctrl *PaymentController) ConfirmOrderPayment(c *gin.Context) {
 }
 
 // WebhookPayment recebe callbacks externos do Mercado Pago validando assinatura HMAC e sincronizando o status real no gateway.
+// @Summary      Webhook do Mercado Pago
+// @Description  Recebe notificacoes de pagamento do Mercado Pago, valida assinatura HMAC-SHA256 no header x-signature e sincroniza o status do pagamento.
+// @Tags         Payments
+// @Accept       json
+// @Produce      json
+// @Param        x-signature   header    string                  true   "Assinatura HMAC no formato ts=<timestamp>,v1=<hex>"
+// @Param        x-request-id  header    string                  true   "Identificador da requisicao enviado pelo Mercado Pago"
+// @Param        data.id       query     string                  false  "ID externo do pagamento no Mercado Pago (alternativa ao campo data.id do body)"
+// @Param        request       body      map[string]interface{}  false  "Payload nativo de notificacao do Mercado Pago"
+// @Success      200           {object}  helpers.SwaggerDataResponse[dto.PaymentResponseDTO]
+// @Failure      400           {object}  helpers.SwaggerMessageResponse
+// @Failure      401           {object}  helpers.SwaggerMessageResponse
+// @Failure      404           {object}  helpers.SwaggerMessageResponse
+// @Failure      429           {object}  helpers.SwaggerMessageResponse
+// @Failure      500           {object}  helpers.SwaggerMessageResponse
+// @Router       /payments/webhook [post]
 func (ctrl *PaymentController) WebhookPayment(c *gin.Context) {
 	var raw map[string]any
 	_ = c.ShouldBindJSON(&raw)

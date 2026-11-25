@@ -21,6 +21,16 @@ func init() {
 	redis.NewRedisConnection()
 }
 
+// @title           E-Commerce API
+// @version         1.0
+// @description     API REST de E-Commerce com autenticacao via cookie HTTP-Only (JWT), gestao de usuarios, produtos, carrinho, pedidos, pagamentos (Pix e Cartao via Mercado Pago) e assistente de chat.
+// @BasePath        /api/v1
+// @schemes         http https
+//
+// @securityDefinitions.apikey CookieAuth
+// @in              cookie
+// @name            token
+// @description     Cookie HTTP-Only "token" (JWT) definido pelo endpoint POST /api/v1/login.
 func main() {
 
 	rabbitConsumerDeclare := builder.BuilderConsumerRabbitMQ()
@@ -55,7 +65,7 @@ func main() {
 		Handler:           r,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      30 * time.Second,
+		WriteTimeout:      120 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 	if err := srv.ListenAndServe(); err != nil {

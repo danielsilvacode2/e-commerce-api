@@ -12,6 +12,17 @@ import (
 )
 
 // SearchProducts trata GET /products/search?q=<termo>&page=&limit=
+// @Summary      Pesquisar produtos
+// @Description  Busca produtos por termo textual com suporte a paginacao.
+// @Tags         Products
+// @Produce      json
+// @Param        q      query     string  true   "Termo de busca"
+// @Param        page   query     int     false  "Numero da pagina"  default(1)
+// @Param        limit  query     int     false  "Itens por pagina"  default(10)
+// @Success      200    {object}  helpers.SwaggerDataResponse[dto.PaginatedProducts]
+// @Failure      400    {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      500    {object}  helpers.SwaggerMessageResponse
+// @Router       /products/search [get]
 func (productCtrl *ProductController) SearchProducts(c *gin.Context) {
 
 	dtoRequest := dto.ProductSearchRequestDTO{Query: c.Query("q")}

@@ -3,6 +3,8 @@ package builder
 import (
 	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
+	controllerChat "e-commerce/adapters/controller/chat"
+	adapterOllama "e-commerce/adapters/ollama"
 	controllerOrder "e-commerce/adapters/controller/order"
 	controllerPayment "e-commerce/adapters/controller/payment"
 	controllerProduct "e-commerce/adapters/controller/product"
@@ -24,6 +26,7 @@ import (
 	"e-commerce/core/ports"
 	useCasesCart "e-commerce/core/use_cases/cart"
 	useCasesCartProduct "e-commerce/core/use_cases/cart_product"
+	useCasesChat "e-commerce/core/use_cases/chat"
 	useCasesOrder "e-commerce/core/use_cases/order"
 	useCasesOrderItem "e-commerce/core/use_cases/order_item"
 	useCasesOrderStatusHistory "e-commerce/core/use_cases/order_status_history"
@@ -214,6 +217,18 @@ func BuilderOrderController() *controllerOrder.OrderController {
 	)
 
 	return orderController
+}
+
+func BuilderChatController() *controllerChat.ChatController {
+
+	orderRepository := repositoryOrder.NewOrderRepository(database.DB_MySQL)
+
+	readOrderById := useCasesOrder.NewReadOrderByIdUseCase(orderRepository)
+	readOrdersByUserId := useCasesOrder.NewReadOrdersByUserIdUseCase(orderRepository)
+	llmClient := adapterOllama.NewOllamaClient(config.OllamaHost, config.OllamaPort, config.OllamaModel)
+	sendMessage := useCasesChat.NewSendMessageUseCase(llmClient, readOrderById, readOrdersByUserId)
+
+	return controllerChat.NewChatController(sendMessage)
 }
 
 func BuilderPaymentController() *controllerPayment.PaymentController {

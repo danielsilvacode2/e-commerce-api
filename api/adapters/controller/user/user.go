@@ -55,7 +55,18 @@ func NewUserController(
 	}
 }
 
-// CreateUser registra um usuario na api
+// CreateUser registra um usuario na api.
+// @Summary      Criar usuario
+// @Description  Registra um novo usuario e envia codigo de verificacao por email.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.UserCreateRequestDTO  true  "Dados de cadastro do usuario"
+// @Success      202      {object}  helpers.SwaggerMessageResponse
+// @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      429      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /users [post]
 func (userCtrl *UserController) CreateUser(c *gin.Context) {
 	var userRequestDto dto.UserCreateRequestDTO
 
@@ -87,6 +98,19 @@ func (userCtrl *UserController) CreateUser(c *gin.Context) {
 	helpers.HelperResponse(nil, 202, "We have sent the next instructions to your email.", c)
 }
 
+// VerifyEmailMe valida o codigo de verificacao de email do usuario.
+// @Summary      Verificar email do usuario
+// @Description  Confirma o cadastro do usuario utilizando o codigo enviado por email.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.UserVerifyCodeRequestDTO  true  "Email e codigo de verificacao"
+// @Success      200      {object}  helpers.SwaggerMessageResponse
+// @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      429      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /users/verify [post]
 func (userCtrl *UserController) VerifyEmailMe(c *gin.Context) {
 
 	var userVerifyCodeRequest dto.UserVerifyCodeRequestDTO
@@ -119,6 +143,18 @@ func (userCtrl *UserController) VerifyEmailMe(c *gin.Context) {
 
 }
 
+// NewVerifyCode reenvia um novo codigo de verificacao para o email informado.
+// @Summary      Reenviar codigo de verificacao
+// @Description  Gera e envia um novo codigo de verificacao para o email cadastrado ainda nao verificado.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.UserNewVerifyCodeDTO  true  "Email do usuario"
+// @Success      200      {object}  helpers.SwaggerMessageResponse
+// @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      429      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /users/new-verify-code [post]
 func (userCtrl *UserController) NewVerifyCode(c *gin.Context) {
 	var userNewVerifyCodeRequest dto.UserNewVerifyCodeDTO
 
@@ -163,7 +199,19 @@ func (userCtrl *UserController) NewVerifyCode(c *gin.Context) {
 
 }
 
-// ReadUser recebe um Id como parametro e retorna o usuario caso ele exista
+// ReadUser recebe um Id como parametro e retorna o usuario caso ele exista.
+// @Summary      Buscar usuario por ID
+// @Description  Retorna os dados de um usuario especifico. Requer perfil admin.
+// @Tags         Users
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id   path      string  true  "ID do usuario (UUID)"
+// @Success      200  {object}  helpers.SwaggerDataResponse[dto.UserResponseDTO]
+// @Failure      401  {object}  helpers.SwaggerMessageResponse
+// @Failure      403  {object}  helpers.SwaggerMessageResponse
+// @Failure      404  {object}  helpers.SwaggerMessageResponse
+// @Failure      500  {object}  helpers.SwaggerMessageResponse
+// @Router       /users/{id} [get]
 func (userCtrl *UserController) ReadUser(c *gin.Context) {
 
 	id, err := userCtrl.validatorPermissionId(c)
@@ -184,7 +232,19 @@ func (userCtrl *UserController) ReadUser(c *gin.Context) {
 	helpers.HelperResponse(userDto, http.StatusOK, "user found", c)
 }
 
-// DeleteUser recebe um Id como parametro e deleta o usuario
+// DeleteUser recebe um Id como parametro e deleta o usuario.
+// @Summary      Remover usuario
+// @Description  Remove um usuario pelo ID e revoga seus tokens ativos. Requer perfil admin.
+// @Tags         Users
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id   path  string  true  "ID do usuario (UUID)"
+// @Success      204  "Usuario removido com sucesso"
+// @Failure      401  {object}  helpers.SwaggerMessageResponse
+// @Failure      403  {object}  helpers.SwaggerMessageResponse
+// @Failure      404  {object}  helpers.SwaggerMessageResponse
+// @Failure      500  {object}  helpers.SwaggerMessageResponse
+// @Router       /users/{id} [delete]
 func (userCtrl *UserController) DeleteUser(c *gin.Context) {
 	id, err := userCtrl.validatorPermissionId(c)
 
@@ -203,6 +263,17 @@ func (userCtrl *UserController) DeleteUser(c *gin.Context) {
 	helpers.HelperResponse(nil, http.StatusNoContent, "user successfully deleted ", c)
 }
 
+// ReadAllUsers lista todos os usuarios cadastrados (somente admin).
+// @Summary      Listar usuarios
+// @Description  Retorna todos os usuarios cadastrados na plataforma. Requer perfil admin.
+// @Tags         Users
+// @Produce      json
+// @Security     CookieAuth
+// @Success      200  {object}  helpers.SwaggerDataResponse[[]dto.UserResponseDTO]
+// @Failure      401  {object}  helpers.SwaggerMessageResponse
+// @Failure      403  {object}  helpers.SwaggerMessageResponse
+// @Failure      500  {object}  helpers.SwaggerMessageResponse
+// @Router       /users [get]
 func (userCtrl *UserController) ReadAllUsers(c *gin.Context) {
 
 	listUsers, err := userCtrl.readAllUsers.UseCase()
@@ -228,6 +299,17 @@ func (userCtrl *UserController) ReadAllUsers(c *gin.Context) {
 
 }
 
+// ReadMe retorna o perfil do usuario autenticado.
+// @Summary      Obter perfil do usuario logado
+// @Description  Retorna os dados do usuario atualmente autenticado via cookie JWT.
+// @Tags         Users
+// @Produce      json
+// @Security     CookieAuth
+// @Success      200  {object}  helpers.SwaggerDataResponse[dto.UserResponseDTO]
+// @Failure      401  {object}  helpers.SwaggerMessageResponse
+// @Failure      404  {object}  helpers.SwaggerMessageResponse
+// @Failure      500  {object}  helpers.SwaggerMessageResponse
+// @Router       /users/me [get]
 func (userCtrl *UserController) ReadMe(c *gin.Context) {
 
 	val, exists := c.Get("claims")
@@ -259,6 +341,22 @@ func (userCtrl *UserController) ReadMe(c *gin.Context) {
 
 }
 
+// UpdateUser atualiza nome e email do usuario (proprio usuario ou admin).
+// @Summary      Atualizar usuario
+// @Description  Atualiza o perfil de um usuario. Permitido para o proprio usuario ou admin.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id       path      string                    true  "ID do usuario (UUID)"
+// @Param        request  body      dto.UserUpdateRequestDTO  true  "Dados atualizados do perfil"
+// @Success      204      "Usuario atualizado com sucesso"
+// @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      404      {object}  helpers.SwaggerMessageResponse
+// @Failure      409      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /users/{id} [put]
 func (userCtrl *UserController) UpdateUser(c *gin.Context) {
 
 	id, err := userCtrl.validatorPermissionId(c)
@@ -289,6 +387,18 @@ func (userCtrl *UserController) UpdateUser(c *gin.Context) {
 
 }
 
+// ResetPassword inicia o fluxo de redefinicao de senha enviando codigo por email.
+// @Summary      Solicitar redefinicao de senha
+// @Description  Envia instrucoes e codigo de redefinicao de senha para o email informado, caso esteja cadastrado.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.UserResetPasswordDTO  true  "Email do usuario"
+// @Success      200      {object}  helpers.SwaggerMessageResponse
+// @Failure      400      {object}  helpers.SwaggerMessageResponse
+// @Failure      429      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /users/reset-password [post]
 func (userCtrl *UserController) ResetPassword(c *gin.Context) {
 
 	var requestDTO dto.UserResetPasswordDTO
@@ -307,6 +417,19 @@ func (userCtrl *UserController) ResetPassword(c *gin.Context) {
 
 }
 
+// ConfirmeResetPassword confirma a redefinicao de senha com o codigo enviado por email.
+// @Summary      Confirmar redefinicao de senha
+// @Description  Valida o codigo de recuperacao, atualiza a senha do usuario e revoga sessoes anteriores.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.UserConfirmResetPasswordDTO  true  "Email, codigo e nova senha"
+// @Success      200      {object}  helpers.SwaggerMessageResponse
+// @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      429      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /users/confirm-reset-password [post]
 func (userCtrl *UserController) ConfirmeResetPassword(c *gin.Context) {
 
 	var requestDTO dto.UserConfirmResetPasswordDTO

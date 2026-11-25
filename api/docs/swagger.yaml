@@ -1,0 +1,2348 @@
+basePath: /api/v1
+definitions:
+  dto.CartRequestDTO:
+    properties:
+      product_id:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  dto.CartRequestDecreaseDTO:
+    properties:
+      quantity:
+        type: integer
+    type: object
+  dto.CartResponseDTO:
+    properties:
+      id:
+        type: string
+      list:
+        items:
+          $ref: '#/definitions/dto.ProcuctCartResponseDTO'
+        type: array
+      user:
+        $ref: '#/definitions/dto.UserCartResponseDTO'
+    type: object
+  dto.ChatRequestDTO:
+    properties:
+      message:
+        type: string
+    type: object
+  dto.ChatResponseDTO:
+    properties:
+      reply:
+        type: string
+    type: object
+  dto.IsSelectRequestDTO:
+    properties:
+      select:
+        type: boolean
+    type: object
+  dto.LoginRequestDTO:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.LoginResponseDTO:
+    properties:
+      token:
+        type: string
+      user_role:
+        type: string
+    type: object
+  dto.OrderCreateRequestDTO:
+    properties:
+      zip_code:
+        type: string
+    type: object
+  dto.OrderItemRequestDTO:
+    properties:
+      product_id:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  dto.OrderItemResponseDTO:
+    properties:
+      id:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+      product_id:
+        type: string
+      quantity:
+        type: integer
+      sku:
+        type: string
+      subtotal:
+        type: number
+      unit_price:
+        type: number
+    type: object
+  dto.OrderItemUpdateRequestDTO:
+    properties:
+      quantity:
+        type: integer
+    type: object
+  dto.OrderRefundRejectRequestDTO:
+    properties:
+      reason:
+        type: string
+    type: object
+  dto.OrderRefundRequestDTO:
+    properties:
+      reason:
+        type: string
+    type: object
+  dto.OrderResponseDTO:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/dto.OrderItemResponseDTO'
+        type: array
+      refund_reason:
+        type: string
+      refund_rejection_reason:
+        type: string
+      status:
+        type: string
+      total:
+        type: number
+      tracking_code:
+        type: string
+      update_at:
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserOrderResponseDTO'
+      zip_code:
+        type: string
+    type: object
+  dto.OrderStatusHistoryResponseDTO:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.OrderStatusRequestDTO:
+    properties:
+      status:
+        type: string
+      tracking_code:
+        type: string
+    type: object
+  dto.OrderUpdateRequestDTO:
+    properties:
+      zip_code:
+        type: string
+    type: object
+  dto.PaginatedOrdersDTO:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.OrderResponseDTO'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total_pages:
+        type: integer
+      total_rows:
+        type: integer
+    type: object
+  dto.PaginatedProducts:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ProcuctResponseDTO'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total_pages:
+        type: integer
+      total_rows:
+        type: integer
+    type: object
+  dto.PaymentResponseDTO:
+    properties:
+      amount:
+        type: number
+      card_brand:
+        type: string
+      card_last4:
+        type: string
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      external_payment_id:
+        type: string
+      id:
+        type: string
+      idempotency_key:
+        type: string
+      installments:
+        type: integer
+      method:
+        type: string
+      order_id:
+        type: string
+      paid_at:
+        type: string
+      pix_copy_paste:
+        type: string
+      pix_qr_code:
+        type: string
+      provider:
+        type: string
+      refunded_at:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.ProcessPaymentRequestDTO:
+    properties:
+      card_cvv:
+        type: string
+      card_exp_month:
+        type: integer
+      card_exp_year:
+        type: integer
+      card_holder_name:
+        type: string
+      card_number:
+        type: string
+      card_token:
+        type: string
+      installments:
+        type: integer
+      method:
+        type: string
+      payer_doc_number:
+        type: string
+      payer_doc_type:
+        type: string
+      payment_method_id:
+        type: string
+    type: object
+  dto.ProcuctCartResponseDTO:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      image:
+        type: string
+      isSelect:
+        type: boolean
+      name:
+        type: string
+      price:
+        type: number
+      product_id:
+        type: string
+      quantity:
+        type: integer
+      sku:
+        type: string
+    type: object
+  dto.ProcuctCreateRequestDTO:
+    properties:
+      description:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      quantity:
+        type: integer
+      sku:
+        type: string
+    type: object
+  dto.ProcuctResponseDTO:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      quantity:
+        type: integer
+      sku:
+        type: string
+      update_at:
+        type: string
+    type: object
+  dto.ProcuctUpdateRequestDTO:
+    properties:
+      description:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      quantity:
+        type: integer
+      sku:
+        type: string
+    type: object
+  dto.UserCartResponseDTO:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+  dto.UserConfirmResetPasswordDTO:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      newpass:
+        type: string
+    type: object
+  dto.UserCreateRequestDTO:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.UserNewVerifyCodeDTO:
+    properties:
+      email:
+        type: string
+    type: object
+  dto.UserOrderResponseDTO:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.UserResetPasswordDTO:
+    properties:
+      email:
+        type: string
+    type: object
+  dto.UserResponseDTO:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      update_at:
+        type: string
+    type: object
+  dto.UserUpdateRequestDTO:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.UserVerifyCodeRequestDTO:
+    properties:
+      email:
+        type: string
+      verification_code:
+        type: string
+    type: object
+  dto.WebhookPaymentRequestDTO:
+    properties:
+      action:
+        type: string
+      external_payment_id:
+        type: string
+      payment_id:
+        type: string
+    type: object
+  fielderrors.FieldValidateErrors:
+    properties:
+      campo:
+        type: string
+      mensagem:
+        type: string
+    type: object
+  helpers.HelperResponseDto:
+    properties:
+      mensagem:
+        type: string
+      status:
+        type: integer
+    type: object
+  helpers.SwaggerDataResponse-array_dto_OrderItemResponseDTO:
+    properties:
+      'Body:':
+        items:
+          $ref: '#/definitions/dto.OrderItemResponseDTO'
+        type: array
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-array_dto_OrderStatusHistoryResponseDTO:
+    properties:
+      'Body:':
+        items:
+          $ref: '#/definitions/dto.OrderStatusHistoryResponseDTO'
+        type: array
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-array_dto_UserResponseDTO:
+    properties:
+      'Body:':
+        items:
+          $ref: '#/definitions/dto.UserResponseDTO'
+        type: array
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_CartResponseDTO:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.CartResponseDTO'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_ChatResponseDTO:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.ChatResponseDTO'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_LoginResponseDTO:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.LoginResponseDTO'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_OrderResponseDTO:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.OrderResponseDTO'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_PaginatedOrdersDTO:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.PaginatedOrdersDTO'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_PaginatedProducts:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.PaginatedProducts'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_PaymentResponseDTO:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.PaymentResponseDTO'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_ProcuctResponseDTO:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.ProcuctResponseDTO'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_UserResponseDTO:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.UserResponseDTO'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerMessageResponse:
+    properties:
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerValidationErrorResponse:
+    properties:
+      'Body:':
+        items:
+          $ref: '#/definitions/fielderrors.FieldValidateErrors'
+        type: array
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+info:
+  contact: {}
+  description: API REST de E-Commerce com autenticacao via cookie HTTP-Only (JWT),
+    gestao de usuarios, produtos, carrinho, pedidos, pagamentos (Pix e Cartao via
+    Mercado Pago) e assistente de chat.
+  title: E-Commerce API
+  version: "1.0"
+paths:
+  /cart:
+    get:
+      description: Retorna o carrinho e todos os itens adicionados pelo usuario logado.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_CartResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Listar itens do carrinho
+      tags:
+      - Cart
+    post:
+      consumes:
+      - application/json
+      description: Adiciona um produto (ou incrementa sua quantidade) no carrinho
+        do usuario logado.
+      parameters:
+      - description: Produto e quantidade
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CartRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Adicionar produto ao carrinho
+      tags:
+      - Cart
+    put:
+      consumes:
+      - application/json
+      description: Atualiza o estado de selecao de todos os itens no carrinho do usuario
+        logado.
+      parameters:
+      - description: Estado de selecao
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.IsSelectRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Selecao atualizada com sucesso
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Selecionar/desmarcar todos os itens do carrinho
+      tags:
+      - Cart
+  /cart/{id}:
+    delete:
+      description: Remove um produto do carrinho do usuario logado.
+      parameters:
+      - description: ID do item no carrinho (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Item removido com sucesso
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Remover item do carrinho
+      tags:
+      - Cart
+    put:
+      consumes:
+      - application/json
+      description: Atualiza o estado de selecao de um item especifico no carrinho
+        para o checkout.
+      parameters:
+      - description: ID do item no carrinho (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Estado de selecao
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.IsSelectRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Selecao atualizada com sucesso
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Selecionar/desmarcar item do carrinho
+      tags:
+      - Cart
+  /cart/decrease/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Reduz a quantidade de um item especifico no carrinho do usuario
+        logado.
+      parameters:
+      - description: ID do item no carrinho (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Quantidade a reduzir
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CartRequestDecreaseDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Diminuir quantidade de item no carrinho
+      tags:
+      - Cart
+  /chat:
+    post:
+      consumes:
+      - application/json
+      description: Envia uma mensagem do usuario autenticado para o chatbot (Ollama)
+        e retorna a resposta gerada.
+      parameters:
+      - description: Mensagem do usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChatRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_ChatResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Enviar mensagem ao assistente
+      tags:
+      - Chat
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica um usuario verificado por email e senha e define o cookie
+        HTTP-Only "token" (JWT valido por 2 horas).
+      parameters:
+      - description: Credenciais de acesso
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_LoginResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Realizar login
+      tags:
+      - Auth
+  /logout:
+    post:
+      description: Revoga o JWT atual (se presente e valido) e remove o cookie HTTP-Only
+        "token".
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Realizar logout
+      tags:
+      - Auth
+  /orders:
+    get:
+      description: Retorna todos os pedidos com suporte a paginacao e filtros por
+        status e user_id. Requer perfil admin.
+      parameters:
+      - default: 1
+        description: Numero da pagina
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Itens por pagina
+        in: query
+        name: limit
+        type: integer
+      - description: Filtro por status
+        in: query
+        name: status
+        type: string
+      - description: Filtro por ID do usuario (UUID)
+        in: query
+        name: user_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_PaginatedOrdersDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Listar todos os pedidos (admin)
+      tags:
+      - Orders
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo pedido a partir dos itens selecionados no carrinho
+        do usuario logado.
+      parameters:
+      - description: Dados para criacao do pedido (CEP)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OrderCreateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_OrderResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Criar pedido (checkout)
+      tags:
+      - Orders
+  /orders/{id}:
+    delete:
+      description: Exclui um pedido pelo ID. Requer perfil admin.
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Pedido removido com sucesso
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Remover pedido (admin)
+      tags:
+      - Orders
+    get:
+      description: Retorna os detalhes de um pedido especifico (proprietario ou admin).
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_OrderResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Buscar pedido por ID
+      tags:
+      - Orders
+    put:
+      consumes:
+      - application/json
+      description: Atualiza o CEP de entrega de um pedido elegivel (proprietario ou
+        admin).
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Novo CEP do pedido
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OrderUpdateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Pedido atualizado com sucesso
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Atualizar pedido
+      tags:
+      - Orders
+  /orders/{id}/cancel:
+    put:
+      description: Cancela um pedido pendente (proprietario ou admin).
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Pedido cancelado com sucesso
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Cancelar pedido
+      tags:
+      - Orders
+  /orders/{id}/history:
+    get:
+      description: Retorna o historico cronologico de mudancas de status de um pedido
+        (proprietario ou admin).
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-array_dto_OrderStatusHistoryResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Consultar historico de status do pedido
+      tags:
+      - Orders
+  /orders/{id}/items:
+    get:
+      description: Retorna todos os itens vinculados a um pedido (proprietario ou
+        admin).
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-array_dto_OrderItemResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Listar itens do pedido
+      tags:
+      - Orders
+    post:
+      consumes:
+      - application/json
+      description: Adiciona um produto e quantidade a um pedido elegivel (proprietario
+        ou admin).
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Produto e quantidade
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OrderItemRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Adicionar item ao pedido
+      tags:
+      - Orders
+  /orders/{id}/items/{itemId}:
+    delete:
+      description: Remove um item especifico de um pedido elegivel (proprietario ou
+        admin).
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID do item do pedido (UUID)
+        in: path
+        name: itemId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Item removido com sucesso
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Remover item do pedido
+      tags:
+      - Orders
+    put:
+      consumes:
+      - application/json
+      description: Altera a quantidade de um item especifico do pedido (proprietario
+        ou admin).
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID do item do pedido (UUID)
+        in: path
+        name: itemId
+        required: true
+        type: string
+      - description: Nova quantidade do item
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OrderItemUpdateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Item atualizado com sucesso
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Atualizar item do pedido
+      tags:
+      - Orders
+  /orders/{id}/payment:
+    get:
+      description: Retorna o ultimo pagamento associado a um pedido, verificando automaticamente
+        se houve expiracao.
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_PaymentResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Consultar pagamento do pedido
+      tags:
+      - Payments
+  /orders/{id}/payment/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Simula aprovacao (APPROVE), falha (FAIL) ou expiracao (EXPIRE)
+        de pagamento. Disponivel apenas quando ALLOW_PAYMENT_SIMULATION=true e sem
+        ACCESS_TOKEN_PAYMENT.
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Acao de simulacao (APPROVE, FAIL ou EXPIRE)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.WebhookPaymentRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_PaymentResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Simular confirmacao de pagamento (mock)
+      tags:
+      - Payments
+  /orders/{id}/payments:
+    post:
+      consumes:
+      - application/json
+      description: Processa o pagamento de um pedido via PIX ou CREDIT_CARD. Exige
+        o header Idempotency-Key para garantir idempotencia.
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Chave unica de idempotencia
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Dados do pagamento
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ProcessPaymentRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_PaymentResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Processar pagamento de pedido
+      tags:
+      - Payments
+  /orders/{id}/refund:
+    post:
+      consumes:
+      - application/json
+      description: 'Solicita estorno de um pedido: automatico quando em PREPARING,
+        bloqueado quando SHIPPED e pendente de aprovacao admin quando DELIVERED (motivo
+        obrigatorio).'
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Motivo do estorno (obrigatorio para pedidos entregues)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dto.OrderRefundRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_OrderResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Solicitar estorno de pedido
+      tags:
+      - Orders
+  /orders/{id}/refund/approve:
+    put:
+      description: Aprova e efetiva uma solicitacao de estorno pendente. Requer perfil
+        admin.
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_OrderResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Aprovar estorno de pedido (admin)
+      tags:
+      - Orders
+  /orders/{id}/refund/reject:
+    put:
+      consumes:
+      - application/json
+      description: Recusa uma solicitacao de estorno pendente com justificativa e
+        retorna o pedido para DELIVERED. Requer perfil admin.
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Justificativa da recusa
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OrderRefundRejectRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_OrderResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Recusar estorno de pedido (admin)
+      tags:
+      - Orders
+  /orders/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Altera o status de um pedido e opcionalmente informa o codigo de
+        rastreio. Requer perfil admin.
+      parameters:
+      - description: ID do pedido (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Novo status e codigo de rastreamento
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OrderStatusRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Status atualizado com sucesso
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Atualizar status do pedido (admin)
+      tags:
+      - Orders
+  /orders/me:
+    get:
+      description: Retorna os pedidos do usuario logado com suporte a paginacao e
+        filtro por status.
+      parameters:
+      - default: 1
+        description: Numero da pagina
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Itens por pagina
+        in: query
+        name: limit
+        type: integer
+      - description: Filtro por status do pedido
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_PaginatedOrdersDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Listar meus pedidos
+      tags:
+      - Orders
+  /payments/webhook:
+    post:
+      consumes:
+      - application/json
+      description: Recebe notificacoes de pagamento do Mercado Pago, valida assinatura
+        HMAC-SHA256 no header x-signature e sincroniza o status do pagamento.
+      parameters:
+      - description: Assinatura HMAC no formato ts=<timestamp>,v1=<hex>
+        in: header
+        name: x-signature
+        required: true
+        type: string
+      - description: Identificador da requisicao enviado pelo Mercado Pago
+        in: header
+        name: x-request-id
+        required: true
+        type: string
+      - description: ID externo do pagamento no Mercado Pago (alternativa ao campo
+          data.id do body)
+        in: query
+        name: data.id
+        type: string
+      - description: Payload nativo de notificacao do Mercado Pago
+        in: body
+        name: request
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_PaymentResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Webhook do Mercado Pago
+      tags:
+      - Payments
+  /products:
+    get:
+      description: Retorna uma lista paginada de produtos disponiveis no catalogo.
+      parameters:
+      - default: 1
+        description: Numero da pagina
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Itens por pagina
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_PaginatedProducts'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Listar produtos
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Cadastra um novo produto no catalogo. Requer perfil admin.
+      parameters:
+      - description: Dados do produto
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ProcuctCreateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_ProcuctResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Criar produto
+      tags:
+      - Products
+  /products/{id}:
+    delete:
+      description: Remove um produto do catalogo pelo ID. Requer perfil admin.
+      parameters:
+      - description: ID do produto (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Produto removido com sucesso
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Remover produto
+      tags:
+      - Products
+    get:
+      description: Retorna os detalhes de um produto especifico pelo ID.
+      parameters:
+      - description: ID do produto (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_ProcuctResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Buscar produto por ID
+      tags:
+      - Products
+    put:
+      consumes:
+      - application/json
+      description: Atualiza os dados de um produto existente. Requer perfil admin.
+      parameters:
+      - description: ID do produto (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados atualizados do produto
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ProcuctUpdateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Produto atualizado com sucesso
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Atualizar produto
+      tags:
+      - Products
+  /products/search:
+    get:
+      description: Busca produtos por termo textual com suporte a paginacao.
+      parameters:
+      - description: Termo de busca
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 1
+        description: Numero da pagina
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Itens por pagina
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_PaginatedProducts'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Pesquisar produtos
+      tags:
+      - Products
+  /users:
+    get:
+      description: Retorna todos os usuarios cadastrados na plataforma. Requer perfil
+        admin.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-array_dto_UserResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Listar usuarios
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Registra um novo usuario e envia codigo de verificacao por email.
+      parameters:
+      - description: Dados de cadastro do usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserCreateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Criar usuario
+      tags:
+      - Users
+  /users/{id}:
+    delete:
+      description: Remove um usuario pelo ID e revoga seus tokens ativos. Requer perfil
+        admin.
+      parameters:
+      - description: ID do usuario (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Usuario removido com sucesso
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Remover usuario
+      tags:
+      - Users
+    get:
+      description: Retorna os dados de um usuario especifico. Requer perfil admin.
+      parameters:
+      - description: ID do usuario (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_UserResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Buscar usuario por ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Atualiza o perfil de um usuario. Permitido para o proprio usuario
+        ou admin.
+      parameters:
+      - description: ID do usuario (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados atualizados do perfil
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserUpdateRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Usuario atualizado com sucesso
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Atualizar usuario
+      tags:
+      - Users
+  /users/confirm-reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Valida o codigo de recuperacao, atualiza a senha do usuario e revoga
+        sessoes anteriores.
+      parameters:
+      - description: Email, codigo e nova senha
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserConfirmResetPasswordDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Confirmar redefinicao de senha
+      tags:
+      - Users
+  /users/me:
+    get:
+      description: Retorna os dados do usuario atualmente autenticado via cookie JWT.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_UserResponseDTO'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Obter perfil do usuario logado
+      tags:
+      - Users
+  /users/new-verify-code:
+    post:
+      consumes:
+      - application/json
+      description: Gera e envia um novo codigo de verificacao para o email cadastrado
+        ainda nao verificado.
+      parameters:
+      - description: Email do usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserNewVerifyCodeDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Reenviar codigo de verificacao
+      tags:
+      - Users
+  /users/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Envia instrucoes e codigo de redefinicao de senha para o email
+        informado, caso esteja cadastrado.
+      parameters:
+      - description: Email do usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserResetPasswordDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Solicitar redefinicao de senha
+      tags:
+      - Users
+  /users/verify:
+    post:
+      consumes:
+      - application/json
+      description: Confirma o cadastro do usuario utilizando o codigo enviado por
+        email.
+      parameters:
+      - description: Email e codigo de verificacao
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserVerifyCodeRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      summary: Verificar email do usuario
+      tags:
+      - Users
+schemes:
+- http
+- https
+securityDefinitions:
+  CookieAuth:
+    description: Cookie HTTP-Only "token" (JWT) definido pelo endpoint POST /api/v1/login.
+    in: cookie
+    name: token
+    type: apiKey
+swagger: "2.0"

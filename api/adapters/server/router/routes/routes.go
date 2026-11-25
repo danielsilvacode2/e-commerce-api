@@ -3,6 +3,7 @@ package routes
 import (
 	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
+	controllerChat "e-commerce/adapters/controller/chat"
 	controllerOrder "e-commerce/adapters/controller/order"
 	controllerPayment "e-commerce/adapters/controller/payment"
 	controllerProduct "e-commerce/adapters/controller/product"
@@ -10,9 +11,12 @@ import (
 	redisAdapter "e-commerce/adapters/redis"
 	"e-commerce/adapters/server/middleware"
 	"e-commerce/config"
+	_ "e-commerce/docs"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"golang.org/x/time/rate"
 )
 
@@ -23,6 +27,7 @@ func NewRoutes(
 	cartController *controllerCart.CartController,
 	orderController *controllerOrder.OrderController,
 	paymentController *controllerPayment.PaymentController,
+	chatController *controllerChat.ChatController,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -46,6 +51,8 @@ func NewRoutes(
 	r.Use(middleware.CorsMiddleware())
 	r.Use(middleware.CSRFOriginMiddleware())
 	r.Use(middleware.RateLimiterMiddleware(globalLimiter))
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	v1 := r.Group("/api/v1")
 	{
@@ -121,6 +128,11 @@ func NewRoutes(
 			orders.PUT("/:id/refund/approve", middleware.AuthMiddleware("admin"), orderController.ApproveRefund)
 			orders.PUT("/:id/refund/reject", middleware.AuthMiddleware("admin"), orderController.RejectRefund)
 			orders.DELETE("/:id", middleware.AuthMiddleware("admin"), orderController.DeleteOrder)
+		}
+
+		chat := v1.Group("/chat", middleware.AuthMiddleware("user"))
+		{
+			chat.POST("", chatController.SendMessage)
 		}
 
 		payments := v1.Group("/payments")

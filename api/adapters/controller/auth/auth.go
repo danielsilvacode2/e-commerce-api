@@ -26,6 +26,19 @@ func NewAuthController(repository entities.UserRepository, hashService ports.Has
 	}
 }
 
+// Login autentica o usuario e define o cookie HTTP-Only "token".
+// @Summary      Realizar login
+// @Description  Autentica um usuario verificado por email e senha e define o cookie HTTP-Only "token" (JWT valido por 2 horas).
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      dto.LoginRequestDTO  true  "Credenciais de acesso"
+// @Success      200      {object}  helpers.SwaggerDataResponse[dto.LoginResponseDTO]
+// @Failure      400      {object}  helpers.SwaggerMessageResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      429      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /login [post]
 func (a *AuthController) Login(c *gin.Context) {
 
 	var loginRequest dto.LoginRequestDTO
@@ -73,6 +86,13 @@ func (a *AuthController) Login(c *gin.Context) {
 	helpers.HelperResponse(loginResponse, http.StatusOK, "login authorized", c)
 
 }
+// Logout revoga o token atual e remove o cookie de autenticacao.
+// @Summary      Realizar logout
+// @Description  Revoga o JWT atual (se presente e valido) e remove o cookie HTTP-Only "token".
+// @Tags         Auth
+// @Produce      json
+// @Success      200  {object}  helpers.SwaggerMessageResponse
+// @Router       /logout [post]
 func (a *AuthController) Logout(c *gin.Context) {
 	if claims, err := auth.ValidateToken(c); err == nil && claims != nil {
 		if claims.ExpiresAt != nil {

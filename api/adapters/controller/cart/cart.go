@@ -60,6 +60,20 @@ func (cartCtrl *CartController) getClaims(c *gin.Context) (*auth.Claims, error) 
 
 }
 
+// AddProductCartMe adiciona um produto ao carrinho do usuario autenticado.
+// @Summary      Adicionar produto ao carrinho
+// @Description  Adiciona um produto (ou incrementa sua quantidade) no carrinho do usuario logado.
+// @Tags         Cart
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        request  body      dto.CartRequestDTO  true  "Produto e quantidade"
+// @Success      201      {object}  helpers.SwaggerMessageResponse
+// @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      404      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /cart [post]
 func (cartCtrl *CartController) AddProductCartMe(c *gin.Context) {
 
 	claims, err := cartCtrl.getClaims(c)
@@ -99,6 +113,21 @@ func (cartCtrl *CartController) AddProductCartMe(c *gin.Context) {
 
 }
 
+// DecreaseProductCartMe diminui a quantidade de um produto no carrinho do usuario autenticado.
+// @Summary      Diminuir quantidade de item no carrinho
+// @Description  Reduz a quantidade de um item especifico no carrinho do usuario logado.
+// @Tags         Cart
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id       path      string                      true  "ID do item no carrinho (UUID)"
+// @Param        request  body      dto.CartRequestDecreaseDTO  true  "Quantidade a reduzir"
+// @Success      200      {object}  helpers.SwaggerMessageResponse
+// @Failure      400      {object}  helpers.SwaggerMessageResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      404      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /cart/decrease/{id} [put]
 func (cartCtrl *CartController) DecreaseProductCartMe(c *gin.Context) {
 
 	claims, err := cartCtrl.getClaims(c)
@@ -129,6 +158,16 @@ func (cartCtrl *CartController) DecreaseProductCartMe(c *gin.Context) {
 
 }
 
+// ReadAllProductCartMe lista todos os produtos no carrinho do usuario autenticado.
+// @Summary      Listar itens do carrinho
+// @Description  Retorna o carrinho e todos os itens adicionados pelo usuario logado.
+// @Tags         Cart
+// @Produce      json
+// @Security     CookieAuth
+// @Success      200  {object}  helpers.SwaggerDataResponse[dto.CartResponseDTO]
+// @Failure      401  {object}  helpers.SwaggerMessageResponse
+// @Failure      500  {object}  helpers.SwaggerMessageResponse
+// @Router       /cart [get]
 func (cartCtrl *CartController) ReadAllProductCartMe(c *gin.Context) {
 
 	claims, err := cartCtrl.getClaims(c)
@@ -172,6 +211,18 @@ func (cartCtrl *CartController) ReadAllProductCartMe(c *gin.Context) {
 	helpers.HelperResponse(cartResponse, http.StatusOK, "read all products cart", c)
 }
 
+// RemoveProductCartMe remove um item do carrinho do usuario autenticado.
+// @Summary      Remover item do carrinho
+// @Description  Remove um produto do carrinho do usuario logado.
+// @Tags         Cart
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id   path  string  true  "ID do item no carrinho (UUID)"
+// @Success      204  "Item removido com sucesso"
+// @Failure      401  {object}  helpers.SwaggerMessageResponse
+// @Failure      404  {object}  helpers.SwaggerMessageResponse
+// @Failure      500  {object}  helpers.SwaggerMessageResponse
+// @Router       /cart/{id} [delete]
 func (cartCtrl *CartController) RemoveProductCartMe(c *gin.Context) {
 	claims, err := cartCtrl.getClaims(c)
 
@@ -191,6 +242,21 @@ func (cartCtrl *CartController) RemoveProductCartMe(c *gin.Context) {
 	helpers.HelperResponse(nil, http.StatusNoContent, "remove product", c)
 }
 
+// UpdateIsSelectProductMe marca ou desmarca um item do carrinho para checkout.
+// @Summary      Selecionar/desmarcar item do carrinho
+// @Description  Atualiza o estado de selecao de um item especifico no carrinho para o checkout.
+// @Tags         Cart
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id       path      string                  true  "ID do item no carrinho (UUID)"
+// @Param        request  body      dto.IsSelectRequestDTO  true  "Estado de selecao"
+// @Success      204      "Selecao atualizada com sucesso"
+// @Failure      400      {object}  helpers.SwaggerMessageResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      404      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /cart/{id} [put]
 func (cartCtrl *CartController) UpdateIsSelectProductMe(c *gin.Context) {
 	claims, err := cartCtrl.getClaims(c)
 
@@ -219,6 +285,19 @@ func (cartCtrl *CartController) UpdateIsSelectProductMe(c *gin.Context) {
 
 }
 
+// UpdateIsAllSelectProductMe marca ou desmarca todos os itens do carrinho.
+// @Summary      Selecionar/desmarcar todos os itens do carrinho
+// @Description  Atualiza o estado de selecao de todos os itens no carrinho do usuario logado.
+// @Tags         Cart
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        request  body      dto.IsSelectRequestDTO  true  "Estado de selecao"
+// @Success      204      "Selecao atualizada com sucesso"
+// @Failure      400      {object}  helpers.SwaggerMessageResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /cart [put]
 func (cartCtrl *CartController) UpdateIsAllSelectProductMe(c *gin.Context) {
 
 	claims, err := cartCtrl.getClaims(c)

@@ -30,6 +30,10 @@ var AccessTokenPayment string
 var WebhookSecret string
 var AllowPaymentSimulation bool
 
+var OllamaHost string
+var OllamaPort string
+var OllamaModel string
+
 var CookieSecure bool
 var CookieDomain string
 var AllowedOrigins []string
@@ -94,6 +98,19 @@ func LoadConfig() {
 	AccessTokenPayment = strings.TrimSpace(os.Getenv("ACCESS_TOKEN_PAYMENT"))
 	WebhookSecret = strings.TrimSpace(os.Getenv("MERCADO_PAGO_WEBHOOK_SECRET"))
 	AllowPaymentSimulation = strings.EqualFold(strings.TrimSpace(os.Getenv("ALLOW_PAYMENT_SIMULATION")), "true")
+
+	OllamaHost = strings.TrimSpace(os.Getenv("OLLAMA_HOST"))
+	if OllamaHost == "" {
+		OllamaHost = "127.0.0.1"
+	}
+	OllamaPort = strings.TrimSpace(os.Getenv("OLLAMA_PORT"))
+	if OllamaPort == "" {
+		OllamaPort = "11434"
+	}
+	OllamaModel = strings.TrimSpace(os.Getenv("OLLAMA_MODEL"))
+	if OllamaModel == "" {
+		OllamaModel = "llama3.2"
+	}
 
 	CookieSecure = strings.EqualFold(strings.TrimSpace(os.Getenv("COOKIE_SECURE")), "true")
 	CookieDomain = strings.TrimSpace(os.Getenv("COOKIE_DOMAIN"))

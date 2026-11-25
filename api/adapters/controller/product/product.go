@@ -39,6 +39,20 @@ func NewProductController(
 	}
 }
 
+// CreateProduct cria um novo produto (somente admin).
+// @Summary      Criar produto
+// @Description  Cadastra um novo produto no catalogo. Requer perfil admin.
+// @Tags         Products
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        request  body      dto.ProcuctCreateRequestDTO  true  "Dados do produto"
+// @Success      201      {object}  helpers.SwaggerDataResponse[dto.ProcuctResponseDTO]
+// @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      403      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /products [post]
 func (productCtrl *ProductController) CreateProduct(c *gin.Context) {
 
 	var dtoRequest dto.ProcuctCreateRequestDTO
@@ -67,6 +81,18 @@ func (productCtrl *ProductController) CreateProduct(c *gin.Context) {
 
 }
 
+// ReadProductById retorna um produto pelo seu ID.
+// @Summary      Buscar produto por ID
+// @Description  Retorna os detalhes de um produto especifico pelo ID.
+// @Tags         Products
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id   path      string  true  "ID do produto (UUID)"
+// @Success      200  {object}  helpers.SwaggerDataResponse[dto.ProcuctResponseDTO]
+// @Failure      401  {object}  helpers.SwaggerMessageResponse
+// @Failure      404  {object}  helpers.SwaggerMessageResponse
+// @Failure      500  {object}  helpers.SwaggerMessageResponse
+// @Router       /products/{id} [get]
 func (productCtrl *ProductController) ReadProductById(c *gin.Context) {
 
 	productID := c.Param("id")
@@ -84,6 +110,16 @@ func (productCtrl *ProductController) ReadProductById(c *gin.Context) {
 
 }
 
+// ReadAllProducts lista os produtos de forma paginada.
+// @Summary      Listar produtos
+// @Description  Retorna uma lista paginada de produtos disponiveis no catalogo.
+// @Tags         Products
+// @Produce      json
+// @Param        page   query     int  false  "Numero da pagina"      default(1)
+// @Param        limit  query     int  false  "Itens por pagina"      default(10)
+// @Success      200    {object}  helpers.SwaggerDataResponse[dto.PaginatedProducts]
+// @Failure      500    {object}  helpers.SwaggerMessageResponse
+// @Router       /products [get]
 func (productCtrl *ProductController) ReadAllProducts(c *gin.Context) {
 
 	pageStr := c.DefaultQuery("page", "1")
@@ -124,6 +160,19 @@ func (productCtrl *ProductController) ReadAllProducts(c *gin.Context) {
 	helpers.HelperResponse(pagineteDTO, http.StatusOK, "list products", c)
 }
 
+// DeleteProductById remove um produto pelo ID (somente admin).
+// @Summary      Remover produto
+// @Description  Remove um produto do catalogo pelo ID. Requer perfil admin.
+// @Tags         Products
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id   path  string  true  "ID do produto (UUID)"
+// @Success      204  "Produto removido com sucesso"
+// @Failure      401  {object}  helpers.SwaggerMessageResponse
+// @Failure      403  {object}  helpers.SwaggerMessageResponse
+// @Failure      404  {object}  helpers.SwaggerMessageResponse
+// @Failure      500  {object}  helpers.SwaggerMessageResponse
+// @Router       /products/{id} [delete]
 func (productCtrl *ProductController) DeleteProductById(c *gin.Context) {
 
 	Id := c.Param("id")
@@ -137,6 +186,22 @@ func (productCtrl *ProductController) DeleteProductById(c *gin.Context) {
 
 }
 
+// UpdateProduct atualiza os dados de um produto (somente admin).
+// @Summary      Atualizar produto
+// @Description  Atualiza os dados de um produto existente. Requer perfil admin.
+// @Tags         Products
+// @Accept       json
+// @Produce      json
+// @Security     CookieAuth
+// @Param        id       path      string                       true  "ID do produto (UUID)"
+// @Param        request  body      dto.ProcuctUpdateRequestDTO  true  "Dados atualizados do produto"
+// @Success      204      "Produto atualizado com sucesso"
+// @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      401      {object}  helpers.SwaggerMessageResponse
+// @Failure      403      {object}  helpers.SwaggerMessageResponse
+// @Failure      404      {object}  helpers.SwaggerMessageResponse
+// @Failure      500      {object}  helpers.SwaggerMessageResponse
+// @Router       /products/{id} [put]
 func (productCtrl *ProductController) UpdateProduct(c *gin.Context) {
 
 	var dtoRequest dto.ProcuctUpdateRequestDTO

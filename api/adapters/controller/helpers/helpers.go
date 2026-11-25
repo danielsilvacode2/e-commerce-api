@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	fielderrors "e-commerce/adapters/controller/fieldErrors"
 	"e-commerce/core/apperrors"
 	"errors"
 	"log"
@@ -12,6 +13,23 @@ import (
 type HelperResponseDto struct {
 	Status   int    `json:"status"`
 	Mensagem string `json:"mensagem"`
+}
+
+// SwaggerMessageResponse representa a resposta padrao da API sem payload em Body.
+type SwaggerMessageResponse struct {
+	Response HelperResponseDto `json:"Response"`
+}
+
+// SwaggerDataResponse representa a resposta padrao da API contendo payload em Body.
+type SwaggerDataResponse[T any] struct {
+	Response HelperResponseDto `json:"Response"`
+	Body     T                 `json:"Body:"`
+}
+
+// SwaggerValidationErrorResponse representa a resposta de erro com lista de campos invalidos.
+type SwaggerValidationErrorResponse struct {
+	Response HelperResponseDto                 `json:"Response"`
+	Body     []fielderrors.FieldValidateErrors `json:"Body:"`
 }
 
 func HelperResponse(body interface{}, status int, msg string, c *gin.Context) {
@@ -61,6 +79,9 @@ func HelperErrResponse(body interface{}, c *gin.Context, err error) {
 		return
 	case errors.Is(err, apperrors.ErrUnprocessableEntity):
 		HelperResponse(body, http.StatusUnprocessableEntity, apperrors.ErrUnprocessableEntity.Error(), c)
+		return
+	case errors.Is(err, apperrors.ErrServiceUnavailable):
+		HelperResponse(body, http.StatusServiceUnavailable, apperrors.ErrServiceUnavailable.Error(), c)
 		return
 	default:
 		log.Printf("[ERROR] internal server error [%s %s]: %v", c.Request.Method, c.FullPath(), err)

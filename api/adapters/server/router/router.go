@@ -15,6 +15,7 @@ func NewGinRouter() *gin.Engine {
 	cartController := builder.BuilderCartController()
 	orderController := builder.BuilderOrderController()
 	paymentController := builder.BuilderPaymentController()
+	chatController := builder.BuilderChatController()
 
 	r := routes.NewRoutes(
 		userController,
@@ -23,6 +24,7 @@ func NewGinRouter() *gin.Engine {
 		cartController,
 		orderController,
 		paymentController,
+		chatController,
 	)
 
 	return r
