@@ -47,6 +47,7 @@ func CSRFOriginMiddleware() gin.HandlerFunc {
 	allowedOrigins := make(map[string]bool)
 	if len(config.AllowedOrigins) == 0 {
 		allowedOrigins["http://localhost:3000"] = true
+		allowedOrigins["https://nero-pi-teal.vercel.app"] = true
 	} else {
 		for _, o := range config.AllowedOrigins {
 			allowedOrigins[strings.TrimRight(o, "/")] = true
@@ -105,15 +106,16 @@ func CorsMiddleware() gin.HandlerFunc {
 	allowedOrigins := make(map[string]bool)
 	if len(config.AllowedOrigins) == 0 {
 		allowedOrigins["http://localhost:3000"] = true
+		allowedOrigins["https://nero-pi-teal.vercel.app"] = true
 	} else {
 		for _, o := range config.AllowedOrigins {
-			allowedOrigins[o] = true
+			allowedOrigins[strings.TrimRight(o, "/")] = true
 		}
 	}
 
 	return func(c *gin.Context) {
 
-		origin := c.GetHeader("Origin")
+		origin := strings.TrimRight(strings.TrimSpace(c.GetHeader("Origin")), "/")
 
 		if allowedOrigins[origin] {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)

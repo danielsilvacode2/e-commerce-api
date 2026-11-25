@@ -32,4 +32,4 @@ OPEN_ROUTER_MODEL=google/gemini-2.5-flash-lite
 
 COOKIE_SECURE=true
 COOKIE_DOMAIN=
-CORS_ALLOWED_ORIGINS=http://localhost:3000
+CORS_ALLOWED_ORIGINS=http://localhost:3000,https://nero-pi-teal.vercel.app

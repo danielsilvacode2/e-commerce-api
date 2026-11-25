@@ -113,10 +113,13 @@ func LoadConfig() {
 
 	originsEnv := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
 	if originsEnv == "" {
-		AllowedOrigins = []string{"http://localhost:3000"}
+		AllowedOrigins = []string{
+			"http://localhost:3000",
+			"https://nero-pi-teal.vercel.app",
+		}
 	} else {
 		for _, o := range strings.Split(originsEnv, ",") {
-			if trimmed := strings.TrimSpace(o); trimmed != "" {
+			if trimmed := strings.TrimRight(strings.TrimSpace(o), "/"); trimmed != "" {
 				AllowedOrigins = append(AllowedOrigins, trimmed)
 			}
 		}
