@@ -186,10 +186,13 @@ func (cartCtrl *CartController) ReadAllProductCartMe(c *gin.Context) {
 		return
 	}
 
-	var listCartProductsDTO []dto.ProcuctCartResponseDTO
+	listCartProductsDTO := make([]dto.ProcuctCartResponseDTO, 0, len(listCartProducts))
 
-	if listCartProducts == nil {
-		helpers.HelperResponse(listCartProductsDTO, http.StatusOK, "list is empty", c)
+	if len(listCartProducts) == 0 {
+		emptyCart := dto.CartResponseDTO{
+			ListProduct: listCartProductsDTO,
+		}
+		helpers.HelperResponse(emptyCart, http.StatusOK, "list is empty", c)
 		return
 	}
 

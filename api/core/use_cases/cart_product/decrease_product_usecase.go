@@ -36,7 +36,7 @@ func (useCase *DecreaseProductCartUseCase) UseCase(cartProductId string, quantit
 	}
 
 	
-	if (cart.Quantity - quantity) <= 1 {
+	if (cart.Quantity - quantity) < 1 {
 		return apperrors.ErrUnprocessableEntity
 	}
 

@@ -186,29 +186,32 @@ func (r *cartProductRepository) ReadProductsCart(cartProductId string) (*entitie
 		Product: &entitiesProduct.Product{},
 	}
 
-	if row.Next() {
-
-		if err = row.Scan(
-			&cartProduct.Id,
-			&cartProduct.Quantity,
-			&cartProduct.IsSelect,
-			&cartProduct.Cart.Id,
-			&cartProduct.Cart.Status,
-			&cartProduct.Cart.User.ID,
-			&cartProduct.Cart.User.Name,
-			&cartProduct.Cart.User.Email,
-			&cartProduct.Cart.User.Role,
-			&cartProduct.Product.Id,
-			&cartProduct.Product.Name,
-			&cartProduct.Product.Description,
-			&cartProduct.Product.Price,
-			&cartProduct.Product.Image,
-			&cartProduct.Product.Sku,
-			&cartProduct.Product.Quantity,
-		); err != nil {
+	if !row.Next() {
+		if err = row.Err(); err != nil {
 			return nil, err
 		}
+		return nil, apperrors.ErrNotFound
+	}
 
+	if err = row.Scan(
+		&cartProduct.Id,
+		&cartProduct.Quantity,
+		&cartProduct.IsSelect,
+		&cartProduct.Cart.Id,
+		&cartProduct.Cart.Status,
+		&cartProduct.Cart.User.ID,
+		&cartProduct.Cart.User.Name,
+		&cartProduct.Cart.User.Email,
+		&cartProduct.Cart.User.Role,
+		&cartProduct.Product.Id,
+		&cartProduct.Product.Name,
+		&cartProduct.Product.Description,
+		&cartProduct.Product.Price,
+		&cartProduct.Product.Image,
+		&cartProduct.Product.Sku,
+		&cartProduct.Product.Quantity,
+	); err != nil {
+		return nil, err
 	}
 
 	if err = row.Err(); err != nil {

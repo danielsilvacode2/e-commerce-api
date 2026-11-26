@@ -33,6 +33,10 @@ type SwaggerValidationErrorResponse struct {
 }
 
 func HelperResponse(body interface{}, status int, msg string, c *gin.Context) {
+	if status == http.StatusNoContent {
+		c.Status(http.StatusNoContent)
+		return
+	}
 
 	dtoResponse := HelperResponseDto{
 		Status:   status,
