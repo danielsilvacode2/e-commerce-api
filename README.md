@@ -195,6 +195,18 @@ go install github.com/swaggo/swag/cmd/swag@latest
 
 ---
 
+## Cartão de Teste (Mercado Pago)
+
+Para testar pagamentos com cartão de crédito em ambiente sandbox do Mercado Pago:
+
+- **Cartão (Mastercard):** `5480 8328 0103 3311`
+- **Vencimento:** `11/30`
+- **CVV:** `123`
+- **Nome do titular:** `APRO`
+- **CPF:** `12345678909`
+
+---
+
 ## Testes e Verificação
 
 ```powershell
