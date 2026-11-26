@@ -50,13 +50,15 @@ func LoadConfig() {
 	dbName := os.Getenv("DB_NAME")
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
+	db_tsl := os.Getenv("DB_TSL")
 
-	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=true",
+	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
 		dbUser,
 		dbPassword,
 		dbHost,
 		dbPort,
 		dbName,
+		db_tsl,
 	)
 
 	ApiPort = strings.TrimSpace(os.Getenv("API_PORT"))
@@ -98,8 +100,6 @@ func LoadConfig() {
 	)
 
 	RedisURL = os.Getenv("REDIS_URL")
-
-	
 
 	AccessTokenPayment = strings.TrimSpace(os.Getenv("ACCESS_TOKEN_PAYMENT"))
 	WebhookSecret = strings.TrimSpace(os.Getenv("MERCADO_PAGO_WEBHOOK_SECRET"))
