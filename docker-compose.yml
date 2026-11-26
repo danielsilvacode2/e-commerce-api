@@ -13,6 +13,7 @@ services:
       - ./sql/script.sql:/docker-entrypoint-initdb.d/01-script.sql:ro
       - ./sql/migrations/001_payment_refund_flow.sql:/docker-entrypoint-initdb.d/02-payment_refund_flow.sql:ro
       - ./sql/migrations/002_performance_indexes.sql:/docker-entrypoint-initdb.d/03-performance_indexes.sql:ro
+      - ./sql/migrations/003_cart_products_unique_and_constraints.sql:/docker-entrypoint-initdb.d/04-cart_products_unique_and_constraints.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 5s

@@ -32,7 +32,7 @@ func NewRoutes(
 
 	r := gin.Default()
 
-	if err := r.SetTrustedProxies(nil); err != nil {
+	if err := r.SetTrustedProxies(config.TrustedProxies); err != nil {
 		panic(err)
 	}
 

@@ -119,6 +119,12 @@ func TestIPRateLimiter_EdgeCases(t *testing.T) {
 		t.Fatalf("esperava erro com cliente Redis nil, got allowed=%v err=%v", allowed, err)
 	}
 
+	var typedNilClient *goredis.Client
+	typedNilLimiter := NewRateLimiter(typedNilClient, "rl:ip:global", rate.Every(time.Second), 5)
+	if allowed, err := typedNilLimiter.Allow(ctx, "127.0.0.1"); err == nil || allowed {
+		t.Fatalf("esperava erro com cliente Redis typed-nil sem panic, got allowed=%v err=%v", allowed, err)
+	}
+
 	fake := newFakeRedisScripter()
 	zeroBurst := NewRateLimiter(fake, "rl:ip:global", rate.Every(time.Second), 0)
 	if allowed, err := zeroBurst.Allow(ctx, "127.0.0.1"); err != nil || allowed {
