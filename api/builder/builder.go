@@ -10,6 +10,7 @@ import (
 	controllerUser "e-commerce/adapters/controller/user"
 	"e-commerce/adapters/database"
 	"e-commerce/adapters/email"
+	adapterImgBB "e-commerce/adapters/imgbb"
 	adapterOpenRouter "e-commerce/adapters/openrouter"
 	adapterPayment "e-commerce/adapters/payment"
 	"e-commerce/adapters/rabbitmq"
@@ -127,6 +128,12 @@ func BuilderProductController() *controllerProduct.ProductController {
 	updateProduct := useCasesProduct.NewUpdateProductUseCase(productRepository)
 	searchProducts := useCasesProduct.NewSearchProductsUseCase(productRepository)
 
+	if config.ImgBBAPIKey == "" {
+		log.Println("[WARN] IMGBB_API_KEY não configurada; o endpoint de upload de imagem retornará indisponível.")
+	}
+	imageUploader := adapterImgBB.NewImgBBClient(config.ImgBBAPIKey)
+	uploadProductImage := useCasesProduct.NewUploadProductImageUseCase(imageUploader)
+
 	productController := controllerProduct.NewProductController(
 		createProduct,
 		readAllProduct,
@@ -134,6 +141,7 @@ func BuilderProductController() *controllerProduct.ProductController {
 		updateProduct,
 		readProductById,
 		searchProducts,
+		uploadProductImage,
 	)
 
 	return productController

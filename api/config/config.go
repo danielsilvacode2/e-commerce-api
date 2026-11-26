@@ -31,6 +31,7 @@ var AllowPaymentSimulation bool
 
 var KeyOpenRouter string
 var OpenRouterModel string
+var ImgBBAPIKey string
 
 var CookieSecure bool
 var CookieDomain string
@@ -109,6 +110,7 @@ func LoadConfig() {
 	if OpenRouterModel == "" {
 		OpenRouterModel = "google/gemini-2.5-flash-lite"
 	}
+	ImgBBAPIKey = strings.TrimSpace(os.Getenv("IMGBB_API_KEY"))
 
 	CookieSecure = strings.EqualFold(strings.TrimSpace(os.Getenv("COOKIE_SECURE")), "true")
 	CookieDomain = strings.TrimSpace(os.Getenv("COOKIE_DOMAIN"))

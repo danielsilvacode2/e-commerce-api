@@ -2000,6 +2000,79 @@ const docTemplate = `{
                 }
             }
         },
+        "/products/image": {
+            "post": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Valida e realiza upload de uma imagem (JPG, PNG, WEBP ou GIF de ate 5 MB). Requer perfil admin.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Enviar imagem de produto",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Arquivo de imagem (JPG, PNG, WEBP ou GIF, max 5 MB)",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.SwaggerDataResponse-dto_ProductImageUploadResponseDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.SwaggerValidationErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.SwaggerMessageResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.SwaggerMessageResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.SwaggerMessageResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.SwaggerMessageResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/helpers.SwaggerMessageResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/products/search": {
             "get": {
                 "description": "Busca produtos por termo textual com suporte a paginacao.",
@@ -3171,6 +3244,9 @@ const docTemplate = `{
                 },
                 "sku": {
                     "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
                 }
             }
         },
@@ -3248,6 +3324,14 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "sku": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ProductImageUploadResponseDTO": {
+            "type": "object",
+            "properties": {
+                "url": {
                     "type": "string"
                 }
             }
@@ -3532,6 +3616,17 @@ const docTemplate = `{
             "properties": {
                 "Body:": {
                     "$ref": "#/definitions/dto.ProcuctResponseDTO"
+                },
+                "Response": {
+                    "$ref": "#/definitions/helpers.HelperResponseDto"
+                }
+            }
+        },
+        "helpers.SwaggerDataResponse-dto_ProductImageUploadResponseDTO": {
+            "type": "object",
+            "properties": {
+                "Body:": {
+                    "$ref": "#/definitions/dto.ProductImageUploadResponseDTO"
                 },
                 "Response": {
                     "$ref": "#/definitions/helpers.HelperResponseDto"

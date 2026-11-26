@@ -80,8 +80,14 @@ func HelperErrResponse(body interface{}, c *gin.Context, err error) {
 	case errors.Is(err, apperrors.ErrUnprocessableEntity):
 		HelperResponse(body, http.StatusUnprocessableEntity, apperrors.ErrUnprocessableEntity.Error(), c)
 		return
+	case errors.Is(err, apperrors.ErrPayloadTooLarge):
+		HelperResponse(body, http.StatusRequestEntityTooLarge, apperrors.ErrPayloadTooLarge.Error(), c)
+		return
 	case errors.Is(err, apperrors.ErrServiceUnavailable):
 		HelperResponse(body, http.StatusServiceUnavailable, apperrors.ErrServiceUnavailable.Error(), c)
+		return
+	case errors.Is(err, apperrors.ErrImageUploadUnavailable):
+		HelperResponse(body, http.StatusServiceUnavailable, apperrors.ErrImageUploadUnavailable.Error(), c)
 		return
 	default:
 		log.Printf("[ERROR] internal server error [%s %s]: %v", c.Request.Method, c.FullPath(), err)

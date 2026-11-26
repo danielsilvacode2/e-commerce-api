@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"bytes"
 	"e-commerce/config"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -196,5 +198,48 @@ func TestCSRFOriginMiddleware(t *testing.T) {
 				t.Fatalf("expected %d, got %d (body=%s)", tc.wantCode, w.Code, w.Body.String())
 			}
 		})
+	}
+}
+
+func TestMaxBodySizeMiddlewareWithRouteLimits(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	r := gin.New()
+	r.Use(MaxBodySizeMiddlewareWithRouteLimits(16, map[string]int64{
+		"POST /api/v1/products/image": 64,
+	}))
+
+	readAllHandler := func(c *gin.Context) {
+		if _, err := io.ReadAll(c.Request.Body); err != nil {
+			c.Status(http.StatusRequestEntityTooLarge)
+			return
+		}
+		c.Status(http.StatusOK)
+	}
+	r.POST("/api/v1/products", readAllHandler)
+	r.POST("/api/v1/products/image", readAllHandler)
+
+	// Rota padrao rejeita corpo maior que 16 bytes
+	reqDefault := httptest.NewRequest(http.MethodPost, "/api/v1/products", bytes.NewReader(make([]byte, 32)))
+	wDefault := httptest.NewRecorder()
+	r.ServeHTTP(wDefault, reqDefault)
+	if wDefault.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("rota padrao: status = %d, esperado 413", wDefault.Code)
+	}
+
+	// Rota de upload aceita 32 bytes dentro do limite de 64 bytes
+	reqUpload := httptest.NewRequest(http.MethodPost, "/api/v1/products/image", bytes.NewReader(make([]byte, 32)))
+	wUpload := httptest.NewRecorder()
+	r.ServeHTTP(wUpload, reqUpload)
+	if wUpload.Code != http.StatusOK {
+		t.Fatalf("rota upload dentro do limite: status = %d, esperado 200", wUpload.Code)
+	}
+
+	// Rota de upload rejeita corpo acima de 64 bytes
+	reqUploadOver := httptest.NewRequest(http.MethodPost, "/api/v1/products/image", bytes.NewReader(make([]byte, 80)))
+	wUploadOver := httptest.NewRecorder()
+	r.ServeHTTP(wUploadOver, reqUploadOver)
+	if wUploadOver.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("rota upload acima do limite: status = %d, esperado 413", wUploadOver.Code)
 	}
 }

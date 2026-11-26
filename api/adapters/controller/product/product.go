@@ -1,14 +1,18 @@
 package controller
 
 import (
+	fielderrors "e-commerce/adapters/controller/fieldErrors"
 	"e-commerce/adapters/controller/helpers"
 	"e-commerce/adapters/controller/product/dto"
 	"e-commerce/adapters/controller/product/mapper"
 	redisAdapter "e-commerce/adapters/redis"
 	"e-commerce/core/apperrors"
 	use_cases "e-commerce/core/use_cases/product"
+	"errors"
+	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,12 +24,13 @@ const (
 )
 
 type ProductController struct {
-	createProduct     *use_cases.CreateProductUseCase
-	readAllProducts   *use_cases.ReadAllProductsUseCase
-	deleteProductById *use_cases.DeleteProductByIdUseCase
-	updateProduct     *use_cases.UpdateProductUseCase
-	readProductById   *use_cases.ReadProductByIdUseCase
-	searchProducts    *use_cases.SearchProductsUseCase
+	createProduct      *use_cases.CreateProductUseCase
+	readAllProducts    *use_cases.ReadAllProductsUseCase
+	deleteProductById  *use_cases.DeleteProductByIdUseCase
+	updateProduct      *use_cases.UpdateProductUseCase
+	readProductById    *use_cases.ReadProductByIdUseCase
+	searchProducts     *use_cases.SearchProductsUseCase
+	uploadProductImage *use_cases.UploadProductImageUseCase
 }
 
 func NewProductController(
@@ -34,15 +39,17 @@ func NewProductController(
 	deleteProductById *use_cases.DeleteProductByIdUseCase,
 	updateProduct *use_cases.UpdateProductUseCase,
 	readProductById *use_cases.ReadProductByIdUseCase,
-	searchProducts *use_cases.SearchProductsUseCase) *ProductController {
+	searchProducts *use_cases.SearchProductsUseCase,
+	uploadProductImage *use_cases.UploadProductImageUseCase) *ProductController {
 
 	return &ProductController{
-		createProduct:     createProduct,
-		readAllProducts:   readAllProducts,
-		deleteProductById: deleteProductById,
-		updateProduct:     updateProduct,
-		readProductById:   readProductById,
-		searchProducts:    searchProducts,
+		createProduct:      createProduct,
+		readAllProducts:    readAllProducts,
+		deleteProductById:  deleteProductById,
+		updateProduct:      updateProduct,
+		readProductById:    readProductById,
+		searchProducts:     searchProducts,
+		uploadProductImage: uploadProductImage,
 	}
 }
 
@@ -264,4 +271,64 @@ func (productCtrl *ProductController) UpdateProduct(c *gin.Context) {
 	redisAdapter.InvalidateProductCache(c.Request.Context())
 	helpers.HelperResponse(nil, http.StatusNoContent, "product successfully update", c)
 
+}
+
+// UploadProductImage envia uma imagem de produto ao servico de hospedagem (somente admin).
+// @Summary      Enviar imagem de produto
+// @Description  Valida e realiza upload de uma imagem (JPG, PNG, WEBP ou GIF de ate 5 MB). Requer perfil admin.
+// @Tags         Products
+// @Accept       mpfd
+// @Produce      json
+// @Security     CookieAuth
+// @Param        image  formData  file  true  "Arquivo de imagem (JPG, PNG, WEBP ou GIF, max 5 MB)"
+// @Success      200    {object}  helpers.SwaggerDataResponse[dto.ProductImageUploadResponseDTO]
+// @Failure      400    {object}  helpers.SwaggerValidationErrorResponse
+// @Failure      401    {object}  helpers.SwaggerMessageResponse
+// @Failure      403    {object}  helpers.SwaggerMessageResponse
+// @Failure      413    {object}  helpers.SwaggerMessageResponse
+// @Failure      503    {object}  helpers.SwaggerMessageResponse
+// @Failure      500    {object}  helpers.SwaggerMessageResponse
+// @Router       /products/image [post]
+func (productCtrl *ProductController) UploadProductImage(c *gin.Context) {
+	fileHeader, err := c.FormFile("image")
+	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) || strings.Contains(err.Error(), "http: request body too large") {
+			helpers.HelperErrResponse(nil, c, apperrors.ErrPayloadTooLarge)
+			return
+		}
+		helpers.HelperErrResponse([]fielderrors.FieldValidateErrors{
+			{
+				Field:   "image",
+				Message: "the image file is required",
+			},
+		}, c, apperrors.ErrInvalidInput)
+		return
+	}
+
+	if fileHeader.Size > use_cases.MaxProductImageSize {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrPayloadTooLarge)
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, apperrors.ErrInvalidInput)
+		return
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(io.LimitReader(file, use_cases.MaxProductImageSize+1))
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	uploadedURL, err := productCtrl.uploadProductImage.UseCase(c.Request.Context(), fileHeader.Filename, data)
+	if err != nil {
+		helpers.HelperErrResponse(nil, c, err)
+		return
+	}
+
+	helpers.HelperResponse(dto.ProductImageUploadResponseDTO{URL: uploadedURL}, http.StatusOK, "image uploaded", c)
 }

@@ -47,7 +47,9 @@ func NewRoutes(
 	verifyCodePasswordEmailLimiter := middleware.NewEmailRateLimiter(redisAdapter.Client, "rl:email:verify_password_code", rate.Every(40*time.Minute), 3)
 
 	r.Use(middleware.SecurityHeadersMiddleware())
-	r.Use(middleware.MaxBodySizeMiddleware(1 << 20))
+	r.Use(middleware.MaxBodySizeMiddlewareWithRouteLimits(1<<20, map[string]int64{
+		"POST /api/v1/products/image": 6 << 20, // 5 MB de imagem + overhead multipart
+	}))
 	r.Use(middleware.CorsMiddleware())
 	r.Use(middleware.GzipMiddleware())
 	r.Use(middleware.CSRFOriginMiddleware())
@@ -88,6 +90,7 @@ func NewRoutes(
 			products.GET("/search", productController.SearchProducts)
 			products.GET("/:id", productController.ReadProductById)
 			products.POST("", middleware.AuthMiddleware("admin"), productController.CreateProduct)
+			products.POST("/image", middleware.AuthMiddleware("admin"), productController.UploadProductImage)
 			products.PUT("/:id", middleware.AuthMiddleware("admin"), productController.UpdateProduct)
 			products.DELETE("/:id", middleware.AuthMiddleware("admin"), productController.DeleteProductById)
 		}

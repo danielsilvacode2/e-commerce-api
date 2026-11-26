@@ -113,6 +113,7 @@ Copy-Item env_model .env
 | `MERCADO_PAGO_WEBHOOK_SECRET` | Segredo HMAC para validação de webhooks do Mercado Pago |
 | `ALLOW_PAYMENT_SIMULATION` | `true` habilita a rota de simulação de pagamento quando `ACCESS_TOKEN_PAYMENT` está vazio |
 | `KEY_OPEN_ROUTER`, `OPEN_ROUTER_MODEL` | Chave de API e modelo do OpenRouter (padrão `google/gemini-2.5-flash-lite`) |
+| `IMGBB_API_KEY` | Chave privada da API do ImgBB usada pelo servidor no endpoint `POST /api/v1/products/image` (somente admin) |
 | `COOKIE_SECURE` | `true` em produção HTTPS (usa `SameSite=None; Secure` para suportar front-end em outro domínio); `false` em desenvolvimento local HTTP (`SameSite=Lax`) |
 | `COOKIE_DOMAIN` | Domínio do cookie de autenticação (vazio = host atual) |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas separadas por vírgula (padrão `http://localhost:3000,https://nero-pi-teal.vercel.app`) |
@@ -187,7 +188,7 @@ go install github.com/swaggo/swag/cmd/swag@latest
 | --- | --- |
 | **Auth** | `POST /login`, `POST /logout` |
 | **Users** | `POST /users`, `POST /users/verify`, `POST /users/new-verify-code`, `POST /users/reset-password`, `POST /users/confirm-reset-password`, `GET /users/me`, `PUT /users/:id`, `GET /users` (admin), `GET /users/:id` (admin), `DELETE /users/:id` (admin) |
-| **Products** | `GET /products`, `GET /products/search`, `GET /products/:id`, `POST /products` (admin), `PUT /products/:id` (admin), `DELETE /products/:id` (admin) |
+| **Products** | `GET /products`, `GET /products/search`, `GET /products/:id`, `POST /products` (admin), `POST /products/image` (admin), `PUT /products/:id` (admin), `DELETE /products/:id` (admin) |
 | **Cart** | `GET /cart`, `POST /cart`, `PUT /cart`, `PUT /cart/:id`, `PUT /cart/decrease/:id`, `DELETE /cart/:id` |
 | **Orders** | `POST /orders`, `GET /orders/me`, `GET /orders/:id`, `PUT /orders/:id`, `PUT /orders/:id/cancel`, `POST /orders/:id/refund`, `GET /orders/:id/history`, `GET/POST /orders/:id/items`, `PUT/DELETE /orders/:id/items/:itemId`, `GET /orders` (admin), `PUT /orders/:id/status` (admin), `PUT /orders/:id/refund/approve` (admin), `PUT /orders/:id/refund/reject` (admin), `DELETE /orders/:id` (admin) |
 | **Payments** | `POST /orders/:id/payments`, `GET /orders/:id/payment`, `POST /orders/:id/payment/confirm` (mock), `POST /payments/webhook` |

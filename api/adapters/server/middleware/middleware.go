@@ -33,9 +33,20 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 
 // MaxBodySizeMiddleware limita globalmente o tamanho do corpo HTTP para prevenir DoS por consumo de memoria.
 func MaxBodySizeMiddleware(maxBytes int64) gin.HandlerFunc {
+	return MaxBodySizeMiddlewareWithRouteLimits(maxBytes, nil)
+}
+
+// MaxBodySizeMiddlewareWithRouteLimits aplica o limite global de corpo HTTP permitindo sobrescrever rotas especificas ("METHOD /path").
+func MaxBodySizeMiddlewareWithRouteLimits(defaultMaxBytes int64, routeLimits map[string]int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Body != nil {
-			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+			limit := defaultMaxBytes
+			if len(routeLimits) > 0 {
+				if routeLimit, ok := routeLimits[c.Request.Method+" "+c.Request.URL.Path]; ok && routeLimit > 0 {
+					limit = routeLimit
+				}
+			}
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
 		}
 		c.Next()
 	}

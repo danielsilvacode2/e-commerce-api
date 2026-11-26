@@ -260,6 +260,8 @@ definitions:
         type: integer
       sku:
         type: string
+      stock:
+        type: integer
     type: object
   dto.ProcuctCreateRequestDTO:
     properties:
@@ -310,6 +312,11 @@ definitions:
       quantity:
         type: integer
       sku:
+        type: string
+    type: object
+  dto.ProductImageUploadResponseDTO:
+    properties:
+      url:
         type: string
     type: object
   dto.UserCartResponseDTO:
@@ -492,6 +499,13 @@ definitions:
     properties:
       'Body:':
         $ref: '#/definitions/dto.ProcuctResponseDTO'
+      Response:
+        $ref: '#/definitions/helpers.HelperResponseDto'
+    type: object
+  helpers.SwaggerDataResponse-dto_ProductImageUploadResponseDTO:
+    properties:
+      'Body:':
+        $ref: '#/definitions/dto.ProductImageUploadResponseDTO'
       Response:
         $ref: '#/definitions/helpers.HelperResponseDto'
     type: object
@@ -1942,6 +1956,54 @@ paths:
       security:
       - CookieAuth: []
       summary: Atualizar produto
+      tags:
+      - Products
+  /products/image:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Valida e realiza upload de uma imagem (JPG, PNG, WEBP ou GIF de
+        ate 5 MB). Requer perfil admin.
+      parameters:
+      - description: Arquivo de imagem (JPG, PNG, WEBP ou GIF, max 5 MB)
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/helpers.SwaggerDataResponse-dto_ProductImageUploadResponseDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/helpers.SwaggerValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/helpers.SwaggerMessageResponse'
+      security:
+      - CookieAuth: []
+      summary: Enviar imagem de produto
       tags:
       - Products
   /products/search:
