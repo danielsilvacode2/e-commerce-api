@@ -4,6 +4,7 @@ import (
 	"e-commerce/core/apperrors"
 	entitiesCart "e-commerce/core/entities/cart"
 	entities "e-commerce/core/entities/user"
+	"errors"
 
 	"github.com/google/uuid"
 )
@@ -23,7 +24,7 @@ func (useCase *ReadOrCreateCartUseCase) UseCase(userId string) (*entitiesCart.Ca
 
 	potentialCart, err := useCase.repository.ReadCartByUserId(userId, entitiesCart.CartStatusActive)
 
-	if err != nil && err != apperrors.ErrNotFound {
+	if err != nil && !errors.Is(err, apperrors.ErrNotFound) {
 		return nil, err
 	}
 
@@ -46,6 +47,10 @@ func (useCase *ReadOrCreateCartUseCase) UseCase(userId string) (*entitiesCart.Ca
 	}
 
 	if err = useCase.repository.CreateCart(cart); err != nil {
+		// Requisicoes concorrentes (ex.: sync paralelo pos-login) podem tentar criar o carrinho ativo ao mesmo tempo
+		if errors.Is(err, apperrors.ErrConflict) {
+			return useCase.repository.ReadCartByUserId(userId, entitiesCart.CartStatusActive)
+		}
 		return nil, err
 	}
 

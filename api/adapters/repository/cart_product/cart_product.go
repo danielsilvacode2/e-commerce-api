@@ -22,11 +22,70 @@ func NewCartProductRepository(db *sql.DB) entitiesCartProduct.CartProductReposit
 	}
 }
 
-func (r *cartProductRepository) AddProductCart(cartProduct entitiesCartProduct.CartProduct) error {
+func (r *cartProductRepository) AddProductCart(cartProduct entitiesCartProduct.CartProduct) (err error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
 
-	if _, err := r.db.Exec("INSERT INTO cart_products "+
-		"(id, cart_id, product_id,quantity ,isSelect) "+
-		"VALUES (?,?,?,?,?)"+
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	rows, err := tx.Query(
+		"SELECT id FROM cart_products WHERE cart_id = ? AND product_id = ? ORDER BY updated_at DESC, id DESC FOR UPDATE",
+		cartProduct.Cart.Id,
+		cartProduct.Product.Id,
+	)
+	if err != nil {
+		return err
+	}
+
+	var existingIDs []string
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		existingIDs = append(existingIDs, id)
+	}
+	if err = rows.Err(); err != nil {
+		_ = rows.Close()
+		return err
+	}
+	_ = rows.Close()
+
+	if len(existingIDs) > 0 {
+		primaryID := existingIDs[0]
+		if _, err = tx.Exec(
+			"UPDATE cart_products SET quantity = ? WHERE id = ?",
+			cartProduct.Quantity,
+			primaryID,
+		); err != nil {
+			return err
+		}
+
+		// Auto-saneia eventuais linhas duplicadas anteriores a aplicacao da constraint UNIQUE(cart_id, product_id)
+		if len(existingIDs) > 1 {
+			if _, err = tx.Exec(
+				"DELETE FROM cart_products WHERE cart_id = ? AND product_id = ? AND id <> ?",
+				cartProduct.Cart.Id,
+				cartProduct.Product.Id,
+				primaryID,
+			); err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	}
+
+	if _, err = tx.Exec("INSERT INTO cart_products "+
+		"(id, cart_id, product_id, quantity, isSelect) "+
+		"VALUES (?,?,?,?,?) "+
 		"ON DUPLICATE KEY UPDATE "+
 		"quantity = VALUES(quantity)",
 		cartProduct.Id,
@@ -45,16 +104,18 @@ func (r *cartProductRepository) AddProductCart(cartProduct entitiesCartProduct.C
 		return err
 	}
 
-	return nil
+	return tx.Commit()
 }
-
 
 func (r *cartProductRepository) DecreaseProductCart(cartProductId string, quantity int64) error {
 
-	if _, err := r.db.Exec("UPDATE cart_products SET quantity = (quantity - ? ) WHERE id = ?",
+	result, err := r.db.Exec(
+		"UPDATE cart_products SET quantity = (quantity - ?) WHERE id = ? AND quantity > ?",
 		quantity,
 		cartProductId,
-	); err != nil {
+		quantity,
+	)
+	if err != nil {
 
 		var sqlErr *mysql.MySQLError
 
@@ -63,6 +124,15 @@ func (r *cartProductRepository) DecreaseProductCart(cartProductId string, quanti
 		}
 
 		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return apperrors.ErrUnprocessableEntity
 	}
 
 	return nil
@@ -94,6 +164,7 @@ func (r *cartProductRepository) ReadAllProductsCart(userId string) ([]entitiesCa
         JOIN carts cart ON cartproducts.cart_id = cart.id AND cart.status = 'ACTIVE'
         JOIN users user ON cart.user_id = user.id
         WHERE user.id = ?
+        ORDER BY cartproducts.created_at ASC, cartproducts.id ASC
     `, userId)
 
 	if err != nil {
@@ -222,8 +293,18 @@ func (r *cartProductRepository) ReadProductsCart(cartProductId string) (*entitie
 
 func (r *cartProductRepository) RemoveProductCart(id string) error {
 
-	if _, err := r.db.Exec("DELETE FROM cart_products WHERE id = ?", id); err != nil {
+	result, err := r.db.Exec("DELETE FROM cart_products WHERE id = ?", id)
+	if err != nil {
 		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return apperrors.ErrNotFound
 	}
 
 	return nil

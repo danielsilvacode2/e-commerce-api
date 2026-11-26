@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"e-commerce/adapters/security/auth"
 	"e-commerce/core/apperrors"
 	entitiesCart "e-commerce/core/entities/cart"
@@ -150,6 +151,76 @@ func TestCartControllerEmptyAndRemove(t *testing.T) {
 
 		if w.Code != http.StatusNotFound {
 			t.Fatalf("status = %d, esperado 404 (body=%s)", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("diminuir quantidade de 2 para 1 retorna 200", func(t *testing.T) {
+		itemID := uuid.New()
+		repo := &stubCartProductRepo{
+			single: &entitiesCartProduct.CartProduct{
+				Id:       itemID,
+				Quantity: 2,
+				Cart: &entitiesCart.Cart{
+					User: &entitiesUser.User{ID: userID},
+				},
+			},
+		}
+		readOne := use_cases.NewReadCartProductUseCase(repo)
+		decreaseUC := use_cases.NewDecreaseProductCartUseCase(repo, *readOne)
+		ctrl := NewCartController(
+			use_cases.AddProductUseCase{},
+			use_cases.ReadAllCartProductsUseCase{},
+			use_cases.RemoveProductCartUseCase{},
+			use_cases.UpdateIsSelectUseCase{},
+			use_cases.UpdateAllIsSelectUseCase{},
+			*decreaseUC,
+		)
+
+		r := gin.New()
+		r.PUT("/api/v1/cart/decrease/:id", withClaims, ctrl.DecreaseProductCartMe)
+
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/cart/decrease/"+itemID.String(), bytes.NewBufferString(`{"quantity":1}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, esperado 200 (body=%s)", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("diminuir quantidade abaixo de 1 retorna 422", func(t *testing.T) {
+		itemID := uuid.New()
+		repo := &stubCartProductRepo{
+			single: &entitiesCartProduct.CartProduct{
+				Id:       itemID,
+				Quantity: 1,
+				Cart: &entitiesCart.Cart{
+					User: &entitiesUser.User{ID: userID},
+				},
+			},
+		}
+		readOne := use_cases.NewReadCartProductUseCase(repo)
+		decreaseUC := use_cases.NewDecreaseProductCartUseCase(repo, *readOne)
+		ctrl := NewCartController(
+			use_cases.AddProductUseCase{},
+			use_cases.ReadAllCartProductsUseCase{},
+			use_cases.RemoveProductCartUseCase{},
+			use_cases.UpdateIsSelectUseCase{},
+			use_cases.UpdateAllIsSelectUseCase{},
+			*decreaseUC,
+		)
+
+		r := gin.New()
+		r.PUT("/api/v1/cart/decrease/:id", withClaims, ctrl.DecreaseProductCartMe)
+
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/cart/decrease/"+itemID.String(), bytes.NewBufferString(`{"quantity":1}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		if w.Code != http.StatusUnprocessableEntity {
+			t.Fatalf("status = %d, esperado 422 (body=%s)", w.Code, w.Body.String())
 		}
 	})
 }

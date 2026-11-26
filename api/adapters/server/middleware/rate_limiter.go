@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"reflect"
 	"strings"
 
 	goredis "github.com/redis/go-redis/v9"
@@ -11,6 +12,19 @@ import (
 )
 
 const minRateLimitTTLMs int64 = 1000
+
+func isNilScripter(client goredis.Scripter) bool {
+	if client == nil {
+		return true
+	}
+	v := reflect.ValueOf(client)
+	switch v.Kind() {
+	case reflect.Pointer, reflect.Interface, reflect.Slice, reflect.Map, reflect.Chan, reflect.Func:
+		return v.IsNil()
+	default:
+		return false
+	}
+}
 
 // tokenBucketScript implementa um Token Bucket atomico no Redis usando o relogio do servidor (TIME).
 // KEYS[1]: chave do bucket
@@ -68,7 +82,7 @@ func (l *redisRateLimiter) allow(ctx context.Context, rawKey string) (bool, erro
 	if l.r == rate.Inf {
 		return true, nil
 	}
-	if l.client == nil {
+	if isNilScripter(l.client) {
 		return false, errors.New("cliente Redis nao inicializado")
 	}
 

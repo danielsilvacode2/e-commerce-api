@@ -36,6 +36,7 @@ var ImgBBAPIKey string
 var CookieSecure bool
 var CookieDomain string
 var AllowedOrigins []string
+var TrustedProxies []string
 
 const minSecretKeyLength = 32
 
@@ -50,7 +51,10 @@ func LoadConfig() {
 	dbName := os.Getenv("DB_NAME")
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
-	db_tsl := os.Getenv("DB_TSL")
+	dbTLS := strings.TrimSpace(os.Getenv("DB_TSL"))
+	if dbTLS == "" {
+		dbTLS = "true"
+	}
 
 	DbUrl = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
 		dbUser,
@@ -58,7 +62,7 @@ func LoadConfig() {
 		dbHost,
 		dbPort,
 		dbName,
-		db_tsl,
+		dbTLS,
 	)
 
 	ApiPort = strings.TrimSpace(os.Getenv("API_PORT"))
@@ -116,6 +120,7 @@ func LoadConfig() {
 	CookieDomain = strings.TrimSpace(os.Getenv("COOKIE_DOMAIN"))
 
 	originsEnv := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
+	AllowedOrigins = nil
 	if originsEnv == "" {
 		AllowedOrigins = []string{
 			"http://localhost:3000",
@@ -125,6 +130,15 @@ func LoadConfig() {
 		for _, o := range strings.Split(originsEnv, ",") {
 			if trimmed := strings.TrimRight(strings.TrimSpace(o), "/"); trimmed != "" {
 				AllowedOrigins = append(AllowedOrigins, trimmed)
+			}
+		}
+	}
+
+	TrustedProxies = nil
+	if proxiesEnv := strings.TrimSpace(os.Getenv("TRUSTED_PROXIES")); proxiesEnv != "" {
+		for _, p := range strings.Split(proxiesEnv, ",") {
+			if trimmed := strings.TrimSpace(p); trimmed != "" {
+				TrustedProxies = append(TrustedProxies, trimmed)
 			}
 		}
 	}
