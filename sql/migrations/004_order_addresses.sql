@@ -63,8 +63,9 @@ LEFT JOIN addresses a ON a.id = o.address_id
 WHERE a.id IS NULL;
 
 -- 5. Tornar address_id obrigatorio, unico (1:1), adicionar FK e remover zip_code solto
-ALTER TABLE orders
-    MODIFY COLUMN address_id VARCHAR(50) NOT NULL,
-    ADD CONSTRAINT uq_orders_address_id UNIQUE (address_id),
-    ADD CONSTRAINT fk_orders_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE RESTRICT,
-    DROP COLUMN zip_code;
+--    Instrucoes separadas para compatibilidade com MySQL 8.0+ e TiDB
+--    (evita erro SQL [8200]: Unsupported operate same column 'address_id').
+ALTER TABLE orders MODIFY COLUMN address_id VARCHAR(50) NOT NULL;
+ALTER TABLE orders ADD CONSTRAINT uq_orders_address_id UNIQUE (address_id);
+ALTER TABLE orders ADD CONSTRAINT fk_orders_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE RESTRICT;
+ALTER TABLE orders DROP COLUMN zip_code;
