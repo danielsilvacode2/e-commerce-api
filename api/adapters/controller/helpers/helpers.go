@@ -60,9 +60,35 @@ func HelperResponse(body interface{}, status int, msg string, c *gin.Context) {
 }
 
 func HelperErrResponse(body interface{}, c *gin.Context, err error) {
+	var valErr *apperrors.ValidationError
+	if errors.As(err, &valErr) {
+		errBody := body
+		if errBody == nil && len(valErr.Fields) > 0 {
+			fields := make([]fielderrors.FieldValidateErrors, 0, len(valErr.Fields))
+			for _, f := range valErr.Fields {
+				fields = append(fields, fielderrors.FieldValidateErrors{
+					Field:   f.Field,
+					Message: f.Message,
+				})
+			}
+			errBody = fields
+		}
+		status := http.StatusBadRequest
+		if errors.Is(valErr, apperrors.ErrUnprocessableEntity) {
+			status = http.StatusUnprocessableEntity
+		}
+		HelperResponse(errBody, status, valErr.Error(), c)
+		return
+	}
 
 	switch {
 
+	case errors.Is(err, apperrors.ErrCepNotFound):
+		HelperResponse(body, http.StatusNotFound, apperrors.ErrCepNotFound.Error(), c)
+		return
+	case errors.Is(err, apperrors.ErrAddressLookupUnavailable):
+		HelperResponse(body, http.StatusServiceUnavailable, apperrors.ErrAddressLookupUnavailable.Error(), c)
+		return
 	case errors.Is(err, apperrors.ErrNotFound):
 		HelperResponse(body, http.StatusNotFound, apperrors.ErrNotFound.Error(), c)
 		return

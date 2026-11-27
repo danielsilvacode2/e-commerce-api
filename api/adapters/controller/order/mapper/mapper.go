@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"e-commerce/adapters/controller/order/dto"
+	entitiesAddress "e-commerce/core/entities/address"
 	entitiesOrder "e-commerce/core/entities/order"
 	entitiesOrderItem "e-commerce/core/entities/order_item"
 	entitiesOrderStatusHistory "e-commerce/core/entities/order_status_history"
@@ -10,6 +11,34 @@ import (
 
 	"github.com/google/uuid"
 )
+
+func DtoRequestToAddress(req dto.OrderAddressRequestDTO) entitiesAddress.Address {
+	return entitiesAddress.Address{
+		Cep:          req.Cep,
+		Street:       req.Street,
+		Number:       req.Number,
+		Complement:   req.Complement,
+		Neighborhood: req.Neighborhood,
+		City:         req.City,
+		State:        req.State,
+	}
+}
+
+func AddressToDto(address *entitiesAddress.Address) *dto.OrderAddressResponseDTO {
+	if address == nil {
+		return nil
+	}
+	return &dto.OrderAddressResponseDTO{
+		Id:           address.Id,
+		Cep:          address.Cep,
+		Street:       address.Street,
+		Number:       address.Number,
+		Complement:   address.Complement,
+		Neighborhood: address.Neighborhood,
+		City:         address.City,
+		State:        address.State,
+	}
+}
 
 func OrderItemToDto(item entitiesOrderItem.OrderItem) dto.OrderItemResponseDTO {
 
@@ -31,6 +60,10 @@ func OrderItemToDto(item entitiesOrderItem.OrderItem) dto.OrderItemResponseDTO {
 }
 
 func OrderToDto(order entitiesOrder.Order) dto.OrderResponseDTO {
+	return OrderToDtoWithWarning(order, "")
+}
+
+func OrderToDtoWithWarning(order entitiesOrder.Order, warning string) dto.OrderResponseDTO {
 
 	listItemsDTO := make([]dto.OrderItemResponseDTO, 0, len(order.Items))
 
@@ -38,26 +71,27 @@ func OrderToDto(order entitiesOrder.Order) dto.OrderResponseDTO {
 		listItemsDTO = append(listItemsDTO, OrderItemToDto(item))
 	}
 
-	dto := dto.OrderResponseDTO{
-		Id:                    order.Id,
-		Status:                order.Status,
-		ZipCode:               order.ZipCode,
-		TrackingCode:          order.TrackingCode,
-		RefundReason:          order.RefundReason,
-		RefundRejectionReason: order.RefundRejectionReason,
-		Total:                 order.Total(),
-		Items:                 listItemsDTO,
-		UpdateAt:              order.UpdateAt,
-		CreateAt:              order.CreateAt,
+	orderDTO := dto.OrderResponseDTO{
+		Id:                       order.Id,
+		Address:                  AddressToDto(order.Address),
+		Status:                   order.Status,
+		AddressValidationWarning: warning,
+		TrackingCode:             order.TrackingCode,
+		RefundReason:             order.RefundReason,
+		RefundRejectionReason:    order.RefundRejectionReason,
+		Total:                    order.Total(),
+		Items:                    listItemsDTO,
+		UpdateAt:                 order.UpdateAt,
+		CreateAt:                 order.CreateAt,
 	}
 
 	if order.User != nil {
-		dto.User.Id = order.User.ID
-		dto.User.Name = order.User.Name
-		dto.User.Email = order.User.Email
+		orderDTO.User.Id = order.User.ID
+		orderDTO.User.Name = order.User.Name
+		orderDTO.User.Email = order.User.Email
 	}
 
-	return dto
+	return orderDTO
 }
 
 func PaginatedOrdersToDto(paginated entitiesOrder.PaginatedOrders) dto.PaginatedOrdersDTO {

@@ -4,6 +4,7 @@ import (
 	adapterPayment "e-commerce/adapters/payment"
 	adapterRabbitMQ "e-commerce/adapters/rabbitmq"
 	"e-commerce/core/apperrors"
+	entitiesAddress "e-commerce/core/entities/address"
 	entitiesOrder "e-commerce/core/entities/order"
 	entitiesOrderItem "e-commerce/core/entities/order_item"
 	entitiesPayment "e-commerce/core/entities/payment"
@@ -22,7 +23,7 @@ type stubOrderRepo struct {
 	orders map[string]*entitiesOrder.Order
 }
 
-func (s *stubOrderRepo) CreateOrder(order entitiesOrder.Order, cartProductIds []string) error {
+func (s *stubOrderRepo) CreateOrder(order entitiesOrder.Order, cartProductIds []string, useExistingAddress bool) error {
 	s.orders[order.Id.String()] = &order
 	return nil
 }
@@ -36,7 +37,9 @@ func (s *stubOrderRepo) ReadOrderById(ID string) (*entitiesOrder.Order, error) {
 func (s *stubOrderRepo) ReadAllOrders(filter entitiesOrder.OrderFilter) (*entitiesOrder.PaginatedOrders, error) {
 	return nil, nil
 }
-func (s *stubOrderRepo) UpdateOrderZipCode(zipCode string, ID string) error { return nil }
+func (s *stubOrderRepo) UpdateOrderAddress(address entitiesAddress.Address, ID string, useExistingAddress bool) error {
+	return nil
+}
 func (s *stubOrderRepo) UpdateOrderStatus(ID, cur, next string, restore bool) error {
 	return nil
 }

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	controllerAddress "e-commerce/adapters/controller/address"
 	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
 	controllerChat "e-commerce/adapters/controller/chat"
@@ -28,6 +29,7 @@ func NewRoutes(
 	orderController *controllerOrder.OrderController,
 	paymentController *controllerPayment.PaymentController,
 	chatController *controllerChat.ChatController,
+	addressController *controllerAddress.AddressController,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -38,6 +40,7 @@ func NewRoutes(
 
 	globalLimiter := middleware.NewRateLimiter(redisAdapter.Client, "rl:ip:global", rate.Every(20*time.Millisecond), 60)
 	webhookLimiter := middleware.NewRateLimiter(redisAdapter.Client, "rl:ip:webhook", rate.Every(200*time.Millisecond), 10)
+	addressLookupLimiter := middleware.NewRateLimiter(redisAdapter.Client, "rl:ip:address_lookup", rate.Every(250*time.Millisecond), 20)
 
 	createEmailLimiter := middleware.NewEmailRateLimiter(redisAdapter.Client, "rl:email:create", rate.Every(1*time.Minute), 3)
 
@@ -132,6 +135,13 @@ func NewRoutes(
 			orders.PUT("/:id/refund/approve", middleware.AuthMiddleware("admin"), orderController.ApproveRefund)
 			orders.PUT("/:id/refund/reject", middleware.AuthMiddleware("admin"), orderController.RejectRefund)
 			orders.DELETE("/:id", middleware.AuthMiddleware("admin"), orderController.DeleteOrder)
+		}
+
+		addresses := v1.Group("/addresses", middleware.AuthMiddleware("user"))
+		{
+			addresses.POST("", addressController.CreateAddress)
+			addresses.GET("/me", addressController.ReadMyAddresses)
+			addresses.GET("/lookup/:cep", middleware.RateLimiterMiddleware(addressLookupLimiter), addressController.LookupByCep)
 		}
 
 		chat := v1.Group("/chat", middleware.AuthMiddleware("user"))

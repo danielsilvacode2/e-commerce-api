@@ -1,6 +1,7 @@
 package entities
 
 import (
+	entitiesAddress "e-commerce/core/entities/address"
 	entitiesOrderItem "e-commerce/core/entities/order_item"
 	entitiesUser "e-commerce/core/entities/user"
 	"math"
@@ -32,8 +33,8 @@ var orderStatusTransitions = map[string][]string{
 type Order struct {
 	Id                    uuid.UUID
 	User                  *entitiesUser.User
+	Address               *entitiesAddress.Address
 	Status                string
-	ZipCode               string
 	TrackingCode          string
 	RefundReason          string
 	RefundRejectionReason string
@@ -77,7 +78,7 @@ func (o *Order) IsFinalized() bool {
 	return o.Status == OrderStatusCanceled || o.Status == OrderStatusRefunded
 }
 
-// IsEditable indica se o CEP ou cancelamento pelo cliente ainda sao permitidos
+// IsEditable indica se o endereco ou cancelamento pelo cliente ainda sao permitidos
 func (o *Order) IsEditable() bool {
 	return o.Status == OrderStatusPendingPayment || o.Status == OrderStatusPreparing
 }
@@ -133,10 +134,10 @@ func (o *Order) Total() float64 {
 }
 
 type OrderRepository interface {
-	CreateOrder(order Order, cartProductIds []string) error
+	CreateOrder(order Order, cartProductIds []string, useExistingAddress bool) error
 	ReadOrderById(ID string) (*Order, error)
 	ReadAllOrders(filter OrderFilter) (*PaginatedOrders, error)
-	UpdateOrderZipCode(zipCode string, ID string) error
+	UpdateOrderAddress(address entitiesAddress.Address, ID string, useExistingAddress bool) error
 	UpdateOrderStatus(ID string, currentStatus string, newStatus string, restoreStock bool) error
 	UpdateOrderStatusWithDetails(ID string, currentStatus string, newStatus string, restoreStock bool, trackingCode *string, refundReason *string, refundRejectionReason *string) error
 	DeleteOrder(ID string, restoreStock bool) error

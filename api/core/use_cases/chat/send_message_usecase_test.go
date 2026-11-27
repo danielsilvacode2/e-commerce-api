@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"e-commerce/core/apperrors"
+	entitiesAddress "e-commerce/core/entities/address"
 	entitiesOrder "e-commerce/core/entities/order"
 	entitiesUser "e-commerce/core/entities/user"
 	"e-commerce/core/ports"
@@ -22,7 +23,7 @@ type fakeOrderRepository struct {
 	orders map[string]*entitiesOrder.Order
 }
 
-func (f *fakeOrderRepository) CreateOrder(order entitiesOrder.Order, cartProductIds []string) error {
+func (f *fakeOrderRepository) CreateOrder(order entitiesOrder.Order, cartProductIds []string, useExistingAddress bool) error {
 	return nil
 }
 func (f *fakeOrderRepository) ReadOrderById(ID string) (*entitiesOrder.Order, error) {
@@ -46,7 +47,9 @@ func (f *fakeOrderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*
 	}
 	return &entitiesOrder.PaginatedOrders{Data: list, Page: filter.Page, Limit: filter.Limit}, nil
 }
-func (f *fakeOrderRepository) UpdateOrderZipCode(zipCode string, ID string) error { return nil }
+func (f *fakeOrderRepository) UpdateOrderAddress(address entitiesAddress.Address, ID string, useExistingAddress bool) error {
+	return nil
+}
 func (f *fakeOrderRepository) UpdateOrderStatus(ID string, currentStatus string, newStatus string, restoreStock bool) error {
 	return nil
 }

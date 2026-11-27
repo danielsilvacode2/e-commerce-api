@@ -1,6 +1,8 @@
 package builder
 
 import (
+	adapterBrasilAPI "e-commerce/adapters/brasilapi"
+	controllerAddress "e-commerce/adapters/controller/address"
 	controllerLogin "e-commerce/adapters/controller/auth"
 	controllerCart "e-commerce/adapters/controller/cart"
 	controllerChat "e-commerce/adapters/controller/chat"
@@ -14,6 +16,7 @@ import (
 	adapterOpenRouter "e-commerce/adapters/openrouter"
 	adapterPayment "e-commerce/adapters/payment"
 	"e-commerce/adapters/rabbitmq"
+	repositoryAddress "e-commerce/adapters/repository/address"
 	repositoryCart "e-commerce/adapters/repository/cart"
 	repositoryCartProduct "e-commerce/adapters/repository/cart_product"
 	repositoryOrder "e-commerce/adapters/repository/order"
@@ -25,6 +28,7 @@ import (
 	"e-commerce/adapters/security"
 	"e-commerce/config"
 	"e-commerce/core/ports"
+	useCasesAddress "e-commerce/core/use_cases/address"
 	useCasesCart "e-commerce/core/use_cases/cart"
 	useCasesCartProduct "e-commerce/core/use_cases/cart_product"
 	useCasesChat "e-commerce/core/use_cases/chat"
@@ -39,7 +43,18 @@ import (
 	"sync"
 )
 
-var logEmailServiceOnce sync.Once
+var (
+	logEmailServiceOnce     sync.Once
+	addressGatewayOnce      sync.Once
+	sharedAddressLookupGw   ports.AddressLookupGateway
+)
+
+func buildAddressLookupGateway() ports.AddressLookupGateway {
+	addressGatewayOnce.Do(func() {
+		sharedAddressLookupGw = adapterBrasilAPI.NewBrasilAPIClient()
+	})
+	return sharedAddressLookupGw
+}
 
 func buildEmailService() ports.EmailService {
 	from := strings.TrimSpace(config.EmailFrom)
@@ -193,6 +208,7 @@ func BuilderPaymentSyncConsumerRabbitMQ() ports.EventPaymentSyncConsumer {
 func BuilderOrderController() *controllerOrder.OrderController {
 
 	orderRepository := repositoryOrder.NewOrderRepository(database.DB_MySQL)
+	addressRepository := repositoryAddress.NewAddressRepository(database.DB_MySQL)
 	paymentRepository := repositoryPayment.NewPaymentRepository(database.DB_MySQL)
 	orderItemRepository := repositoryOrderItem.NewOrderItemRepository(database.DB_MySQL)
 	orderStatusHistoryRepository := repositoryOrderStatusHistory.NewOrderStatusHistoryRepository(database.DB_MySQL)
@@ -208,11 +224,14 @@ func BuilderOrderController() *controllerOrder.OrderController {
 	readProductById := useCasesProduct.NewReadProductByIdUseCase(productRepository)
 	readAllCartProduct := useCasesCartProduct.NewReadAllCartProductsUseCase(cartProductRepository)
 
+	addressGateway := buildAddressLookupGateway()
+	validateAddress := useCasesAddress.NewValidateAddressUseCase(addressGateway)
+
 	readOrderById := useCasesOrder.NewReadOrderByIdUseCase(orderRepository)
-	createOrder := useCasesOrder.NewCreateOrderUseCase(orderRepository, paymentRepository, readUserById, readAllCartProduct)
+	createOrder := useCasesOrder.NewCreateOrderUseCase(orderRepository, addressRepository, paymentRepository, readUserById, readAllCartProduct, validateAddress)
 	readAllOrders := useCasesOrder.NewReadAllOrdersUseCase(orderRepository)
 	readOrdersByUserId := useCasesOrder.NewReadOrdersByUserIdUseCase(orderRepository)
-	updateOrder := useCasesOrder.NewUpdateOrderUseCase(orderRepository, readOrderById)
+	updateOrder := useCasesOrder.NewUpdateOrderUseCase(orderRepository, addressRepository, readOrderById, validateAddress)
 	updateOrderStatus := useCasesOrder.NewUpdateOrderStatusUseCase(orderRepository, readOrderById, orderEventQueue)
 	cancelOrder := useCasesOrder.NewCancelOrderUseCase(orderRepository, readOrderById)
 	requestRefund := useCasesOrder.NewRequestRefundUseCase(orderRepository, paymentRepository, readOrderById, paymentGateway, orderEventQueue)
@@ -278,4 +297,14 @@ func BuilderPaymentController() *controllerPayment.PaymentController {
 	webhookPayment := useCasesPayment.NewWebhookPaymentUseCase(paymentRepository, orderRepository, paymentGateway, orderEventQueue)
 
 	return controllerPayment.NewPaymentController(processPayment, readPaymentByOrder, webhookPayment)
+}
+
+func BuilderAddressController() *controllerAddress.AddressController {
+	addressRepository := repositoryAddress.NewAddressRepository(database.DB_MySQL)
+	addressGateway := buildAddressLookupGateway()
+	lookupAddressByCep := useCasesAddress.NewLookupAddressByCepUseCase(addressGateway)
+	validateAddress := useCasesAddress.NewValidateAddressUseCase(addressGateway)
+	readMyAddresses := useCasesAddress.NewReadMyAddressesUseCase(addressRepository)
+	createAddress := useCasesAddress.NewCreateAddressUseCase(addressRepository, validateAddress)
+	return controllerAddress.NewAddressController(lookupAddressByCep, readMyAddresses, createAddress)
 }

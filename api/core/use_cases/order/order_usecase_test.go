@@ -1,23 +1,31 @@
 package use_cases_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
 	"e-commerce/core/apperrors"
+	entitiesAddress "e-commerce/core/entities/address"
+	entitiesCart "e-commerce/core/entities/cart"
+	entitiesCartProduct "e-commerce/core/entities/cart_product"
 	entitiesOrder "e-commerce/core/entities/order"
 	entitiesOrderItem "e-commerce/core/entities/order_item"
 	entitiesPayment "e-commerce/core/entities/payment"
+	entitiesProduct "e-commerce/core/entities/product"
 	entitiesUser "e-commerce/core/entities/user"
 	"e-commerce/core/ports"
+	useCasesAddress "e-commerce/core/use_cases/address"
+	useCasesCartProduct "e-commerce/core/use_cases/cart_product"
 	useCasesOrder "e-commerce/core/use_cases/order"
 
 	"github.com/google/uuid"
 )
 
 type fakeOrderRepository struct {
-	orders map[string]*entitiesOrder.Order
+	orders           map[string]*entitiesOrder.Order
+	lastUsedExisting bool
 }
 
 func newFakeOrderRepository() *fakeOrderRepository {
@@ -26,8 +34,10 @@ func newFakeOrderRepository() *fakeOrderRepository {
 	}
 }
 
-func (f *fakeOrderRepository) CreateOrder(order entitiesOrder.Order, cartProductIds []string) error {
-	f.orders[order.Id.String()] = &order
+func (f *fakeOrderRepository) CreateOrder(order entitiesOrder.Order, cartProductIds []string, useExistingAddress bool) error {
+	f.lastUsedExisting = useExistingAddress
+	copyOrder := order
+	f.orders[order.Id.String()] = &copyOrder
 	return nil
 }
 
@@ -59,12 +69,14 @@ func (f *fakeOrderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*
 	}, nil
 }
 
-func (f *fakeOrderRepository) UpdateOrderZipCode(zipCode string, ID string) error {
+func (f *fakeOrderRepository) UpdateOrderAddress(address entitiesAddress.Address, ID string, useExistingAddress bool) error {
 	order, ok := f.orders[ID]
 	if !ok {
 		return apperrors.ErrNotFound
 	}
-	order.ZipCode = zipCode
+	f.lastUsedExisting = useExistingAddress
+	copyAddr := address
+	order.Address = &copyAddr
 	return nil
 }
 
@@ -439,4 +451,350 @@ func TestOrderTotalCalculation(t *testing.T) {
 	if total != expected {
 		t.Errorf("expected total %f, got %f", expected, total)
 	}
+}
+
+type fakeCartProductRepoForOrder struct {
+	items []entitiesCartProduct.CartProduct
+}
+
+func (f *fakeCartProductRepoForOrder) AddProductCart(entitiesCartProduct.CartProduct) error { return nil }
+func (f *fakeCartProductRepoForOrder) ReadAllProductsCart(string) ([]entitiesCartProduct.CartProduct, error) {
+	return f.items, nil
+}
+func (f *fakeCartProductRepoForOrder) ReadProductsCart(string) (*entitiesCartProduct.CartProduct, error) {
+	return nil, apperrors.ErrNotFound
+}
+func (f *fakeCartProductRepoForOrder) RemoveProductCart(string) error         { return nil }
+func (f *fakeCartProductRepoForOrder) UpdateIsSelect(bool, string) error      { return nil }
+func (f *fakeCartProductRepoForOrder) UpdateAllIsSelect(bool, string) error   { return nil }
+func (f *fakeCartProductRepoForOrder) DecreaseProductCart(string, int64) error { return nil }
+
+type fakeAddressGatewayForOrder struct {
+	cepResult *ports.CepLookupResult
+	cepErr    error
+	cities    []string
+	citiesErr error
+}
+
+func (f *fakeAddressGatewayForOrder) LookupByCep(ctx context.Context, cep string) (*ports.CepLookupResult, error) {
+	if f.cepErr != nil {
+		return nil, f.cepErr
+	}
+	return f.cepResult, nil
+}
+
+func (f *fakeAddressGatewayForOrder) ListCitiesByState(ctx context.Context, uf string) ([]string, error) {
+	if f.citiesErr != nil {
+		return nil, f.citiesErr
+	}
+	return f.cities, nil
+}
+
+type fakeAddressRepoForOrder struct {
+	addresses map[string]*entitiesAddress.Address
+}
+
+func newFakeAddressRepoForOrder() *fakeAddressRepoForOrder {
+	return &fakeAddressRepoForOrder{
+		addresses: make(map[string]*entitiesAddress.Address),
+	}
+}
+
+func (f *fakeAddressRepoForOrder) CreateAddress(address entitiesAddress.Address) error {
+	copyAddr := address
+	f.addresses[address.Id.String()] = &copyAddr
+	return nil
+}
+
+func (f *fakeAddressRepoForOrder) ReadAddressById(ID string) (*entitiesAddress.Address, error) {
+	if addr, ok := f.addresses[ID]; ok {
+		copyAddr := *addr
+		return &copyAddr, nil
+	}
+	return nil, apperrors.ErrNotFound
+}
+
+func (f *fakeAddressRepoForOrder) ReadAddressesByUserId(userId string) ([]entitiesAddress.Address, error) {
+	var list []entitiesAddress.Address
+	for _, a := range f.addresses {
+		if a.UserId.String() == userId && a.IsComplete() {
+			list = append(list, *a)
+		}
+	}
+	return list, nil
+}
+
+func (f *fakeAddressRepoForOrder) FindMatchingUserAddress(userId string, address entitiesAddress.Address) (*entitiesAddress.Address, error) {
+	for _, a := range f.addresses {
+		if a.UserId.String() == userId &&
+			a.Cep == address.Cep &&
+			a.Street == address.Street &&
+			a.Number == address.Number &&
+			a.Complement == address.Complement &&
+			a.Neighborhood == address.Neighborhood &&
+			a.City == address.City &&
+			a.State == address.State {
+			copyAddr := *a
+			return &copyAddr, nil
+		}
+	}
+	return nil, apperrors.ErrNotFound
+}
+
+func TestCreateAndUpdateOrderAddressUseCases(t *testing.T) {
+	userID := uuid.New()
+	productID := uuid.New()
+	cartItems := []entitiesCartProduct.CartProduct{
+		{
+			Id:       uuid.New(),
+			Quantity: 2,
+			IsSelect: true,
+			Cart: &entitiesCart.Cart{
+				Id:   uuid.New(),
+				User: &entitiesUser.User{ID: userID, Name: "Maria", Email: "maria@example.com"},
+			},
+			Product: &entitiesProduct.Product{
+				Id:    productID,
+				Name:  "Camiseta Oversized",
+				Price: 99.90,
+			},
+		},
+	}
+
+	t.Run("CreateOrder persiste nova instancia de Address validada junto com Order", func(t *testing.T) {
+		orderRepo := newFakeOrderRepository()
+		addrRepo := newFakeAddressRepoForOrder()
+		paymentRepo := &fakePaymentRepoForOrder{orderRepo: orderRepo, payments: make(map[string]*entitiesPayment.Payment)}
+		cartUC := useCasesCartProduct.NewReadAllCartProductsUseCase(&fakeCartProductRepoForOrder{items: cartItems})
+		validateUC := useCasesAddress.NewValidateAddressUseCase(&fakeAddressGatewayForOrder{
+			cepResult: &ports.CepLookupResult{
+				Cep:          "01001000",
+				State:        "SP",
+				City:         "São Paulo",
+				Neighborhood: "Sé",
+				Street:       "Praça da Sé",
+			},
+			cities: []string{"SÃO PAULO", "CAMPINAS"},
+		})
+
+		createUC := useCasesOrder.NewCreateOrderUseCase(orderRepo, addrRepo, paymentRepo, nil, cartUC, validateUC)
+		res, err := createUC.UseCase(context.Background(), useCasesOrder.OrderAddressSelection{
+			Address: &entitiesAddress.Address{
+				Cep:          "01001-000",
+				Street:       "Praça da Sé",
+				Number:       "100A",
+				Complement:   "Apto 12",
+				Neighborhood: "Sé",
+				City:         "Sao Paulo",
+				State:        "sp",
+			},
+		}, userID.String())
+		if err != nil {
+			t.Fatalf("expected nil err, got %v", err)
+		}
+		if res.Warning != "" {
+			t.Fatalf("expected empty warning, got %q", res.Warning)
+		}
+		if orderRepo.lastUsedExisting {
+			t.Fatalf("expected new address instance, got useExistingAddress=true")
+		}
+		if res.Order.Address == nil || res.Order.Address.Id == uuid.Nil || res.Order.Address.UserId != userID {
+			t.Fatalf("expected persisted Address with UUID and UserId, got %+v", res.Order.Address)
+		}
+		if res.Order.Address.Cep != "01001000" || res.Order.Address.State != "SP" || res.Order.Address.Number != "100A" {
+			t.Fatalf("unexpected address stored: %+v", res.Order.Address)
+		}
+	})
+
+	t.Run("CreateOrder reutiliza endereco salvo proprio via address_id sem chamar BrasilAPI", func(t *testing.T) {
+		orderRepo := newFakeOrderRepository()
+		addrRepo := newFakeAddressRepoForOrder()
+		savedID := uuid.New()
+		addrRepo.addresses[savedID.String()] = &entitiesAddress.Address{
+			Id:           savedID,
+			UserId:       userID,
+			Cep:          "01001000",
+			Street:       "Praça da Sé",
+			Number:       "100",
+			Neighborhood: "Sé",
+			City:         "São Paulo",
+			State:        "SP",
+		}
+		cartUC := useCasesCartProduct.NewReadAllCartProductsUseCase(&fakeCartProductRepoForOrder{items: cartItems})
+
+		// validateAddress nil garante que nao precisa consultar BrasilAPI ao reutilizar endereco salvo
+		createUC := useCasesOrder.NewCreateOrderUseCase(orderRepo, addrRepo, nil, nil, cartUC, nil)
+		res, err := createUC.UseCase(context.Background(), useCasesOrder.OrderAddressSelection{
+			AddressId: savedID.String(),
+		}, userID.String())
+		if err != nil {
+			t.Fatalf("expected nil err reusing saved address, got %v", err)
+		}
+		if !orderRepo.lastUsedExisting {
+			t.Fatal("expected useExistingAddress=true")
+		}
+		if res.Order.Address.Id != savedID {
+			t.Fatalf("expected address ID %s, got %s", savedID, res.Order.Address.Id)
+		}
+	})
+
+	t.Run("CreateOrder bloqueia reutilizacao de endereco salvo de outro usuario com 403", func(t *testing.T) {
+		orderRepo := newFakeOrderRepository()
+		addrRepo := newFakeAddressRepoForOrder()
+		otherUserID := uuid.New()
+		savedID := uuid.New()
+		addrRepo.addresses[savedID.String()] = &entitiesAddress.Address{
+			Id:     savedID,
+			UserId: otherUserID,
+			Cep:    "01001000",
+			Street: "Praça da Sé",
+			Number: "100",
+			City:   "São Paulo",
+			State:  "SP",
+		}
+		cartUC := useCasesCartProduct.NewReadAllCartProductsUseCase(&fakeCartProductRepoForOrder{items: cartItems})
+		createUC := useCasesOrder.NewCreateOrderUseCase(orderRepo, addrRepo, nil, nil, cartUC, nil)
+
+		_, err := createUC.UseCase(context.Background(), useCasesOrder.OrderAddressSelection{
+			AddressId: savedID.String(),
+		}, userID.String())
+		if !errors.Is(err, apperrors.ErrForbidden) {
+			t.Fatalf("expected ErrForbidden, got %v", err)
+		}
+	})
+
+	t.Run("CreateOrder rejeita reutilizacao de endereco legado incompleto com 422", func(t *testing.T) {
+		orderRepo := newFakeOrderRepository()
+		addrRepo := newFakeAddressRepoForOrder()
+		legacyID := uuid.New()
+		addrRepo.addresses[legacyID.String()] = &entitiesAddress.Address{
+			Id:     legacyID,
+			UserId: userID,
+			Cep:    "01001000",
+		}
+		cartUC := useCasesCartProduct.NewReadAllCartProductsUseCase(&fakeCartProductRepoForOrder{items: cartItems})
+		createUC := useCasesOrder.NewCreateOrderUseCase(orderRepo, addrRepo, nil, nil, cartUC, nil)
+
+		_, err := createUC.UseCase(context.Background(), useCasesOrder.OrderAddressSelection{
+			AddressId: legacyID.String(),
+		}, userID.String())
+		if !errors.Is(err, apperrors.ErrUnprocessableEntity) {
+			t.Fatalf("expected ErrUnprocessableEntity for incomplete legacy address, got %v", err)
+		}
+	})
+
+	t.Run("CreateOrder rejeita endereco com cidade divergente do CEP sem criar pedido", func(t *testing.T) {
+		orderRepo := newFakeOrderRepository()
+		addrRepo := newFakeAddressRepoForOrder()
+		cartUC := useCasesCartProduct.NewReadAllCartProductsUseCase(&fakeCartProductRepoForOrder{items: cartItems})
+		validateUC := useCasesAddress.NewValidateAddressUseCase(&fakeAddressGatewayForOrder{
+			cepResult: &ports.CepLookupResult{
+				Cep:   "01001000",
+				State: "SP",
+				City:  "São Paulo",
+			},
+			cities: []string{"SÃO PAULO", "CAMPINAS"},
+		})
+
+		createUC := useCasesOrder.NewCreateOrderUseCase(orderRepo, addrRepo, nil, nil, cartUC, validateUC)
+		_, err := createUC.UseCase(context.Background(), useCasesOrder.OrderAddressSelection{
+			Address: &entitiesAddress.Address{
+				Cep:    "01001-000",
+				Street: "Rua Principal",
+				Number: "50",
+				City:   "Campinas",
+				State:  "SP",
+			},
+		}, userID.String())
+		if !errors.Is(err, apperrors.ErrUnprocessableEntity) {
+			t.Fatalf("expected ErrUnprocessableEntity, got %v", err)
+		}
+		if len(orderRepo.orders) != 0 {
+			t.Fatalf("order should not be persisted on invalid address")
+		}
+	})
+
+	t.Run("CreateOrder aceita com warning em fail-open quando BrasilAPI esta indisponivel", func(t *testing.T) {
+		orderRepo := newFakeOrderRepository()
+		addrRepo := newFakeAddressRepoForOrder()
+		cartUC := useCasesCartProduct.NewReadAllCartProductsUseCase(&fakeCartProductRepoForOrder{items: cartItems})
+		validateUC := useCasesAddress.NewValidateAddressUseCase(&fakeAddressGatewayForOrder{
+			cepErr:    apperrors.ErrAddressLookupUnavailable,
+			citiesErr: apperrors.ErrAddressLookupUnavailable,
+		})
+
+		createUC := useCasesOrder.NewCreateOrderUseCase(orderRepo, addrRepo, nil, nil, cartUC, validateUC)
+		res, err := createUC.UseCase(context.Background(), useCasesOrder.OrderAddressSelection{
+			Address: &entitiesAddress.Address{
+				Cep:    "01001-000",
+				Street: "Praça da Sé",
+				Number: "S/N",
+				City:   "São Paulo",
+				State:  "SP",
+			},
+		}, userID.String())
+		if err != nil {
+			t.Fatalf("expected nil err on fail-open, got %v", err)
+		}
+		if res.Warning == "" {
+			t.Fatal("expected degraded validation warning")
+		}
+		if len(orderRepo.orders) != 1 {
+			t.Fatalf("expected 1 persisted order, got %d", len(orderRepo.orders))
+		}
+	})
+
+	t.Run("UpdateOrder atualiza endereco de pedido editavel criando nova instancia e bloqueia em SHIPPED", func(t *testing.T) {
+		orderRepo := newFakeOrderRepository()
+		addrRepo := newFakeAddressRepoForOrder()
+		readUC := useCasesOrder.NewReadOrderByIdUseCase(orderRepo)
+		validateUC := useCasesAddress.NewValidateAddressUseCase(&fakeAddressGatewayForOrder{
+			cepResult: &ports.CepLookupResult{
+				Cep:   "20040020",
+				State: "RJ",
+				City:  "Rio de Janeiro",
+			},
+			cities: []string{"RIO DE JANEIRO"},
+		})
+		updateUC := useCasesOrder.NewUpdateOrderUseCase(orderRepo, addrRepo, readUC, validateUC)
+
+		orderID := uuid.New()
+		oldAddrID := uuid.New()
+		orderRepo.orders[orderID.String()] = &entitiesOrder.Order{
+			Id:      orderID,
+			User:    &entitiesUser.User{ID: userID},
+			Status:  entitiesOrder.OrderStatusPreparing,
+			Address: &entitiesAddress.Address{Id: oldAddrID, UserId: userID, Cep: "01001000"},
+		}
+
+		_, err := updateUC.UseCase(context.Background(), useCasesOrder.OrderAddressSelection{
+			Address: &entitiesAddress.Address{
+				Cep:    "20040-020",
+				Street: "Rua da Assembleia",
+				Number: "10",
+				City:   "Rio de Janeiro",
+				State:  "RJ",
+			},
+		}, orderID.String(), userID.String(), "user")
+		if err != nil {
+			t.Fatalf("expected nil err updating editable order, got %v", err)
+		}
+		if orderRepo.orders[orderID.String()].Address.Cep != "20040020" || orderRepo.orders[orderID.String()].Address.Id == oldAddrID {
+			t.Fatalf("expected new address instance with cep 20040020, got %+v", orderRepo.orders[orderID.String()].Address)
+		}
+
+		orderRepo.orders[orderID.String()].Status = entitiesOrder.OrderStatusShipped
+		_, err = updateUC.UseCase(context.Background(), useCasesOrder.OrderAddressSelection{
+			Address: &entitiesAddress.Address{
+				Cep:    "20040-020",
+				Street: "Rua da Assembleia",
+				Number: "10",
+				City:   "Rio de Janeiro",
+				State:  "RJ",
+			},
+		}, orderID.String(), userID.String(), "user")
+		if !errors.Is(err, apperrors.ErrUnprocessableEntity) {
+			t.Fatalf("expected ErrUnprocessableEntity for SHIPPED order, got %v", err)
+		}
+	})
 }

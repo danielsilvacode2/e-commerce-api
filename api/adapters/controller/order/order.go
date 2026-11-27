@@ -107,16 +107,16 @@ func (orderCtrl *OrderController) getPagination(c *gin.Context) (int, int) {
 
 // CreateOrderMe faz o checkout dos itens selecionados do carrinho do usuario logado.
 // @Summary      Criar pedido (checkout)
-// @Description  Cria um novo pedido a partir dos itens selecionados no carrinho do usuario logado.
+// @Description  Cria um novo pedido a partir dos itens selecionados no carrinho do usuario logado, validando o endereco de entrega.
 // @Tags         Orders
 // @Accept       json
 // @Produce      json
 // @Security     CookieAuth
-// @Param        request  body      dto.OrderCreateRequestDTO  true  "Dados para criacao do pedido (CEP)"
+// @Param        request  body      dto.OrderCreateRequestDTO  true  "Dados de endereco para criacao do pedido"
 // @Success      201      {object}  helpers.SwaggerDataResponse[dto.OrderResponseDTO]
 // @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
 // @Failure      401      {object}  helpers.SwaggerMessageResponse
-// @Failure      422      {object}  helpers.SwaggerMessageResponse
+// @Failure      422      {object}  helpers.SwaggerValidationErrorResponse
 // @Failure      500      {object}  helpers.SwaggerMessageResponse
 // @Router       /orders [post]
 func (orderCtrl *OrderController) CreateOrderMe(c *gin.Context) {
@@ -140,7 +140,19 @@ func (orderCtrl *OrderController) CreateOrderMe(c *gin.Context) {
 		return
 	}
 
-	order, err := orderCtrl.createOrder.UseCase(strings.TrimSpace(dtoRequest.ZipCode), claims.Id.String())
+	selection := useCasesOrder.OrderAddressSelection{
+		AddressId: strings.TrimSpace(dtoRequest.AddressId),
+	}
+	if dtoRequest.Address != nil {
+		addr := mapper.DtoRequestToAddress(*dtoRequest.Address)
+		selection.Address = &addr
+	}
+
+	result, err := orderCtrl.createOrder.UseCase(
+		c.Request.Context(),
+		selection,
+		claims.Id.String(),
+	)
 
 	if err != nil {
 		helpers.HelperErrResponse(nil, c, err)
@@ -148,7 +160,7 @@ func (orderCtrl *OrderController) CreateOrderMe(c *gin.Context) {
 	}
 
 	redisAdapter.InvalidateProductCache(c.Request.Context())
-	helpers.HelperResponse(mapper.OrderToDto(*order), http.StatusCreated, "create order", c)
+	helpers.HelperResponse(mapper.OrderToDtoWithWarning(*result.Order, result.Warning), http.StatusCreated, "create order", c)
 }
 
 // ReadAllOrdersMe lista os pedidos do usuario autenticado de forma paginada.
@@ -254,21 +266,21 @@ func (orderCtrl *OrderController) ReadOrderById(c *gin.Context) {
 	helpers.HelperResponse(mapper.OrderToDto(*order), http.StatusOK, "found order", c)
 }
 
-// UpdateOrder atualiza o endereco (CEP) de um pedido.
-// @Summary      Atualizar pedido
-// @Description  Atualiza o CEP de entrega de um pedido elegivel (proprietario ou admin).
+// UpdateOrder atualiza o endereco de entrega de um pedido.
+// @Summary      Atualizar endereco do pedido
+// @Description  Valida e atualiza o endereco de entrega de um pedido elegivel (proprietario ou admin).
 // @Tags         Orders
 // @Accept       json
 // @Produce      json
 // @Security     CookieAuth
 // @Param        id       path      string                     true  "ID do pedido (UUID)"
-// @Param        request  body      dto.OrderUpdateRequestDTO  true  "Novo CEP do pedido"
+// @Param        request  body      dto.OrderUpdateRequestDTO  true  "Novo endereco do pedido"
 // @Success      204      "Pedido atualizado com sucesso"
 // @Failure      400      {object}  helpers.SwaggerValidationErrorResponse
 // @Failure      401      {object}  helpers.SwaggerMessageResponse
 // @Failure      403      {object}  helpers.SwaggerMessageResponse
 // @Failure      404      {object}  helpers.SwaggerMessageResponse
-// @Failure      422      {object}  helpers.SwaggerMessageResponse
+// @Failure      422      {object}  helpers.SwaggerValidationErrorResponse
 // @Failure      500      {object}  helpers.SwaggerMessageResponse
 // @Router       /orders/{id} [put]
 func (orderCtrl *OrderController) UpdateOrder(c *gin.Context) {
@@ -292,7 +304,21 @@ func (orderCtrl *OrderController) UpdateOrder(c *gin.Context) {
 		return
 	}
 
-	if err = orderCtrl.updateOrder.UseCase(strings.TrimSpace(dtoRequest.ZipCode), c.Param("id"), claims.Id.String(), claims.Role); err != nil {
+	selection := useCasesOrder.OrderAddressSelection{
+		AddressId: strings.TrimSpace(dtoRequest.AddressId),
+	}
+	if dtoRequest.Address != nil {
+		addr := mapper.DtoRequestToAddress(*dtoRequest.Address)
+		selection.Address = &addr
+	}
+
+	if _, err = orderCtrl.updateOrder.UseCase(
+		c.Request.Context(),
+		selection,
+		c.Param("id"),
+		claims.Id.String(),
+		claims.Role,
+	); err != nil {
 		helpers.HelperErrResponse(nil, c, err)
 		return
 	}

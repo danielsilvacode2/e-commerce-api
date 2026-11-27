@@ -14,18 +14,30 @@ type PaginatedOrdersDTO struct {
 	TotalPages int                `json:"total_pages"`
 }
 
+type OrderAddressResponseDTO struct {
+	Id           uuid.UUID `json:"id"`
+	Cep          string    `json:"cep"`
+	Street       string    `json:"street"`
+	Number       string    `json:"number"`
+	Complement   string    `json:"complement,omitempty"`
+	Neighborhood string    `json:"neighborhood,omitempty"`
+	City         string    `json:"city"`
+	State        string    `json:"state"`
+}
+
 type OrderResponseDTO struct {
-	Id                    uuid.UUID              `json:"id"`
-	User                  UserOrderResponseDTO   `json:"user"`
-	Status                string                 `json:"status"`
-	ZipCode               string                 `json:"zip_code"`
-	TrackingCode          string                 `json:"tracking_code,omitempty"`
-	RefundReason          string                 `json:"refund_reason,omitempty"`
-	RefundRejectionReason string                 `json:"refund_rejection_reason,omitempty"`
-	Total                 float64                `json:"total"`
-	Items                 []OrderItemResponseDTO `json:"items"`
-	UpdateAt              time.Time              `json:"update_at"`
-	CreateAt              time.Time              `json:"created_at"`
+	Id                       uuid.UUID                `json:"id"`
+	User                     UserOrderResponseDTO     `json:"user"`
+	Address                  *OrderAddressResponseDTO `json:"address"`
+	Status                   string                   `json:"status"`
+	AddressValidationWarning string                   `json:"address_validation_warning,omitempty"`
+	TrackingCode             string                   `json:"tracking_code,omitempty"`
+	RefundReason             string                   `json:"refund_reason,omitempty"`
+	RefundRejectionReason    string                   `json:"refund_rejection_reason,omitempty"`
+	Total                    float64                  `json:"total"`
+	Items                    []OrderItemResponseDTO   `json:"items"`
+	UpdateAt                 time.Time                `json:"update_at"`
+	CreateAt                 time.Time                `json:"created_at"`
 }
 
 type UserOrderResponseDTO struct {

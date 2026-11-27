@@ -46,7 +46,11 @@ e-commerce-api/
 ├── sql/
 │   ├── script.sql                        # Schema inicial do banco MySQL
 │   └── migrations/
-│       └── 001_payment_refund_flow.sql   # Migration do fluxo de pagamentos e estornos
+│       ├── 001_payment_refund_flow.sql                  # Migration do fluxo de pagamentos e estornos
+│       ├── 002_performance_indexes.sql                  # Indices de performance
+│       ├── 003_cart_products_unique_and_constraints.sql # Unicidade e constraints do carrinho
+│       ├── 004_order_addresses.sql                      # Entidade Address (1:1 com Order) e migracao de CEPs legados
+│       └── 005_user_saved_addresses.sql                 # Enderecos salvos por usuario (User 1:N Address, Order N:1 Address)
 └── api/
     ├── cmd/
     │   └── main.go                       # Entrypoint, consumidores RabbitMQ e servidor HTTP
@@ -90,6 +94,10 @@ e-commerce-api/
 1. Crie o banco de dados no MySQL e execute os scripts SQL na ordem:
    - `sql/script.sql`
    - `sql/migrations/001_payment_refund_flow.sql`
+   - `sql/migrations/002_performance_indexes.sql`
+   - `sql/migrations/003_cart_products_unique_and_constraints.sql`
+   - `sql/migrations/004_order_addresses.sql`
+   - `sql/migrations/005_user_saved_addresses.sql`
 
 2. Na pasta `api/`, copie o arquivo `env_model` para `.env` e preencha os valores:
 
@@ -171,7 +179,7 @@ Os arquivos OpenAPI gerados também podem ser importados diretamente no Swagger 
 Sempre que alterar rotas, handlers ou DTOs, execute dentro de `e-commerce-api/api`:
 
 ```powershell
-swag init -g main.go -d cmd,adapters/controller/helpers,adapters/controller/fieldErrors,adapters/controller/auth,adapters/controller/cart,adapters/controller/chat,adapters/controller/order,adapters/controller/payment,adapters/controller/product,adapters/controller/user -o docs
+swag init -g main.go -d cmd,adapters/controller/helpers,adapters/controller/fieldErrors,adapters/controller/address,adapters/controller/auth,adapters/controller/cart,adapters/controller/chat,adapters/controller/order,adapters/controller/payment,adapters/controller/product,adapters/controller/user -o docs
 ```
 
 Caso ainda não tenha a CLI `swag` instalada:
@@ -192,6 +200,7 @@ go install github.com/swaggo/swag/cmd/swag@latest
 | **Cart** | `GET /cart`, `POST /cart`, `PUT /cart`, `PUT /cart/:id`, `PUT /cart/decrease/:id`, `DELETE /cart/:id` |
 | **Orders** | `POST /orders`, `GET /orders/me`, `GET /orders/:id`, `PUT /orders/:id`, `PUT /orders/:id/cancel`, `POST /orders/:id/refund`, `GET /orders/:id/history`, `GET/POST /orders/:id/items`, `PUT/DELETE /orders/:id/items/:itemId`, `GET /orders` (admin), `PUT /orders/:id/status` (admin), `PUT /orders/:id/refund/approve` (admin), `PUT /orders/:id/refund/reject` (admin), `DELETE /orders/:id` (admin) |
 | **Payments** | `POST /orders/:id/payments`, `GET /orders/:id/payment`, `POST /orders/:id/payment/confirm` (mock), `POST /payments/webhook` |
+| **Addresses** | `POST /addresses`, `GET /addresses/me`, `GET /addresses/lookup/:cep` |
 | **Chat** | `POST /chat` |
 
 ---
