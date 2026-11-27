@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"e-commerce/core/apperrors"
+	entitiesAddress "e-commerce/core/entities/address"
 	entitiesOrder "e-commerce/core/entities/order"
 	entitiesOrderItem "e-commerce/core/entities/order_item"
 	entitiesProduct "e-commerce/core/entities/product"
@@ -25,9 +26,21 @@ func NewOrderRepository(db *sql.DB) entitiesOrder.OrderRepository {
 	}
 }
 
-// CreateOrder persiste o pedido, os itens, baixa o estoque, grava o historico
-// e remove os itens do carrinho em uma unica transacao.
-func (r *orderRepository) CreateOrder(order entitiesOrder.Order, cartProductIds []string) (err error) {
+func nullableString(val string) sql.NullString {
+	trimmed := strings.TrimSpace(val)
+	if trimmed == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: trimmed, Valid: true}
+}
+
+// CreateOrder persiste o pedido, vinculando um endereco ja salvo (useExistingAddress = true)
+// ou inserindo uma nova instancia em `addresses` (useExistingAddress = false), baixa o estoque,
+// grava o historico e remove os itens do carrinho em uma unica transacao.
+func (r *orderRepository) CreateOrder(order entitiesOrder.Order, cartProductIds []string, useExistingAddress bool) (err error) {
+	if order.Address == nil || order.User == nil {
+		return apperrors.ErrInvalidInput
+	}
 
 	tx, err := r.db.Begin()
 
@@ -41,11 +54,46 @@ func (r *orderRepository) CreateOrder(order entitiesOrder.Order, cartProductIds 
 		}
 	}()
 
-	if _, err = tx.Exec("INSERT INTO orders (id, user_id, status, zip_code) VALUES (?,?,?,?)",
+	if useExistingAddress {
+		var existingID string
+		if err = tx.QueryRow("SELECT id FROM addresses WHERE id = ? AND user_id = ?", order.Address.Id, order.User.ID).Scan(&existingID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				err = apperrors.ErrNotFound
+			}
+			return err
+		}
+	} else {
+		addrUserID := order.Address.UserId
+		if addrUserID == uuid.Nil {
+			addrUserID = order.User.ID
+		}
+		if _, err = tx.Exec(`
+			INSERT INTO addresses (id, user_id, cep, street, number, complement, neighborhood, city, state)
+			VALUES (?,?,?,?,?,?,?,?,?)
+		`,
+			order.Address.Id,
+			addrUserID,
+			order.Address.Cep,
+			order.Address.Street,
+			order.Address.Number,
+			nullableString(order.Address.Complement),
+			nullableString(order.Address.Neighborhood),
+			order.Address.City,
+			order.Address.State,
+		); err != nil {
+			var sqlErr *mysql.MySQLError
+			if errors.As(err, &sqlErr) && sqlErr.Number == 1062 {
+				return apperrors.ErrConflict
+			}
+			return err
+		}
+	}
+
+	if _, err = tx.Exec("INSERT INTO orders (id, user_id, address_id, status) VALUES (?,?,?,?)",
 		order.Id,
 		order.User.ID,
+		order.Address.Id,
 		order.Status,
-		order.ZipCode,
 	); err != nil {
 
 		var sqlErr *mysql.MySQLError
@@ -96,7 +144,6 @@ func (r *orderRepository) ReadOrderById(ID string) (*entitiesOrder.Order, error)
         SELECT
             orders.id,
             orders.status,
-            orders.zip_code,
             orders.tracking_code,
             orders.refund_reason,
             orders.refund_rejection_reason,
@@ -104,9 +151,21 @@ func (r *orderRepository) ReadOrderById(ID string) (*entitiesOrder.Order, error)
             orders.created_at,
             users.id,
             users.user_name,
-            users.user_email
+            users.user_email,
+            addresses.id,
+            addresses.user_id,
+            addresses.cep,
+            addresses.street,
+            addresses.number,
+            addresses.complement,
+            addresses.neighborhood,
+            addresses.city,
+            addresses.state,
+            addresses.updated_at,
+            addresses.created_at
         FROM orders
         INNER JOIN users ON orders.user_id = users.id
+        INNER JOIN addresses ON orders.address_id = addresses.id
         WHERE orders.id = ?
     `, ID)
 
@@ -126,15 +185,16 @@ func (r *orderRepository) ReadOrderById(ID string) (*entitiesOrder.Order, error)
 	}
 
 	order := entitiesOrder.Order{
-		User: &entitiesUser.User{},
+		User:    &entitiesUser.User{},
+		Address: &entitiesAddress.Address{},
 	}
 
 	var trackingCode, refundReason, refundRejectionReason sql.NullString
+	var complement, neighborhood sql.NullString
 
 	if err = row.Scan(
 		&order.Id,
 		&order.Status,
-		&order.ZipCode,
 		&trackingCode,
 		&refundReason,
 		&refundRejectionReason,
@@ -143,6 +203,17 @@ func (r *orderRepository) ReadOrderById(ID string) (*entitiesOrder.Order, error)
 		&order.User.ID,
 		&order.User.Name,
 		&order.User.Email,
+		&order.Address.Id,
+		&order.Address.UserId,
+		&order.Address.Cep,
+		&order.Address.Street,
+		&order.Address.Number,
+		&complement,
+		&neighborhood,
+		&order.Address.City,
+		&order.Address.State,
+		&order.Address.UpdateAt,
+		&order.Address.CreateAt,
 	); err != nil {
 		return nil, err
 	}
@@ -150,6 +221,8 @@ func (r *orderRepository) ReadOrderById(ID string) (*entitiesOrder.Order, error)
 	order.TrackingCode = trackingCode.String
 	order.RefundReason = refundReason.String
 	order.RefundRejectionReason = refundRejectionReason.String
+	order.Address.Complement = complement.String
+	order.Address.Neighborhood = neighborhood.String
 
 	mapItems, err := r.readItemsByOrderIds([]string{order.Id.String()})
 
@@ -197,10 +270,12 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 		return nil, err
 	}
 
-	query := "SELECT orders.id, orders.status, orders.zip_code, orders.tracking_code, orders.refund_reason, orders.refund_rejection_reason, orders.updated_at, orders.created_at," +
-		" users.id, users.user_name, users.user_email" +
+	query := "SELECT orders.id, orders.status, orders.tracking_code, orders.refund_reason, orders.refund_rejection_reason, orders.updated_at, orders.created_at," +
+		" users.id, users.user_name, users.user_email," +
+		" addresses.id, addresses.user_id, addresses.cep, addresses.street, addresses.number, addresses.complement, addresses.neighborhood, addresses.city, addresses.state, addresses.updated_at, addresses.created_at" +
 		" FROM orders" +
 		" INNER JOIN users ON orders.user_id = users.id" +
+		" INNER JOIN addresses ON orders.address_id = addresses.id" +
 		where +
 		" ORDER BY orders.created_at DESC LIMIT ? OFFSET ?"
 
@@ -218,15 +293,16 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 	for rows.Next() {
 
 		order := entitiesOrder.Order{
-			User: &entitiesUser.User{},
+			User:    &entitiesUser.User{},
+			Address: &entitiesAddress.Address{},
 		}
 
 		var trackingCode, refundReason, refundRejectionReason sql.NullString
+		var complement, neighborhood sql.NullString
 
 		if err = rows.Scan(
 			&order.Id,
 			&order.Status,
-			&order.ZipCode,
 			&trackingCode,
 			&refundReason,
 			&refundRejectionReason,
@@ -235,6 +311,17 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 			&order.User.ID,
 			&order.User.Name,
 			&order.User.Email,
+			&order.Address.Id,
+			&order.Address.UserId,
+			&order.Address.Cep,
+			&order.Address.Street,
+			&order.Address.Number,
+			&complement,
+			&neighborhood,
+			&order.Address.City,
+			&order.Address.State,
+			&order.Address.UpdateAt,
+			&order.Address.CreateAt,
 		); err != nil {
 			return nil, err
 		}
@@ -242,6 +329,8 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 		order.TrackingCode = trackingCode.String
 		order.RefundReason = refundReason.String
 		order.RefundRejectionReason = refundRejectionReason.String
+		order.Address.Complement = complement.String
+		order.Address.Neighborhood = neighborhood.String
 
 		listOrders = append(listOrders, order)
 		listIds = append(listIds, order.Id.String())
@@ -275,13 +364,64 @@ func (r *orderRepository) ReadAllOrders(filter entitiesOrder.OrderFilter) (*enti
 	}, nil
 }
 
-func (r *orderRepository) UpdateOrderZipCode(zipCode string, ID string) error {
-
-	if _, err := r.db.Exec("UPDATE orders SET zip_code = ? WHERE id = ?", zipCode, ID); err != nil {
+// UpdateOrderAddress vincula o pedido a um endereco salvo existente ou cria uma nova instancia em `addresses`
+// e atualiza `orders.address_id`, preservando enderecos compartilhados com pedidos historicos.
+func (r *orderRepository) UpdateOrderAddress(address entitiesAddress.Address, ID string, useExistingAddress bool) (err error) {
+	tx, err := r.db.Begin()
+	if err != nil {
 		return err
 	}
 
-	return nil
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var orderUserID string
+	if err = tx.QueryRow("SELECT user_id FROM orders WHERE id = ? FOR UPDATE", ID).Scan(&orderUserID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = apperrors.ErrNotFound
+		}
+		return err
+	}
+
+	if useExistingAddress {
+		var existingID string
+		if err = tx.QueryRow("SELECT id FROM addresses WHERE id = ? AND user_id = ?", address.Id, orderUserID).Scan(&existingID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				err = apperrors.ErrNotFound
+			}
+			return err
+		}
+	} else {
+		addrUserID := address.UserId.String()
+		if address.UserId == uuid.Nil {
+			addrUserID = orderUserID
+		}
+		if _, err = tx.Exec(`
+			INSERT INTO addresses (id, user_id, cep, street, number, complement, neighborhood, city, state)
+			VALUES (?,?,?,?,?,?,?,?,?)
+		`,
+			address.Id,
+			addrUserID,
+			address.Cep,
+			address.Street,
+			address.Number,
+			nullableString(address.Complement),
+			nullableString(address.Neighborhood),
+			address.City,
+			address.State,
+		); err != nil {
+			return err
+		}
+	}
+
+	if _, err = tx.Exec("UPDATE orders SET address_id = ? WHERE id = ?", address.Id, ID); err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // UpdateOrderStatus altera o status com lock na linha do pedido, grava o historico
@@ -365,8 +505,8 @@ func (r *orderRepository) UpdateOrderStatusWithDetails(
 	return tx.Commit()
 }
 
-// DeleteOrder remove o pedido (itens e historico via ON DELETE CASCADE),
-// devolvendo o estoque quando restoreStock = true.
+// DeleteOrder remove o pedido (itens e historico via ON DELETE CASCADE) mantendo os enderecos salvos
+// do usuario intactos (relacao Order N:1 Address).
 func (r *orderRepository) DeleteOrder(ID string, restoreStock bool) (err error) {
 
 	tx, err := r.db.Begin()
