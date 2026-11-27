@@ -335,8 +335,41 @@ func TestMigration004OrderAddressesMySQL(t *testing.T) {
 	fmt.Printf("[INFO] Migrations 004 e 005 validadas com sucesso no MySQL temporario %s\n", dbName)
 }
 
+func assertSingleOpAlterTables(t *testing.T, migrationName string, stmts []string) {
+	t.Helper()
+	for _, stmt := range stmts {
+		upper := strings.ToUpper(stmt)
+		if !strings.HasPrefix(upper, "ALTER TABLE ") {
+			continue
+		}
+		// Evita multiplas operacoes no mesmo ALTER TABLE (erro TiDB 8200: Unsupported operate same column)
+		ops := 0
+		for _, keyword := range []string{
+			"ADD COLUMN",
+			"MODIFY COLUMN",
+			"CHANGE COLUMN",
+			"DROP COLUMN",
+			"ADD CONSTRAINT",
+			"ADD INDEX",
+			"DROP INDEX",
+			"DROP FOREIGN KEY",
+		} {
+			ops += strings.Count(upper, keyword)
+		}
+		if ops > 1 {
+			t.Errorf("%s contem ALTER TABLE com multiplas operacoes (%d) — divida em instrucoes separadas para compatibilidade com TiDB/MySQL:\n%s",
+				migrationName, ops, stmt)
+		}
+	}
+}
+
 func TestMigration005UserSavedAddressesStructure(t *testing.T) {
+	content004 := readMigrationFile(t, filepath.Join("sql", "migrations", "004_order_addresses.sql"))
+	assertSingleOpAlterTables(t, "004_order_addresses.sql", splitSQLStatements(content004))
+
 	content := readMigrationFile(t, filepath.Join("sql", "migrations", "005_user_saved_addresses.sql"))
+	assertSingleOpAlterTables(t, "005_user_saved_addresses.sql", splitSQLStatements(content))
+
 	for _, snippet := range []string{
 		"ADD COLUMN user_id VARCHAR(50) NULL",
 		"SET a.user_id = o.user_id",
